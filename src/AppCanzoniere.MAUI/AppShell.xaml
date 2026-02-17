@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<Shell
+    x:Class="AppCanzoniere.MAUI.AppShell"
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:pages="clr-namespace:AppCanzoniere.MAUI.Pages"
+    Title="AppCanzoniere"
+    FlyoutBackgroundColor="{StaticResource Primary}">
+
+    <!-- Tab Bar -->
+    <TabBar>
+        <ShellContent
+            Title="Home"
+            Icon="home.png"
+            ContentTemplate="{DataTemplate pages:HomePage}"
+            Route="home" />
+
+        <ShellContent
+            Title="Public Songs"
+            Icon="cloud.png"
+            ContentTemplate="{DataTemplate pages:PublicSongsPage}"
+            Route="publicsongs" />
+
+        <ShellContent
+            Title="Albums"
+            Icon="album.png"
+            ContentTemplate="{DataTemplate pages:AlbumListPage}"
+            Route="albums" />
+
+        <ShellContent
+            Title="OCR Import"
+            Icon="camera.png"
+            ContentTemplate="{DataTemplate pages:OcrImportPage}"
+            Route="ocrimport" />
+
+        <ShellContent
+            Title="Audio ID"
+            Icon="microphone.png"
+            ContentTemplate="{DataTemplate pages:AudioRecognitionPage}"
+            Route="audiorecognition" />
+
+        <ShellContent
+            Title="Search"
+            Icon="search.png"
+            ContentTemplate="{DataTemplate pages:SearchPage}"
+            Route="search" />
+
+        <ShellContent
+            Title="Settings"
+            Icon="settings.png"
+            ContentTemplate="{DataTemplate pages:SettingsPage}"
+            Route="settings" />
+    </TabBar>
+
+</Shell>

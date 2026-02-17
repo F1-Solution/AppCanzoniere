@@ -1,0 +1,122 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:vm="clr-namespace:AppCanzoniere.MAUI.ViewModels"
+             xmlns:entities="clr-namespace:AppCanzoniere.Domain.Entities;assembly=AppCanzoniere.Domain"
+             x:Class="AppCanzoniere.MAUI.Pages.AlbumListPage"
+             x:DataType="vm:AlbumListViewModel"
+             Title="Albums">
+
+    <ContentPage.ToolbarItems>
+        <ToolbarItem Text="Add Album"
+                     IconImageSource="add.png"
+                     Command="{Binding NavigateToCreateAlbumCommand}" />
+    </ContentPage.ToolbarItems>
+
+    <Grid RowDefinitions="Auto,*">
+        <!-- Search Bar -->
+        <SearchBar Grid.Row="0"
+                   Placeholder="Search albums..."
+                   Text="{Binding SearchText}"
+                   SearchCommand="{Binding SearchCommand}"
+                   Margin="10" />
+
+        <!-- Albums List -->
+        <RefreshView Grid.Row="1"
+                     IsRefreshing="{Binding IsLoading}"
+                     Command="{Binding RefreshCommand}">
+            <CollectionView ItemsSource="{Binding Albums}"
+                            SelectionMode="Single">
+                <CollectionView.EmptyView>
+                    <StackLayout Padding="20"
+                                 VerticalOptions="Center">
+                        <Label Text="📚"
+                               FontSize="48"
+                               HorizontalOptions="Center" />
+                        <Label Text="No albums found"
+                               FontSize="18"
+                               HorizontalOptions="Center"
+                               TextColor="{StaticResource Gray500}"
+                               Margin="0,10,0,0" />
+                        <Label Text="Tap + to create a new album"
+                               FontSize="14"
+                               HorizontalOptions="Center"
+                               TextColor="{StaticResource Gray400}" />
+                    </StackLayout>
+                </CollectionView.EmptyView>
+
+                <CollectionView.ItemTemplate>
+                    <DataTemplate x:DataType="entities:Album">
+                        <Frame Margin="10,5"
+                               Padding="15"
+                               BorderColor="{StaticResource Gray200}"
+                               CornerRadius="10"
+                               HasShadow="True">
+                            <Frame.GestureRecognizers>
+                                <TapGestureRecognizer Command="{Binding Source={RelativeSource AncestorType={x:Type vm:AlbumListViewModel}}, Path=NavigateToAlbumDetailCommand}"
+                                                      CommandParameter="{Binding .}" />
+                            </Frame.GestureRecognizers>
+
+                            <Grid ColumnDefinitions="60,*,Auto"
+                                  ColumnSpacing="15">
+                                <!-- Album Icon -->
+                                <Frame Grid.Column="0"
+                                       WidthRequest="60"
+                                       HeightRequest="60"
+                                       CornerRadius="10"
+                                       BackgroundColor="{StaticResource Primary}"
+                                       Padding="0"
+                                       HasShadow="False">
+                                    <Label Text="📀"
+                                           FontSize="32"
+                                           HorizontalOptions="Center"
+                                           VerticalOptions="Center" />
+                                </Frame>
+
+                                <!-- Album Info -->
+                                <VerticalStackLayout Grid.Column="1"
+                                                     VerticalOptions="Center">
+                                    <Label Text="{Binding Name}"
+                                           FontSize="18"
+                                           FontAttributes="Bold" />
+                                    <Label Text="{Binding Description}"
+                                           FontSize="14"
+                                           TextColor="{StaticResource Gray600}"
+                                           LineBreakMode="TailTruncation"
+                                           MaxLines="1" />
+                                    <HorizontalStackLayout Spacing="5"
+                                                           Margin="0,5,0,0">
+                                        <Label Text="{Binding Type}"
+                                               FontSize="12"
+                                               TextColor="{StaticResource Primary}"
+                                               BackgroundColor="{StaticResource Gray100}"
+                                               Padding="5,2" />
+                                        <Label Text="{Binding AlbumSongs.Count, StringFormat='{0} songs'}"
+                                               FontSize="12"
+                                               TextColor="{StaticResource Gray500}" />
+                                    </HorizontalStackLayout>
+                                </VerticalStackLayout>
+
+                                <!-- Chevron -->
+                                <Image Grid.Column="2"
+                                       Source="chevron_right.png"
+                                       WidthRequest="20"
+                                       HeightRequest="20"
+                                       VerticalOptions="Center" />
+                            </Grid>
+                        </Frame>
+                    </DataTemplate>
+                </CollectionView.ItemTemplate>
+            </CollectionView>
+        </RefreshView>
+
+        <!-- Loading Indicator -->
+        <ActivityIndicator Grid.Row="1"
+                           IsRunning="{Binding IsLoading}"
+                           IsVisible="{Binding IsLoading}"
+                           Color="{StaticResource Primary}"
+                           VerticalOptions="Center"
+                           HorizontalOptions="Center" />
+    </Grid>
+
+</ContentPage>

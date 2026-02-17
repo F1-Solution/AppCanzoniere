@@ -1,0 +1,16 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/AppCanzoniere.Application/AppCanzoniere.Application.csproj" />
+    <Project Path="src/AppCanzoniere.Backend/AppCanzoniere.Backend.csproj" />
+    <Project Path="src/AppCanzoniere.Domain/AppCanzoniere.Domain.csproj" />
+    <Project Path="src/AppCanzoniere.Infrastructure/AppCanzoniere.Infrastructure.csproj" />
+    <Project Path="src/AppCanzoniere.MAUI/AppCanzoniere.MAUI.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/AppCanzoniere.Application.Tests/AppCanzoniere.Application.Tests.csproj" />
+    <Project Path="tests/AppCanzoniere.Backend.IntegrationTests/AppCanzoniere.Backend.IntegrationTests.csproj" />
+    <Project Path="tests/AppCanzoniere.Backend.Tests/AppCanzoniere.Backend.Tests.csproj" />
+    <Project Path="tests/AppCanzoniere.Domain.Tests/AppCanzoniere.Domain.Tests.csproj" />
+    <Project Path="tests/AppCanzoniere.Infrastructure.Tests/AppCanzoniere.Infrastructure.Tests.csproj" />
+  </Folder>
+</Solution>

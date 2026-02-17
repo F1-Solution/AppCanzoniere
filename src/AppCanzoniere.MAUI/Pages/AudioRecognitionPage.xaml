@@ -1,0 +1,280 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:viewmodels="clr-namespace:AppCanzoniere.MAUI.ViewModels"
+             x:Class="AppCanzoniere.MAUI.Pages.AudioRecognitionPage"
+             x:DataType="viewmodels:AudioRecognitionViewModel"
+             Title="Audio Recognition">
+
+    <ContentPage.ToolbarItems>
+        <ToolbarItem Text="Clear"
+                     IconImageSource="delete.png"
+                     Command="{Binding ClearResultsCommand}" />
+    </ContentPage.ToolbarItems>
+
+    <ScrollView>
+        <VerticalStackLayout Padding="20" Spacing="20">
+
+            <!-- Service Status -->
+            <Frame BackgroundColor="{StaticResource Primary}" 
+                   Padding="15"
+                   CornerRadius="10">
+                <HorizontalStackLayout Spacing="10">
+                    <Label Text="🎵" FontSize="24" VerticalOptions="Center"/>
+                    <VerticalStackLayout Spacing="5">
+                        <Label Text="Audio Recognition" 
+                               FontSize="18" 
+                               FontAttributes="Bold"
+                               TextColor="White"/>
+                        <Label Text="{Binding ServiceName}" 
+                               FontSize="14"
+                               TextColor="White"
+                               Opacity="0.9"/>
+                    </VerticalStackLayout>
+                </HorizontalStackLayout>
+            </Frame>
+
+            <!-- Warning if service not available -->
+            <Frame BackgroundColor="#FFF3CD" 
+                   BorderColor="#FFC107"
+                   Padding="15"
+                   CornerRadius="10"
+                   IsVisible="{Binding IsServiceAvailable, Converter={StaticResource InvertedBoolConverter}}">
+                <VerticalStackLayout Spacing="10">
+                    <Label Text="⚠️ Service Not Available" 
+                           FontSize="16" 
+                           FontAttributes="Bold"
+                           TextColor="#856404"/>
+                    <Label TextColor="#856404">
+                        <Label.FormattedText>
+                            <FormattedString>
+                                <Span Text="The audio recognition service is not configured. "/>
+                                <Span Text="See " />
+                                <Span Text="SETUP_INSTRUCTIONS.md" FontAttributes="Bold"/>
+                                <Span Text=" for setup steps or use the demo mode."/>
+                            </FormattedString>
+                        </Label.FormattedText>
+                    </Label>
+                </VerticalStackLayout>
+            </Frame>
+
+            <!-- Recording Options (Future Feature) -->
+            <VerticalStackLayout Spacing="10" Opacity="0.5">
+                <Label Text="Record from Microphone (Coming Soon)" 
+                       FontSize="16" 
+                       FontAttributes="Bold"/>
+                
+                <HorizontalStackLayout Spacing="10">
+                    <Label Text="Duration (seconds):" 
+                           VerticalOptions="Center"
+                           FontSize="14"/>
+                    <Picker ItemsSource="{Binding AvailableDurations}"
+                            SelectedItem="{Binding RecordingDuration}"
+                            WidthRequest="80"
+                            BackgroundColor="{StaticResource Gray100}"/>
+                </HorizontalStackLayout>
+
+                <Button Text="🎤 Start Recording"
+                        Command="{Binding StartRecordingCommand}"
+                        IsEnabled="False"
+                        BackgroundColor="{StaticResource Gray400}"
+                        TextColor="White"
+                        CornerRadius="8"
+                        HeightRequest="50"
+                        FontSize="16"/>
+            </VerticalStackLayout>
+
+            <!-- Separator -->
+            <BoxView HeightRequest="1" 
+                     BackgroundColor="{StaticResource Gray300}"
+                     Margin="0,10"/>
+
+            <!-- File Selection -->
+            <VerticalStackLayout Spacing="10">
+                <Label Text="Identify from Audio File" 
+                       FontSize="16" 
+                       FontAttributes="Bold"/>
+                
+                <Button Text="📁 Select Audio File"
+                        Command="{Binding SelectAudioFileCommand}"
+                        BackgroundColor="{StaticResource Primary}"
+                        TextColor="White"
+                        CornerRadius="8"
+                        HeightRequest="50"
+                        FontSize="16"/>
+                
+                <Label Text="{Binding SelectedFilePath}"
+                       FontSize="12"
+                       TextColor="{StaticResource Gray600}"
+                       LineBreakMode="TailTruncation"
+                       IsVisible="{Binding SelectedFilePath, Converter={StaticResource StringToBoolConverter}}"/>
+            </VerticalStackLayout>
+
+            <!-- Processing Indicator -->
+            <VerticalStackLayout Spacing="10" 
+                                IsVisible="{Binding IsProcessing}"
+                                HorizontalOptions="Center">
+                <ActivityIndicator IsRunning="{Binding IsProcessing}"
+                                  Color="{StaticResource Primary}"
+                                  HeightRequest="50"/>
+                <Label Text="Identifying track..."
+                       HorizontalOptions="Center"
+                       TextColor="{StaticResource Gray600}"/>
+            </VerticalStackLayout>
+
+            <!-- Error Message -->
+            <Frame BackgroundColor="#F8D7DA" 
+                   BorderColor="#DC3545"
+                   Padding="15"
+                   CornerRadius="10"
+                   IsVisible="{Binding ErrorMessage, Converter={StaticResource StringToBoolConverter}}">
+                <VerticalStackLayout Spacing="5">
+                    <Label Text="❌ Error" 
+                           FontSize="16" 
+                           FontAttributes="Bold"
+                           TextColor="#721C24"/>
+                    <Label Text="{Binding ErrorMessage}" 
+                           TextColor="#721C24"
+                           LineBreakMode="WordWrap"/>
+                </VerticalStackLayout>
+            </Frame>
+
+            <!-- Results Section -->
+            <VerticalStackLayout Spacing="15" IsVisible="{Binding HasResult}">
+                
+                <!-- Success Header -->
+                <Frame BackgroundColor="#D4EDDA" 
+                       BorderColor="#28A745"
+                       Padding="15"
+                       CornerRadius="10">
+                    <HorizontalStackLayout Spacing="10">
+                        <Label Text="✓" 
+                               FontSize="24" 
+                               TextColor="#155724"
+                               VerticalOptions="Center"/>
+                        <VerticalStackLayout Spacing="5">
+                            <Label Text="Track Identified" 
+                                   FontSize="18" 
+                                   FontAttributes="Bold"
+                                   TextColor="#155724"/>
+                            <Label TextColor="#155724">
+                                <Label.FormattedText>
+                                    <FormattedString>
+                                        <Span Text="Confidence: "/>
+                                        <Span Text="{Binding RecognitionResult.Score, StringFormat='{0:F1}%'}" 
+                                              FontAttributes="Bold"/>
+                                    </FormattedString>
+                                </Label.FormattedText>
+                            </Label>
+                        </VerticalStackLayout>
+                    </HorizontalStackLayout>
+                </Frame>
+
+                <!-- Track Info -->
+                <Frame BorderColor="{StaticResource Gray300}"
+                       BackgroundColor="White"
+                       Padding="15"
+                       CornerRadius="10">
+                    <Grid RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto" 
+                          ColumnDefinitions="120,*"
+                          RowSpacing="10">
+                        
+                        <Label Grid.Row="0" Grid.Column="0" 
+                               Text="Title:" 
+                               FontAttributes="Bold"/>
+                        <Label Grid.Row="0" Grid.Column="1" 
+                               Text="{Binding RecognitionResult.Title}"
+                               FontSize="16"
+                               LineBreakMode="WordWrap"/>
+                        
+                        <Label Grid.Row="1" Grid.Column="0" 
+                               Text="Artist:" 
+                               FontAttributes="Bold"/>
+                        <Label Grid.Row="1" Grid.Column="1" 
+                               Text="{Binding RecognitionResult.Artist}"
+                               LineBreakMode="WordWrap"/>
+                        
+                        <Label Grid.Row="2" Grid.Column="0" 
+                               Text="Album:" 
+                               FontAttributes="Bold"
+                               IsVisible="{Binding RecognitionResult.Album, Converter={StaticResource StringToBoolConverter}}"/>
+                        <Label Grid.Row="2" Grid.Column="1" 
+                               Text="{Binding RecognitionResult.Album}"
+                               LineBreakMode="WordWrap"
+                               IsVisible="{Binding RecognitionResult.Album, Converter={StaticResource StringToBoolConverter}}"/>
+                        
+                        <Label Grid.Row="3" Grid.Column="0" 
+                               Text="Release Date:" 
+                               FontAttributes="Bold"
+                               IsVisible="{Binding RecognitionResult.ReleaseDate, Converter={StaticResource StringToBoolConverter}}"/>
+                        <Label Grid.Row="3" Grid.Column="1" 
+                               Text="{Binding RecognitionResult.ReleaseDate}"
+                               IsVisible="{Binding RecognitionResult.ReleaseDate, Converter={StaticResource StringToBoolConverter}}"/>
+                        
+                        <Label Grid.Row="4" Grid.Column="0" 
+                               Text="Duration:" 
+                               FontAttributes="Bold"/>
+                        <Label Grid.Row="4" Grid.Column="1">
+                            <Label.FormattedText>
+                                <FormattedString>
+                                    <Span Text="{Binding RecognitionResult.DurationMs, StringFormat='{0}'}" />
+                                    <Span Text=" ms" />
+                                </FormattedString>
+                            </Label.FormattedText>
+                        </Label>
+                        
+                        <Label Grid.Row="5" Grid.Column="0" 
+                               Text="Spotify ID:" 
+                               FontAttributes="Bold"
+                               IsVisible="{Binding RecognitionResult.SpotifyId, Converter={StaticResource StringToBoolConverter}}"/>
+                        <Label Grid.Row="5" Grid.Column="1" 
+                               Text="{Binding RecognitionResult.SpotifyId}"
+                               FontFamily="Courier"
+                               FontSize="12"
+                               IsVisible="{Binding RecognitionResult.SpotifyId, Converter={StaticResource StringToBoolConverter}}"/>
+                    </Grid>
+                </Frame>
+
+                <!-- Action Button -->
+                <Button Text="Create Song from Result"
+                        Command="{Binding CreateSongFromResultCommand}"
+                        BackgroundColor="{StaticResource Success}"
+                        TextColor="White"
+                        CornerRadius="8"
+                        HeightRequest="50"
+                        FontSize="16"
+                        FontAttributes="Bold"/>
+            </VerticalStackLayout>
+
+            <!-- Instructions -->
+            <Frame BackgroundColor="{StaticResource Gray50}" 
+                   BorderColor="{StaticResource Gray300}"
+                   Padding="15"
+                   CornerRadius="10">
+                <VerticalStackLayout Spacing="10">
+                    <Label Text="💡 Tips" 
+                           FontSize="16" 
+                           FontAttributes="Bold"
+                           TextColor="{StaticResource Primary}"/>
+                    <Label TextColor="{StaticResource Gray600}" LineBreakMode="WordWrap">
+                        <Label.FormattedText>
+                            <FormattedString>
+                                <Span Text="• Select a clear audio file (MP3, WAV, etc.)"/>
+                                <Span Text="&#x0a;"/>
+                                <Span Text="• Best results with 10-15 seconds of audio"/>
+                                <Span Text="&#x0a;"/>
+                                <Span Text="• Works best with recorded music, not live performances"/>
+                                <Span Text="&#x0a;"/>
+                                <Span Text="• The service uses ACRCloud's 80M+ track database"/>
+                                <Span Text="&#x0a;"/>
+                                <Span Text="• Microphone recording coming in future update"/>
+                            </FormattedString>
+                        </Label.FormattedText>
+                    </Label>
+                </VerticalStackLayout>
+            </Frame>
+
+        </VerticalStackLayout>
+    </ScrollView>
+
+</ContentPage>

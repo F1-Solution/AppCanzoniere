@@ -1,0 +1,128 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:vm="clr-namespace:AppCanzoniere.MAUI.ViewModels"
+             x:Class="AppCanzoniere.MAUI.Pages.SongDetailPage"
+             x:DataType="vm:SongDetailViewModel"
+             Title="{Binding Song.Title}">
+
+    <ContentPage.ToolbarItems>
+        <ToolbarItem Text="Edit"
+                     IconImageSource="edit.png"
+                     Command="{Binding ToggleEditModeCommand}" />
+        <ToolbarItem Text="AI Chords"
+                     IconImageSource="ai.png"
+                     Command="{Binding NavigateToAiSuggestionsCommand}" />
+        <ToolbarItem Text="Metadata"
+                     IconImageSource="tag.png"
+                     Command="{Binding NavigateToMetadataCommand}" />
+        <ToolbarItem Text="Delete"
+                     IconImageSource="delete.png"
+                     Command="{Binding DeleteCommand}" />
+    </ContentPage.ToolbarItems>
+
+    <Grid RowDefinitions="Auto,*,Auto">
+        <!-- Song Info Header -->
+        <Frame Grid.Row="0"
+               Margin="10"
+               Padding="15"
+               BackgroundColor="{StaticResource Primary}"
+               CornerRadius="10">
+            <Grid RowDefinitions="Auto,Auto,Auto">
+                <Label Grid.Row="0"
+                       Text="{Binding Song.Title}"
+                       FontSize="24"
+                       FontAttributes="Bold"
+                       TextColor="White" />
+                <Label Grid.Row="1"
+                       Text="{Binding Song.Artist}"
+                       FontSize="18"
+                       TextColor="White"
+                       Opacity="0.9" />
+                <Label Grid.Row="2"
+                       Text="{Binding CurrentKey, StringFormat='Key: {0}'}"
+                       FontSize="14"
+                       TextColor="White"
+                       Opacity="0.8"
+                       Margin="0,5,0,0" />
+            </Grid>
+        </Frame>
+
+        <!-- Song Content -->
+        <ScrollView Grid.Row="1"
+                    Padding="15">
+            <StackLayout Spacing="10">
+                <Label Text="Chords &amp; Lyrics"
+                       FontSize="16"
+                       FontAttributes="Bold" />
+                
+                <Frame BorderColor="{StaticResource Gray200}"
+                       Padding="10"
+                       CornerRadius="5">
+                    <Label Text="{Binding DisplayedContent}"
+                           FontFamily="Courier"
+                           FontSize="14"
+                           LineBreakMode="WordWrap" />
+                </Frame>
+
+                <!-- Edit Mode Section -->
+                <StackLayout IsVisible="{Binding IsEditMode}"
+                             Spacing="10"
+                             Margin="0,20,0,0">
+                    <Label Text="Edit Song"
+                           FontSize="16"
+                           FontAttributes="Bold" />
+                    
+                    <Entry Placeholder="Title"
+                           Text="{Binding Song.Title}" />
+                    
+                    <Entry Placeholder="Artist"
+                           Text="{Binding Song.Artist}" />
+                    
+                    <Entry Placeholder="Original Key"
+                           Text="{Binding Song.OriginalKey}" />
+                    
+                    <Editor Placeholder="ChordPro Content"
+                            Text="{Binding Song.ChordProContent}"
+                            HeightRequest="200" />
+                    
+                    <Button Text="Save Changes"
+                            Command="{Binding SaveCommand}"
+                            BackgroundColor="{StaticResource Primary}" />
+                </StackLayout>
+            </StackLayout>
+        </ScrollView>
+
+        <!-- Transpose Controls -->
+        <Frame Grid.Row="2"
+               Padding="10"
+               BackgroundColor="{StaticResource Gray100}"
+               CornerRadius="0">
+            <HorizontalStackLayout Spacing="10"
+                                   HorizontalOptions="Center">
+                <Button Text="−"
+                        Command="{Binding TransposeDownCommand}"
+                        WidthRequest="50"
+                        HeightRequest="50"
+                        FontSize="24" />
+
+                <Button Text="Reset"
+                        Command="{Binding ResetTransposeCommand}"
+                        WidthRequest="80"
+                        HeightRequest="50" />
+
+                <Button Text="+"
+                        Command="{Binding TransposeUpCommand}"
+                        WidthRequest="50"
+                        HeightRequest="50"
+                        FontSize="24" />
+
+                <Button Text="🎸/🎹"
+                        WidthRequest="50"
+                        HeightRequest="50"
+                        ToolTipProperties.Text="Switch Instrument" />
+            </HorizontalStackLayout>
+        </Frame>
+    </Grid>
+
+</ContentPage>

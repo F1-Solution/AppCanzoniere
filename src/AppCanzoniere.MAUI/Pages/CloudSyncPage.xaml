@@ -1,0 +1,247 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:viewmodels="clr-namespace:AppCanzoniere.MAUI.ViewModels"
+             xmlns:dto="clr-namespace:AppCanzoniere.Application.DTOs;assembly=AppCanzoniere.Application"
+             x:Class="AppCanzoniere.MAUI.Pages.CloudSyncPage"
+             x:DataType="viewmodels:CloudSyncViewModel"
+             Title="Cloud Sync">
+
+    <ScrollView>
+        <VerticalStackLayout Padding="20" Spacing="20">
+
+            <!-- Header -->
+            <Frame BackgroundColor="{StaticResource Primary}" 
+                   Padding="15"
+                   CornerRadius="10">
+                <HorizontalStackLayout Spacing="10">
+                    <Label Text="☁️" FontSize="24" VerticalOptions="Center"/>
+                    <VerticalStackLayout Spacing="5">
+                        <Label Text="Cloud Synchronization" 
+                               FontSize="18" 
+                               FontAttributes="Bold"
+                               TextColor="White"/>
+                        <Label Text="Backup and sync your data" 
+                               FontSize="14"
+                               TextColor="White"
+                               Opacity="0.9"/>
+                    </VerticalStackLayout>
+                </HorizontalStackLayout>
+            </Frame>
+
+            <!-- Provider Selection -->
+            <VerticalStackLayout Spacing="10">
+                <Label Text="Cloud Provider" 
+                       FontSize="16" 
+                       FontAttributes="Bold"/>
+                
+                <Picker ItemsSource="{Binding AvailableProviders}"
+                        SelectedItem="{Binding SelectedProvider}"
+                        Title="Select provider"
+                        BackgroundColor="{StaticResource Gray100}"
+                        SelectedIndexChanged="OnProviderChanged"/>
+                
+                <Label Text="Local storage saves backups to your device only"
+                       FontSize="12"
+                       TextColor="{StaticResource Gray600}"
+                       IsVisible="{Binding SelectedProvider, Converter={StaticResource StringToBoolConverter}}"/>
+            </VerticalStackLayout>
+
+            <!-- Authentication Status -->
+            <Frame BorderColor="{StaticResource Gray300}"
+                   BackgroundColor="White"
+                   Padding="15"
+                   CornerRadius="10">
+                <VerticalStackLayout Spacing="10">
+                    <HorizontalStackLayout Spacing="10">
+                        <Label Text="Status:" 
+                               FontAttributes="Bold"
+                               VerticalOptions="Center"/>
+                        <Label Text="Authenticated" 
+                               TextColor="{StaticResource Success}"
+                               IsVisible="{Binding IsAuthenticated}"
+                               VerticalOptions="Center"/>
+                        <Label Text="Not Authenticated" 
+                               TextColor="#DC3545"
+                               IsVisible="{Binding IsAuthenticated, Converter={StaticResource InvertedBoolConverter}}"
+                               VerticalOptions="Center"/>
+                    </HorizontalStackLayout>
+
+                    <Button Text="Authenticate"
+                            Command="{Binding AuthenticateCommand}"
+                            IsVisible="{Binding IsAuthenticated, Converter={StaticResource InvertedBoolConverter}}"
+                            BackgroundColor="{StaticResource Primary}"
+                            TextColor="White"
+                            CornerRadius="8"/>
+                </VerticalStackLayout>
+            </Frame>
+
+            <!-- Last Sync Info -->
+            <Frame BorderColor="{StaticResource Gray300}"
+                   BackgroundColor="{StaticResource Gray50}"
+                   Padding="15"
+                   CornerRadius="10">
+                <Grid RowDefinitions="Auto,Auto" 
+                      ColumnDefinitions="Auto,*"
+                      RowSpacing="10">
+                    
+                    <Label Grid.Row="0" Grid.Column="0" 
+                           Text="Last Sync:" 
+                           FontAttributes="Bold"
+                           VerticalOptions="Center"/>
+                    <Label Grid.Row="0" Grid.Column="1" 
+                           Text="{Binding LastSyncTime}"
+                           VerticalOptions="Center"/>
+                    
+                    <Label Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="2"
+                           Text="{Binding StatusMessage}"
+                           TextColor="{StaticResource Gray600}"
+                           LineBreakMode="WordWrap"
+                           IsVisible="{Binding StatusMessage, Converter={StaticResource StringToBoolConverter}}"/>
+                </Grid>
+            </Frame>
+
+            <!-- Sync Button -->
+            <Button Text="Sync Now"
+                    Command="{Binding SyncNowCommand}"
+                    IsEnabled="{Binding IsSyncing, Converter={StaticResource InvertedBoolConverter}}"
+                    BackgroundColor="{StaticResource Primary}"
+                    TextColor="White"
+                    CornerRadius="8"
+                    HeightRequest="50"
+                    FontSize="16"
+                    FontAttributes="Bold"/>
+
+            <!-- Syncing Indicator -->
+            <VerticalStackLayout Spacing="10" 
+                                IsVisible="{Binding IsSyncing}"
+                                HorizontalOptions="Center">
+                <ActivityIndicator IsRunning="{Binding IsSyncing}"
+                                  Color="{StaticResource Primary}"
+                                  HeightRequest="50"/>
+                <Label Text="Syncing database..."
+                       HorizontalOptions="Center"
+                       TextColor="{StaticResource Gray600}"/>
+            </VerticalStackLayout>
+
+            <!-- Conflicts Section -->
+            <VerticalStackLayout Spacing="15" 
+                                IsVisible="{Binding HasConflicts}">
+                
+                <Frame BackgroundColor="#FFF3CD" 
+                       BorderColor="#FFC107"
+                       Padding="15"
+                       CornerRadius="10">
+                    <VerticalStackLayout Spacing="10">
+                        <Label Text="⚠️ Sync Conflicts Detected" 
+                               FontSize="16" 
+                               FontAttributes="Bold"
+                               TextColor="#856404"/>
+                        <Label Text="The remote database was modified independently. Choose how to resolve:"
+                               TextColor="#856404"
+                               LineBreakMode="WordWrap"/>
+                    </VerticalStackLayout>
+                </Frame>
+
+                <CollectionView ItemsSource="{Binding Conflicts}">
+                    <CollectionView.ItemTemplate>
+                        <DataTemplate x:DataType="dto:SyncConflict">
+                            <Frame BorderColor="{StaticResource Gray300}"
+                                   Margin="0,5"
+                                   Padding="10">
+                                <VerticalStackLayout Spacing="10">
+                                    <Label Text="{Binding FilePath}" 
+                                           FontAttributes="Bold"/>
+                                    
+                                    <Grid RowDefinitions="Auto,Auto" 
+                                          ColumnDefinitions="100,*">
+                                        <Label Grid.Row="0" Grid.Column="0" 
+                                               Text="Local:" 
+                                               TextColor="{StaticResource Gray600}"/>
+                                        <Label Grid.Row="0" Grid.Column="1" 
+                                               Text="{Binding LocalFile.ModifiedAt, StringFormat='{0:yyyy-MM-dd HH:mm}'}"
+                                               TextColor="{StaticResource Gray600}"/>
+                                        
+                                        <Label Grid.Row="1" Grid.Column="0" 
+                                               Text="Remote:" 
+                                               TextColor="{StaticResource Gray600}"/>
+                                        <Label Grid.Row="1" Grid.Column="1" 
+                                               Text="{Binding RemoteFile.ModifiedAt, StringFormat='{0:yyyy-MM-dd HH:mm}'}"
+                                               TextColor="{StaticResource Gray600}"/>
+                                    </Grid>
+
+                                    <Label Text="Resolution:" FontAttributes="Bold" FontSize="12"/>
+                                    <Picker SelectedItem="{Binding Resolution}">
+                                        <Picker.Items>
+                                            <x:String>KeepLocal</x:String>
+                                            <x:String>KeepRemote</x:String>
+                                            <x:String>KeepBoth</x:String>
+                                        </Picker.Items>
+                                    </Picker>
+                                </VerticalStackLayout>
+                            </Frame>
+                        </DataTemplate>
+                    </CollectionView.ItemTemplate>
+                </CollectionView>
+
+                <Button Text="Resolve Conflicts"
+                        Command="{Binding ResolveConflictsCommand}"
+                        BackgroundColor="#FFC107"
+                        TextColor="White"
+                        CornerRadius="8"/>
+            </VerticalStackLayout>
+
+            <!-- Export/Import Section -->
+            <Label Text="Backup Management" 
+                   FontSize="16" 
+                   FontAttributes="Bold"
+                   Margin="0,10,0,0"/>
+
+            <HorizontalStackLayout Spacing="10">
+                <Button Text="Export Database"
+                        Command="{Binding ExportDatabaseCommand}"
+                        BackgroundColor="{StaticResource Gray700}"
+                        TextColor="White"
+                        CornerRadius="8"
+                        HorizontalOptions="FillAndExpand"/>
+                
+                <Button Text="Import Database"
+                        Command="{Binding ImportDatabaseCommand}"
+                        BackgroundColor="{StaticResource Gray700}"
+                        TextColor="White"
+                        CornerRadius="8"
+                        HorizontalOptions="FillAndExpand"/>
+            </HorizontalStackLayout>
+
+            <!-- Instructions -->
+            <Frame BackgroundColor="{StaticResource Gray50}" 
+                   BorderColor="{StaticResource Gray300}"
+                   Padding="15"
+                   CornerRadius="10">
+                <VerticalStackLayout Spacing="10">
+                    <Label Text="💡 Tips" 
+                           FontSize="16" 
+                           FontAttributes="Bold"
+                           TextColor="{StaticResource Primary}"/>
+                    <Label TextColor="{StaticResource Gray600}" LineBreakMode="WordWrap">
+                        <Label.FormattedText>
+                            <FormattedString>
+                                <Span Text="• Local storage saves backups to your device"/>
+                                <Span Text="&#x0a;"/>
+                                <Span Text="• Export creates a manual backup file"/>
+                                <Span Text="&#x0a;"/>
+                                <Span Text="• Import replaces your current database"/>
+                                <Span Text="&#x0a;"/>
+                                <Span Text="• OneDrive/Google Drive/Dropbox coming soon"/>
+                                <Span Text="&#x0a;"/>
+                                <Span Text="• Always export before importing"/>
+                            </FormattedString>
+                        </Label.FormattedText>
+                    </Label>
+                </VerticalStackLayout>
+            </Frame>
+
+        </VerticalStackLayout>
+    </ScrollView>
+
+</ContentPage>

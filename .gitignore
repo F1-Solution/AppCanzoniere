@@ -1,0 +1,97 @@
+# .NET
+bin/
+obj/
+*.user
+*.suo
+*.userprefs
+*.cache
+*.dll
+*.exe
+*.pdb
+
+# Visual Studio
+.vs/
+*.sln.docstates
+*.DotSettings.user
+
+# Rider
+.idea/
+*.sln.iml
+
+# macOS
+.DS_Store
+
+# Windows
+Thumbs.db
+Desktop.ini
+
+# MAUI Specific
+**/Android/Resources/**
+**/iOS/Resources/**
+!**/Android/Resources/values/
+!**/iOS/Resources/**/*.storyboard
+
+# Database
+*.db
+*.db-shm
+*.db-wal
+
+# User-specific files
+appsettings.Development.json
+appsettings.Production.json
+appsettings.Staging.json
+secrets.json
+*.secret.*
+
+# Environment files
+.env
+.env.*
+*.env
+
+# User secrets
+**/secrets/
+
+# Build results
+[Dd]ebug/
+[Dd]ebugPublic/
+[Rr]elease/
+[Rr]eleases/
+x64/
+x86/
+[Aa][Rr][Mm]/
+[Aa][Rr][Mm]64/
+bld/
+[Bb]in/
+[Oo]bj/
+[Ll]og/
+
+# NuGet
+*.nupkg
+*.snupkg
+**/packages/*
+!**/packages/build/
+
+# Test Results
+[Tt]est[Rr]esult*/
+[Bb]uild[Ll]og.*
+*.trx
+*.coverage
+*.coveragexml
+
+# StyleCop
+StyleCopReport.xml
+
+# ReSharper
+_ReSharper*/
+*.[Rr]e[Ss]harper
+*.DotSettings.user
+
+# NCrunch
+_NCrunch_*
+.*crunch*.local.xml
+nCrunchTemp_*
+
+# Backup files
+*.bak
+*.orig
+*~

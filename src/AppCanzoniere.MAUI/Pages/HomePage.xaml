@@ -1,0 +1,102 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:vm="clr-namespace:AppCanzoniere.MAUI.ViewModels"
+             xmlns:entities="clr-namespace:AppCanzoniere.Domain.Entities;assembly=AppCanzoniere.Domain"
+             x:Class="AppCanzoniere.MAUI.Pages.HomePage"
+             x:DataType="vm:HomeViewModel"
+             Title="Songs">
+
+    <ContentPage.ToolbarItems>
+        <ToolbarItem Text="Add"
+                     IconImageSource="add.png"
+                     Command="{Binding NavigateToCreateSongCommand}" />
+        <ToolbarItem Text="Search"
+                     IconImageSource="search.png"
+                     Command="{Binding Source={RelativeSource AncestorType={x:Type ContentPage}}, Path=BindingContext.NavigateToSearchCommand}" />
+    </ContentPage.ToolbarItems>
+
+    <Grid RowDefinitions="Auto,*">
+        <!-- Search Bar -->
+        <SearchBar Grid.Row="0"
+                   Placeholder="Search songs..."
+                   Text="{Binding SearchText}"
+                   SearchCommand="{Binding SearchCommand}"
+                   Margin="10" />
+
+        <!-- Songs List -->
+        <RefreshView Grid.Row="1"
+                     IsRefreshing="{Binding IsLoading}"
+                     Command="{Binding RefreshCommand}">
+            <CollectionView ItemsSource="{Binding Songs}"
+                            SelectionMode="Single">
+                <CollectionView.EmptyView>
+                    <StackLayout Padding="20"
+                                 VerticalOptions="Center">
+                        <Label Text="No songs found"
+                               FontSize="18"
+                               HorizontalOptions="Center"
+                               TextColor="{StaticResource Gray500}" />
+                        <Label Text="Tap + to add a new song"
+                               FontSize="14"
+                               HorizontalOptions="Center"
+                               TextColor="{StaticResource Gray400}" />
+                    </StackLayout>
+                </CollectionView.EmptyView>
+
+                <CollectionView.ItemTemplate>
+                    <DataTemplate x:DataType="entities:Song">
+                        <Frame Margin="10,5"
+                               Padding="15"
+                               BorderColor="{StaticResource Gray200}"
+                               CornerRadius="10"
+                               HasShadow="True">
+                            <Frame.GestureRecognizers>
+                                <TapGestureRecognizer Command="{Binding Source={RelativeSource AncestorType={x:Type vm:HomeViewModel}}, Path=NavigateToSongDetailCommand}"
+                                                      CommandParameter="{Binding .}" />
+                            </Frame.GestureRecognizers>
+
+                            <Grid ColumnDefinitions="*,Auto">
+                                <VerticalStackLayout Grid.Column="0">
+                                    <Label Text="{Binding Title}"
+                                           FontSize="18"
+                                           FontAttributes="Bold" />
+                                    <Label Text="{Binding Artist}"
+                                           FontSize="14"
+                                           TextColor="{StaticResource Gray600}" />
+                                    <HorizontalStackLayout Spacing="5"
+                                                           Margin="0,5,0,0">
+                                        <Label Text="{Binding OriginalKey}"
+                                               FontSize="12"
+                                               TextColor="{StaticResource Primary}"
+                                               BackgroundColor="{StaticResource Gray100}"
+                                               Padding="5,2"
+                                               VerticalOptions="Center" />
+                                        <Label Text="{Binding Language}"
+                                               FontSize="12"
+                                               TextColor="{StaticResource Gray500}" />
+                                    </HorizontalStackLayout>
+                                </VerticalStackLayout>
+
+                                <Image Grid.Column="1"
+                                       Source="chevron_right.png"
+                                       WidthRequest="20"
+                                       HeightRequest="20"
+                                       VerticalOptions="Center" />
+                            </Grid>
+                        </Frame>
+                    </DataTemplate>
+                </CollectionView.ItemTemplate>
+            </CollectionView>
+        </RefreshView>
+
+        <!-- Loading Indicator -->
+        <ActivityIndicator Grid.Row="1"
+                           IsRunning="{Binding IsLoading}"
+                           IsVisible="{Binding IsLoading}"
+                           Color="{StaticResource Primary}"
+                           VerticalOptions="Center"
+                           HorizontalOptions="Center" />
+    </Grid>
+
+</ContentPage>

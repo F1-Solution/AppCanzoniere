@@ -1,0 +1,145 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:vm="clr-namespace:AppCanzoniere.MAUI.ViewModels"
+             x:Class="AppCanzoniere.MAUI.Pages.SettingsPage"
+             x:DataType="vm:SettingsViewModel"
+             Title="Settings">
+
+    <ContentPage.ToolbarItems>
+        <ToolbarItem Text="Save"
+                     IconImageSource="save.png"
+                     Command="{Binding SaveSettingsCommand}" />
+    </ContentPage.ToolbarItems>
+
+    <ScrollView Padding="15">
+        <VerticalStackLayout Spacing="20">
+            <!-- Music Preferences -->
+            <Frame BorderColor="{StaticResource Gray200}"
+                   Padding="15"
+                   CornerRadius="10">
+                <VerticalStackLayout Spacing="15">
+                    <Label Text="Music Preferences"
+                           FontSize="18"
+                           FontAttributes="Bold" />
+
+                    <VerticalStackLayout Spacing="5">
+                        <Label Text="Preferred Instrument" />
+                        <Picker ItemsSource="{Binding Instruments}"
+                                SelectedItem="{Binding Settings.PreferredInstrument}" />
+                    </VerticalStackLayout>
+
+                    <VerticalStackLayout Spacing="5">
+                        <Label Text="Chord Notation" />
+                        <Picker ItemsSource="{Binding ChordNotations}"
+                                SelectedItem="{Binding Settings.ChordNotation}" />
+                    </VerticalStackLayout>
+
+                    <HorizontalStackLayout Spacing="10">
+                        <Label Text="Show Sharp instead of Flat"
+                               VerticalOptions="Center"
+                               FlexLayout.Grow="1" />
+                        <Switch IsToggled="{Binding Settings.ShowSharpInsteadOfFlat}" />
+                    </HorizontalStackLayout>
+                </VerticalStackLayout>
+            </Frame>
+
+            <!-- Language & Region -->
+            <Frame BorderColor="{StaticResource Gray200}"
+                   Padding="15"
+                   CornerRadius="10">
+                <VerticalStackLayout Spacing="15">
+                    <Label Text="Language &amp; Region"
+                           FontSize="18"
+                           FontAttributes="Bold" />
+
+                    <VerticalStackLayout Spacing="5">
+                        <Label Text="App Language" />
+                        <Picker ItemsSource="{Binding Languages}"
+                                SelectedItem="{Binding Settings.PreferredLanguage}" />
+                    </VerticalStackLayout>
+                </VerticalStackLayout>
+            </Frame>
+
+            <!-- Appearance -->
+            <Frame BorderColor="{StaticResource Gray200}"
+                   Padding="15"
+                   CornerRadius="10">
+                <VerticalStackLayout Spacing="15">
+                    <Label Text="Appearance"
+                           FontSize="18"
+                           FontAttributes="Bold" />
+
+                    <VerticalStackLayout Spacing="5">
+                        <Label Text="Theme" />
+                        <Picker ItemsSource="{Binding Themes}"
+                                SelectedItem="{Binding Settings.ThemeMode}" />
+                    </VerticalStackLayout>
+                </VerticalStackLayout>
+            </Frame>
+
+            <!-- Cloud Sync -->
+            <Frame BorderColor="{StaticResource Gray200}"
+                   Padding="15"
+                   CornerRadius="10">
+                <VerticalStackLayout Spacing="15">
+                    <Label Text="Cloud Sync &amp; Backup"
+                           FontSize="18"
+                           FontAttributes="Bold" />
+
+                    <Button Text="☁️ Manage Cloud Sync"
+                            Command="{Binding NavigateToCloudSyncCommand}"
+                            BackgroundColor="{StaticResource Primary}"
+                            TextColor="White"
+                            CornerRadius="8"/>
+
+                    <Label Text="Configure cloud synchronization and database backups"
+                           FontSize="12"
+                           TextColor="{StaticResource Gray500}" />
+                </VerticalStackLayout>
+            </Frame>
+
+            <!-- AI Features -->
+            <Frame BorderColor="{StaticResource Gray200}"
+                   Padding="15"
+                   CornerRadius="10">
+                <VerticalStackLayout Spacing="15">
+                    <Label Text="AI Features"
+                           FontSize="18"
+                           FontAttributes="Bold" />
+
+                    <HorizontalStackLayout Spacing="10">
+                        <Label Text="Enable AI Features"
+                               VerticalOptions="Center"
+                               FlexLayout.Grow="1" />
+                        <Switch IsToggled="{Binding Settings.EnableAIFeatures}" />
+                    </HorizontalStackLayout>
+
+                    <Label Text="AI can help with chord suggestions and audio recognition"
+                           FontSize="12"
+                           TextColor="{StaticResource Gray500}" />
+                </VerticalStackLayout>
+            </Frame>
+
+            <!-- Actions -->
+            <VerticalStackLayout Spacing="10">
+                <Button Text="Save Settings"
+                        Command="{Binding SaveSettingsCommand}"
+                        BackgroundColor="{StaticResource Primary}" />
+
+                <Button Text="Reset to Defaults"
+                        Command="{Binding ResetSettingsCommand}"
+                        BackgroundColor="{StaticResource Gray300}"
+                        TextColor="{StaticResource Gray900}" />
+            </VerticalStackLayout>
+
+            <!-- Version Info -->
+            <Label Text="Version 0.1.0"
+                   FontSize="12"
+                   HorizontalOptions="Center"
+                   TextColor="{StaticResource Gray400}"
+                   Margin="0,20,0,0" />
+        </VerticalStackLayout>
+    </ScrollView>
+
+</ContentPage>

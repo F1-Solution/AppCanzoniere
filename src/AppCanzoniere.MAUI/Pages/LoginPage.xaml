@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:vm="clr-namespace:AppCanzoniere.MAUI.ViewModels"
+             x:Class="AppCanzoniere.MAUI.Pages.LoginPage"
+             Title="Login / Register"
+             x:DataType="vm:LoginViewModel">
+
+    <ScrollView>
+        <VerticalStackLayout Padding="20" Spacing="15">
+            
+            <!-- Header -->
+            <Label Text="{Binding IsRegisterMode, Converter={StaticResource StringToBoolConverter}, ConverterParameter='Register|Login'}"
+                   FontSize="28"
+                   FontAttributes="Bold"
+                   HorizontalOptions="Center"
+                   Margin="0,20,0,10" />
+
+            <!-- Email Entry -->
+            <Label Text="Email" />
+            <Entry Text="{Binding Email}"
+                   Placeholder="email@example.com"
+                   Keyboard="Email"
+                   IsEnabled="{Binding IsBusy, Converter={StaticResource InvertedBoolConverter}}" />
+
+            <!-- Password Entry -->
+            <Label Text="Password" />
+            <Entry Text="{Binding Password}"
+                   Placeholder="Enter password"
+                   IsPassword="True"
+                   IsEnabled="{Binding IsBusy, Converter={StaticResource InvertedBoolConverter}}" />
+
+            <!-- Confirm Password (Register only) -->
+            <Label Text="Confirm Password"
+                   IsVisible="{Binding IsRegisterMode}" />
+            <Entry Text="{Binding ConfirmPassword}"
+                   Placeholder="Confirm password"
+                   IsPassword="True"
+                   IsVisible="{Binding IsRegisterMode}"
+                   IsEnabled="{Binding IsBusy, Converter={StaticResource InvertedBoolConverter}}" />
+
+            <!-- Action Button -->
+            <Button Text="{Binding IsRegisterMode, Converter={StaticResource StringToBoolConverter}, ConverterParameter='Register|Login'}"
+                    Command="{Binding IsRegisterMode, Converter={StaticResource StringToBoolConverter}, ConverterParameter=RegisterCommand|LoginCommand}"
+                    IsEnabled="{Binding IsBusy, Converter={StaticResource InvertedBoolConverter}}"
+                    Margin="0,10,0,0" />
+
+            <!-- Toggle Mode Button -->
+            <Button Text="{Binding IsRegisterMode, Converter={StaticResource StringToBoolConverter}, ConverterParameter='Already have an account? Login|Need an account? Register'}"
+                    Command="{Binding ToggleModeCommand}"
+                    IsEnabled="{Binding IsBusy, Converter={StaticResource InvertedBoolConverter}}"
+                    BackgroundColor="Transparent"
+                    TextColor="{StaticResource Primary}" />
+
+            <!-- Status Message -->
+            <Label Text="{Binding StatusMessage}"
+                   HorizontalOptions="Center"
+                   IsVisible="{Binding StatusMessage, Converter={StaticResource StringToBoolConverter}}"
+                   TextColor="{StaticResource Secondary}"
+                   Margin="0,10,0,0" />
+
+            <!-- Loading Indicator -->
+            <ActivityIndicator IsRunning="{Binding IsBusy}"
+                              IsVisible="{Binding IsBusy}"
+                              HorizontalOptions="Center"
+                              Color="{StaticResource Primary}" />
+
+            <!-- Logout Button (shown when authenticated) -->
+            <Button Text="Logout"
+                    Command="{Binding LogoutCommand}"
+                    IsVisible="{Binding IsAuthenticated}"
+                    BackgroundColor="{StaticResource Danger}"
+                    Margin="0,20,0,0" />
+
+        </VerticalStackLayout>
+    </ScrollView>
+
+</ContentPage>
