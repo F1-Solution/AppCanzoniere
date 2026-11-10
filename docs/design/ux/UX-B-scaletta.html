@@ -1,0 +1,398 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>UX B — Scaletta</title>
+<style>
+*{box-sizing:border-box}
+:root{--ink:#1b1b1b;--ink2:#474747;--ink3:#6b6b6b;--line:#9a9a9a;--soft:#cfcfcf;--fill:#e6e6e6;--fill2:#f3f3f3;--paper:#fff;--page:#e0e0e0;--stage:#121212;--stageInk:#f2f2f2}
+body{margin:0;background:var(--page);color:var(--ink);font:14px/1.45 "Segoe UI",Roboto,system-ui,sans-serif}
+.doc{max-width:1240px;margin:0 auto;padding:24px 16px 64px}
+h1{font-size:26px;margin:0 0 4px}
+h2{font-size:19px;margin:40px 0 10px;border-top:2px solid var(--ink);padding-top:12px}
+.lead{max-width:780px;color:var(--ink2);margin:6px 0}
+.legend{display:flex;flex-wrap:wrap;gap:6px 18px;font-size:12px;color:var(--ink2);margin:12px 0}
+.flow{display:flex;flex-wrap:wrap;gap:14px;align-items:flex-start}
+.step{width:284px;display:flex;flex-direction:column;gap:8px}
+.cap{font-size:12.5px;color:var(--ink2);background:var(--paper);border-left:3px solid var(--ink);padding:6px 8px}
+.cap b{color:var(--ink)}
+.num{display:inline-block;min-width:22px;height:22px;border-radius:11px;background:var(--ink);color:#fff;font-size:12px;font-weight:700;text-align:center;line-height:22px;margin-right:6px;padding:0 6px}
+.arrow{align-self:center;font-size:26px;color:var(--ink2);width:26px;text-align:center}
+.phone{position:relative;width:284px;height:568px;background:var(--paper);border:2px solid var(--ink);border-radius:24px;overflow:hidden;display:flex;flex-direction:column}
+.status{height:18px;font-size:10px;color:var(--ink3);display:flex;justify-content:space-between;padding:2px 16px;flex:none}
+.bar{display:flex;align-items:center;gap:8px;padding:6px 10px;border-bottom:1px solid var(--soft);min-height:46px;flex:none}
+.bar .t{font-weight:700;font-size:15px;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.bar .t small{display:block;font-weight:400;font-size:11px;color:var(--ink3)}
+.ic{min-width:30px;height:30px;border:1.5px solid var(--ink2);border-radius:7px;display:inline-flex;align-items:center;justify-content:center;font-size:11px;color:var(--ink2);flex:none;padding:0 4px}
+.body{flex:1;overflow:hidden;padding:10px;display:flex;flex-direction:column;gap:8px}
+.search{border:1.5px solid var(--ink2);border-radius:22px;padding:8px 12px;color:var(--ink3);font-size:13px}
+.search b{color:var(--ink)}
+.chips{display:flex;flex-wrap:wrap;gap:5px}
+.chip{border:1px solid var(--line);border-radius:14px;padding:3px 9px;font-size:11.5px;background:var(--paper);white-space:nowrap}
+.chip.on{background:var(--ink);color:#fff;border-color:var(--ink)}
+.item{display:flex;gap:8px;align-items:center;padding:6px 0;border-bottom:1px solid var(--fill)}
+.thumb{width:34px;height:34px;background:var(--fill);border-radius:6px;flex:none;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:var(--ink2)}
+.main{flex:1;min-width:0}
+.tt{font-weight:600;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sub{font-size:11px;color:var(--ink3)}
+.tag{font-size:10px;border:1px solid var(--line);border-radius:4px;padding:0 4px;color:var(--ink2);white-space:nowrap}
+.label{font-size:10.5px;text-transform:uppercase;letter-spacing:.06em;color:var(--ink3);font-weight:700}
+.row{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.nav{display:flex;border-top:1px solid var(--soft);height:56px;flex:none}
+.nav div{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:10.5px;color:var(--ink3);gap:3px}
+.nav div::before{content:"";width:20px;height:15px;border:1.5px solid currentColor;border-radius:4px}
+.nav .on{color:var(--ink);font-weight:700}
+.nav .on::before{background:var(--ink)}
+.fab{position:absolute;right:14px;bottom:70px;background:var(--ink);color:#fff;border-radius:16px;padding:12px 16px;font-weight:700;font-size:13px}
+.btn{border:1.5px solid var(--ink);border-radius:8px;padding:9px 10px;text-align:center;font-weight:600;font-size:13px;background:var(--paper)}
+.btn.pri{background:var(--ink);color:#fff}
+.btn.dis{opacity:.4}
+.cp{font-family:Consolas,"Courier New",monospace;font-size:12.5px;line-height:1.3;white-space:pre}
+.cp .c{font-weight:700}
+.phone .cp{font-size:11px}
+.big.stage,.phone.stage{background:var(--stage);color:var(--stageInk);border-color:#000}
+.box{border:1px solid var(--line);border-radius:8px;padding:8px;background:var(--fill2)}
+.dash{outline:1.5px dashed var(--ink2);outline-offset:1px}
+.sheet{position:absolute;left:0;right:0;bottom:0;background:var(--paper);border-top:2px solid var(--ink);border-radius:16px 16px 0 0;padding:12px;display:flex;flex-direction:column;gap:8px}
+.scrim{position:absolute;inset:0;background:rgba(0,0,0,.35)}
+.grip{width:40px;height:4px;background:var(--line);border-radius:2px;margin:0 auto 4px}
+.seg{display:flex;border:1.5px solid var(--ink);border-radius:8px;overflow:hidden;font-size:12px}
+.seg span{flex:1;text-align:center;padding:6px 2px}
+.seg .on{background:var(--ink);color:#fff;font-weight:700}
+.tbar{display:flex;align-items:center;gap:6px;border-top:1px solid var(--soft);padding:8px 10px;min-height:54px;flex:none}
+.key{flex:1;text-align:center;font-weight:700;font-size:13px;line-height:1.2}
+.key small{display:block;font-weight:400;font-size:10.5px;color:var(--ink3)}
+.stage{background:var(--stage);color:var(--stageInk);border-color:#000}
+.stage .soft{color:#b5b5b5}
+.note{font-size:11.5px;border:1.5px dashed var(--ink2);padding:6px 8px;border-radius:6px;background:#fafafa;color:var(--ink2)}
+.check{display:flex;gap:8px;align-items:flex-start;font-size:12px}
+.check::before{content:"";width:16px;height:16px;border:1.5px solid var(--ink);border-radius:3px;flex:none;margin-top:1px}
+.check.on::before{background:var(--ink)}
+.radio{display:flex;gap:8px;align-items:center;font-size:12.5px;padding:3px 0}
+.radio::before{content:"";width:14px;height:14px;border:1.5px solid var(--ink);border-radius:50%;flex:none}
+.radio.on::before{background:radial-gradient(var(--ink) 40%,transparent 46%)}
+.toggle{width:34px;height:18px;border:1.5px solid var(--ink);border-radius:9px;position:relative;flex:none}
+.toggle::after{content:"";position:absolute;top:2px;left:2px;width:11px;height:11px;border-radius:50%;background:var(--ink2)}
+.toggle.on{background:var(--ink)}
+.toggle.on::after{left:17px;background:#fff}
+.card{border:1.5px solid var(--line);border-radius:10px;padding:8px;display:flex;flex-direction:column;gap:4px}
+.scrollx{overflow-x:auto;padding-bottom:6px}
+.big{min-width:900px;background:var(--paper);border:2px solid var(--ink);border-radius:14px;overflow:hidden;display:flex;flex-direction:column}
+.big .cols{display:flex;height:560px}
+.rail{width:78px;border-right:1px solid var(--soft);display:flex;flex-direction:column;align-items:center;gap:16px;padding:14px 0;font-size:10.5px;color:var(--ink3);flex:none}
+.rail div{display:flex;flex-direction:column;align-items:center;gap:3px}
+.rail div::before{content:"";width:22px;height:16px;border:1.5px solid currentColor;border-radius:4px}
+.rail .on{color:var(--ink);font-weight:700}
+.rail .on::before{background:var(--ink)}
+.pane{border-right:1px solid var(--soft);display:flex;flex-direction:column;gap:8px;padding:12px;overflow:hidden}
+.pane:last-child{border-right:0}
+.sel{background:var(--fill);border-radius:6px;padding-left:6px;padding-right:6px}
+.diag{display:flex;gap:10px;flex-wrap:wrap}
+.diag div{width:44px;height:52px;border:1px solid var(--line);border-radius:4px;font-size:10px;text-align:center;padding-top:36px;background:repeating-linear-gradient(90deg,transparent 0 8px,#ccc 8px 9px)}
+@media (max-width:640px){.arrow{display:none}.step{width:100%;align-items:center}.cap{width:284px}}
+</style>
+</head>
+<body>
+<main class="doc">
+<h1>Proposta B — "Scaletta"</h1>
+<p class="lead">L'app progettata dal leggio all'indietro: la home è la prossima scaletta con il suo stato di prontezza; ogni scaletta conserva le scelte della sera (tonalità, strumento, note); la modalità Palco è il cuore dell'app. Wireframe a bassa fedeltà, scala di grigi.</p>
+<div class="legend"><span><b>[✓]</b> sul dispositivo</span><span><b>[☁]</b> solo online</span><span><b>Re ← Do</b> tonalità della sera ← originale</span><span><b>Bozza AI</b> contenuto non verificato</span><span>Rettangoli con bordo = icone segnaposto</span></div>
+
+<h2>1. Home, scaletta, prontezza (telefono)</h2>
+<div class="flow">
+ <div class="step">
+  <div class="phone">
+   <div class="status"><span>Mar 10 nov</span><span>Wi-Fi</span></div>
+   <div class="bar"><span class="t">Scalette</span><span class="ic">Cerca</span></div>
+   <div class="body">
+    <div class="label">Prossima</div>
+    <div class="card" style="border:2px solid var(--ink)">
+     <div class="tt" style="font-size:15px">Messa domenicale</div>
+     <div class="sub">Dom 15 nov · 10:30 · Coro parrocchiale · Piano</div>
+     <div class="box" style="height:8px;padding:0;background:linear-gradient(90deg,var(--ink) 0 85%,var(--fill) 85%)"></div>
+     <div class="sub"><b>Quasi pronta</b> · 11/12 canti pronti · 1 senza accordi</div>
+     <div class="row"><div class="btn" style="flex:1">Apri</div><div class="btn pri" style="flex:1">▶ Palco</div></div>
+    </div>
+    <div class="label">In programma</div>
+    <div class="item"><div class="thumb">19</div><div class="main"><div class="tt">Prova coro</div><div class="sub">Gio 19 nov · 8 canti · Chitarra</div></div><span class="tag">[✓]</span></div>
+    <div class="item"><div class="thumb">28</div><div class="main"><div class="tt">Matrimonio Giulia e Marco</div><div class="sub">Sab 28 nov · 10 canti · bozza</div></div><span class="tag">[☁]</span></div>
+    <div class="label">Repertori (senza data)</div>
+    <div class="item"><div class="thumb">R</div><div class="main"><div class="tt">Canti mariani del coro</div><div class="sub">16 canti</div></div></div>
+   </div>
+   <div class="fab">+ Nuova</div>
+   <div class="nav"><div class="on">Scalette</div><div>Canti</div><div>Scopri</div><div>Profilo</div></div>
+  </div>
+  <div class="cap"><span class="num">1</span><b>Home = prossima scaletta</b> con barra di prontezza e accesso diretto al Palco. Le scalette senza data ("repertori") sostituiscono gli album manuali.</div>
+ </div>
+ <div class="arrow">→</div>
+ <div class="step">
+  <div class="phone">
+   <div class="status"><span>Mar 10 nov</span><span>Wi-Fi</span></div>
+   <div class="bar"><span class="ic">←</span><span class="t">Messa domenicale<small>Dom 15 nov · Piano · 12 canti</small></span><span class="ic">⋯</span></div>
+   <div class="body" style="gap:4px">
+    <div class="box" style="font-size:12px">⚠ 1 canto senza accordi · <u>Risolvi</u></div>
+    <div class="label">Ingresso</div>
+    <div class="item"><div class="thumb">≡</div><div class="main"><div class="tt">Ponte di luce</div><div class="sub">Re ← Mi · "intro 4 battute"</div></div><span class="tag">[✓]</span></div>
+    <div class="label">Kyrie · Gloria</div>
+    <div class="item"><div class="thumb">≡</div><div class="main"><div class="tt">Kyrie (Missa de Angelis)</div><div class="sub">Re · solo testo</div></div><span class="tag">[✓]</span></div>
+    <div class="label">Offertorio</div>
+    <div class="item dash"><div class="thumb">≡</div><div class="main"><div class="tt">Il seme e il talento</div><div class="sub">senza accordi · PUBB</div></div><span class="tag">!</span></div>
+    <div class="label">Comunione</div>
+    <div class="item"><div class="thumb">≡</div><div class="main"><div class="tt">Luce sul sentiero</div><div class="sub">Sol · "solo strofe 1 e 3"</div></div><span class="tag">[✓]</span></div>
+    <div class="label">Finale</div>
+    <div class="item"><div class="thumb">≡</div><div class="main"><div class="tt">Salve Regina</div><div class="sub">Re · gregoriano</div></div><span class="tag">[✓]</span></div>
+   </div>
+   <div class="tbar"><div class="btn" style="flex:1">+ Canto</div><div class="btn pri" style="flex:1.4">▶ Palco</div></div>
+  </div>
+  <div class="cap"><span class="num">2</span><b>Scaletta</b> creata dal modello "Messa domenicale": i momenti sono separatori. Ogni voce mostra tonalità della sera, note e stato offline. Maniglie ≡ per riordinare (anche ↑/↓ nel menu).</div>
+ </div>
+ <div class="arrow">→</div>
+ <div class="step">
+  <div class="phone">
+   <div class="status"><span>Mar 10 nov</span><span>Wi-Fi</span></div>
+   <div class="bar"><span class="ic">←</span><span class="t">Messa domenicale</span></div>
+   <div class="body" style="opacity:.4"><div class="label">Ingresso</div><div class="item"><div class="main"><div class="tt">Ponte di luce</div></div></div></div>
+   <div class="scrim"></div>
+   <div class="sheet">
+    <div class="grip"></div>
+    <div class="tt" style="font-size:15px">Pronta per il palco?</div>
+    <div class="check on">12/12 canti sul dispositivo (8 MB)</div>
+    <div class="check on">Tonalità decise per tutti i canti</div>
+    <div class="check">1 canto senza accordi: <b>Il seme e il talento</b></div>
+    <div class="row" style="padding-left:24px"><div class="btn" style="flex:1;font-size:12px">Scrivi a mano</div><div class="btn pri" style="flex:1;font-size:12px">Chiedi all'AI</div></div>
+    <div class="check on">Pedale "PageFlip" collegato</div>
+    <div class="check">Batteria 38%: carica prima di uscire</div>
+    <div class="note">Le scalette con data si scaricano da sole a ogni modifica. Nessuna azione manuale per l'offline.</div>
+   </div>
+  </div>
+  <div class="cap"><span class="num">3</span><b>Controllo prontezza</b>: offline, accordi, tonalità, pedale, batteria. Da qui parte la richiesta di accordi all'AI, precompilata con la tonalità della sera.</div>
+ </div>
+ <div class="arrow">→</div>
+ <div class="step">
+  <div class="phone">
+   <div class="status"><span>Mar 10 nov</span><span>Wi-Fi</span></div>
+   <div class="bar"><span class="ic">←</span><span class="t">Luce sul sentiero<small>Messa domenicale · Comunione</small></span><span class="ic">⋯</span></div>
+   <div class="body">
+    <div class="box" style="font-size:12px">Nota della sera: <b>solo strofe 1 e 3</b> <u>modifica</u></div>
+    <div class="cp" style="opacity:.55"><span class="c">Sol          Re</span>
+Cammino piano sul sentiero
+<span class="c">Mim          Do</span>
+e una luce va con me…</div>
+    <div class="scrim" style="position:absolute;inset:0"></div>
+    <div class="sheet" style="bottom:54px">
+     <div class="tt">Tonalità cambiata: Sol (orig. La)</div>
+     <div class="radio on">Solo per questa scaletta</div>
+     <div class="radio">Sempre per questo canto</div>
+     <div class="btn pri">Conferma</div>
+    </div>
+   </div>
+   <div class="tbar"><span class="ic">−1</span><div class="key">Sol<small>orig. La · Piano</small></div><span class="ic">+1</span></div>
+  </div>
+  <div class="cap"><span class="num">4</span><b>Trasporre dentro una scaletta</b>: la prima volta si sceglie se la modifica vale solo per la sera o per sempre. Strumento ereditato dalla scaletta, con eccezioni per voce.</div>
+ </div>
+</div>
+
+<h2>2. Creare scalette: manuale, da libretto PDF, con l'AI (telefono)</h2>
+<div class="flow">
+ <div class="step">
+  <div class="phone">
+   <div class="status"><span>Mar 10 nov</span><span>Wi-Fi</span></div>
+   <div class="bar"><span class="ic">✕</span><span class="t">Nuova scaletta</span></div>
+   <div class="body">
+    <div class="search" style="border-radius:8px">Nome: <b>Matrimonio Giulia e Marco</b></div>
+    <div class="row"><div class="search" style="border-radius:8px;flex:1">Data: <b>28/11</b></div><div class="search" style="border-radius:8px;flex:1">Strum.: <b>Chitarra</b></div></div>
+    <div class="label">Parti da</div>
+    <div class="item"><div class="thumb">□</div><div class="main"><div class="tt">Vuota</div></div></div>
+    <div class="item"><div class="thumb">✝</div><div class="main"><div class="tt">Modello Messa / Matrimonio</div><div class="sub">Crea i momenti come sezioni</div></div></div>
+    <div class="item"><div class="thumb">PDF</div><div class="main"><div class="tt">Da libretto PDF</div><div class="sub">Legge i titoli, li abbina alla libreria</div></div></div>
+    <div class="item"><div class="thumb">AI</div><div class="main"><div class="tt">Componi con l'AI</div><div class="sub">Occasione, durata, vincoli</div></div></div>
+    <div class="item"><div class="thumb">R</div><div class="main"><div class="tt">Repertorio (senza data)</div><div class="sub">= album manuale</div></div></div>
+   </div>
+  </div>
+  <div class="cap"><span class="num">5</span><b>Cinque partenze</b>: vuota, modello con i momenti, libretto PDF, AI, repertorio senza data.</div>
+ </div>
+ <div class="arrow">→</div>
+ <div class="step">
+  <div class="phone">
+   <div class="status"><span>Mar 10 nov</span><span>Wi-Fi</span></div>
+   <div class="bar"><span class="ic">←</span><span class="t">Da libretto PDF<small>foglietto_15nov.pdf · 2 pagine</small></span></div>
+   <div class="body">
+    <div class="box" style="font-size:11.5px">Trovati 6 titoli. 4 sono già nella tua libreria.</div>
+    <div class="item"><div class="main"><div class="tt">Ingresso · Ponte di luce</div><div class="sub">✓ trovato in libreria</div></div></div>
+    <div class="item"><div class="main"><div class="tt">Offertorio · Il seme e il talento</div><div class="sub">✓ trovato nel catalogo pubblico</div></div></div>
+    <div class="item dash"><div class="main"><div class="tt">Comunione · "Luce sul sentier…"</div><div class="sub">? forse: Luce sul sentiero · <u>cambia</u></div></div></div>
+    <div class="item"><div class="main"><div class="tt">Finale · Salve Regina</div><div class="sub">✓ trovato in libreria</div></div></div>
+    <div class="item"><div class="main"><div class="tt">Salmo · Beato chi teme il Signore</div><div class="sub">non trovato → <u>importa da questa pagina (OCR)</u></div></div></div>
+    <div style="flex:1"></div>
+    <div class="btn pri">Crea scaletta (6 voci)</div>
+   </div>
+  </div>
+  <div class="cap"><span class="num">6</span><b>Libretto → scaletta</b>: titoli riconosciuti, abbinati a libreria o catalogo; i mancanti si importano con OCR e revisione affiancata (come per il singolo canto).</div>
+ </div>
+ <div class="arrow">→</div>
+ <div class="step">
+  <div class="phone">
+   <div class="status"><span>Mar 10 nov</span><span>Wi-Fi</span></div>
+   <div class="bar"><span class="ic">←</span><span class="t">Componi con l'AI</span></div>
+   <div class="body">
+    <div class="box" style="font-size:12px">"Matrimonio, 10 canti, chitarra, tonalità comode per soprano, niente canti usati nelle ultime 3 settimane"</div>
+    <div class="label">Bozza · motivo di ogni scelta</div>
+    <div class="item"><div class="main"><div class="tt">Ingresso · Ponte di luce</div><div class="sub">tag Matrimonio · Re adatto a soprano</div></div><span class="ic">↻</span></div>
+    <div class="item"><div class="main"><div class="tt">Salmo · Beato chi teme il Signore</div><div class="sub">Sal 127 · usato 8 settimane fa</div></div><span class="ic">↻</span></div>
+    <div class="item"><div class="main"><div class="tt">Comunione · Luce sul sentiero</div><div class="sub">tuo canto · Sol</div></div><span class="ic">↻</span></div>
+    <div class="item"><div class="main"><div class="tt">Finale · Mira il tuo popolo</div><div class="sub">tradizionale · Fa</div></div><span class="ic">↻</span></div>
+    <div class="note">↻ = proponi un'alternativa per quella voce. L'AI sceglie solo tra canti della libreria e del catalogo pubblico.</div>
+    <div class="row"><div class="btn" style="flex:1">Scarta</div><div class="btn pri" style="flex:1.4">Usa questa bozza</div></div>
+   </div>
+  </div>
+  <div class="cap"><span class="num">7</span><b>Album automatico = bozza di scaletta</b> con il motivo di ogni scelta e sostituzione voce per voce.</div>
+ </div>
+ <div class="arrow">→</div>
+ <div class="step">
+  <div class="phone">
+   <div class="status"><span>Mar 10 nov</span><span>Wi-Fi</span></div>
+   <div class="bar"><span class="ic">←</span><span class="t">Condividi scaletta</span></div>
+   <div class="body">
+    <div class="tt">Messa domenicale · 15 nov</div>
+    <div class="radio on">Con il gruppo "Coro parrocchiale" (5)</div>
+    <div class="radio">Link di sola lettura</div>
+    <div class="radio">Esporta PDF per chi non usa l'app</div>
+    <div class="box" style="font-size:12px"><b>1 canto privato</b> (Luce sul sentiero): gli altri vedranno solo titolo e tonalità. Per condividerlo, pubblicalo nel catalogo.</div>
+    <div class="btn">Pubblica "Luce sul sentiero"…</div>
+    <div class="note">Pubblicare apre il flusso in 3 passi: stato dei diritti → anteprima → "Sono responsabile del contenuto e dei relativi diritti" (non preselezionato) + Termini.</div>
+    <div style="flex:1"></div>
+    <div class="btn pri">Condividi</div>
+   </div>
+  </div>
+  <div class="cap"><span class="num">8</span><b>Condividere ≠ pubblicare</b>: la scaletta condivide ordine e scelte; un canto privato si condivide solo pubblicandolo, con la dichiarazione di responsabilità.</div>
+ </div>
+</div>
+
+<h2>3. Modalità Palco (telefono)</h2>
+<div class="flow">
+ <div class="step">
+  <div class="phone stage">
+   <div class="status"><span class="soft">10:52 · Offline</span><span class="soft">Comunione · 9/12</span></div>
+   <div class="body" style="padding:14px;gap:10px">
+    <div class="box" style="background:#2a2a2a;border-color:#555;color:#eee;font-size:13px">Nota: <b>solo strofe 1 e 3</b></div>
+    <div class="cp" style="font-size:17px;line-height:1.35"><span class="c">Sol          Re</span>
+Cammino piano sul sentiero
+<span class="c">Mim          Do</span>
+e una luce va con me,
+<span class="c">Sol          Re</span>
+passo dopo passo in festa
+<span class="c">Do      Re     Sol</span>
+canto, e canto a te.</div>
+    <div style="flex:1"></div>
+    <div class="soft" style="font-size:12px;border-top:1px solid #444;padding-top:6px">Dopo: <b style="color:#fff">Salve Regina</b> · Re · Finale</div>
+   </div>
+   <div class="tbar" style="border-color:#444"><span class="ic" style="border-color:#888;color:#ddd">Cerca</span><div class="key">Sol</div><span class="ic" style="border-color:#888;color:#ddd">Esci</span></div>
+  </div>
+  <div class="cap"><span class="num">9</span><b>Palco</b>: scuro, schermo acceso, posizione nella scaletta, nota della sera in testa, <b>anteprima del successivo</b>. Controlli minimi: Cerca, tonalità (tocco lungo ±1), Esci con conferma.</div>
+ </div>
+ <div class="arrow">→</div>
+ <div class="step">
+  <div class="phone stage">
+   <div class="status"><span class="soft">Zone di tocco</span><span class="soft"></span></div>
+   <div class="body" style="padding:0;flex-direction:row;gap:0">
+    <div style="flex:1;border-right:1px dashed #777;display:flex;align-items:center;justify-content:center;text-align:center;font-size:13px">◀<br>indietro</div>
+    <div style="flex:1;border-right:1px dashed #777;display:flex;align-items:center;justify-content:center;text-align:center;font-size:13px">mostra /<br>nascondi<br>controlli</div>
+    <div style="flex:1;display:flex;align-items:center;justify-content:center;text-align:center;font-size:13px">avanti<br>▶</div>
+   </div>
+   <div class="body" style="flex:none;font-size:11.5px;color:#ccc">Avanti scorre per pagina; a fine canto passa al successivo. Equivalenti: pedale BT, frecce, PagGiù, spazio, tasti volume (opzionale).</div>
+  </div>
+  <div class="cap"><span class="num">10</span><b>Zone grandi a terzi</b>, utilizzabili con un dito tra un accordo e l'altro. Il gesto Indietro di sistema non esce dal palco per errore.</div>
+ </div>
+ <div class="arrow">→</div>
+ <div class="step">
+  <div class="phone stage">
+   <div class="status"><span class="soft">Fuori programma</span><span class="soft">Offline</span></div>
+   <div class="bar" style="border-color:#444"><div class="search" style="flex:1;border-color:#aaa;color:#eee">noi vogl|</div><span class="ic" style="border-color:#888;color:#ddd">✕</span></div>
+   <div class="body">
+    <div class="item" style="border-color:#333"><div class="main"><div class="tt" style="font-size:15px">Noi vogliam Dio</div><div class="sub soft">Tradizionale · Sol · [✓]</div></div></div>
+    <div class="item" style="border-color:#333"><div class="main"><div class="tt" style="font-size:15px">Nome dolcissimo</div><div class="sub soft">Tradizionale · Fa · [✓]</div></div></div>
+    <div style="flex:1"></div>
+    <div class="box" style="background:#2a2a2a;border-color:#555;color:#ddd;font-size:12px">Il canto scelto viene <b>inserito dopo quello corrente</b>. Potrai annullare.</div>
+   </div>
+  </div>
+  <div class="cap"><span class="num">11</span><b>Ricerca d'emergenza</b>: "il celebrante ha cambiato canto". Risultati grandi, solo canti sul dispositivo se offline; il canto entra in scaletta.</div>
+ </div>
+</div>
+
+<h2>4. Tablet orizzontale — Palco a due pagine</h2>
+<div class="scrollx">
+<div class="big stage" style="min-width:960px">
+ <div class="bar" style="border-color:#444"><span class="t" style="color:#eee">Messa domenicale · Comunione 9/12</span><span class="soft" style="font-size:12px">Offline · pedale collegato</span><span class="ic" style="border-color:#888;color:#ddd">Cerca</span><span class="ic" style="border-color:#888;color:#ddd">Sol</span><span class="ic" style="border-color:#888;color:#ddd">Esci</span></div>
+ <div class="cols" style="height:480px">
+  <div class="pane" style="flex:1;border-color:#444">
+   <div class="soft" style="font-size:12px">Luce sul sentiero · pag. 1/1 · Nota: solo strofe 1 e 3</div>
+   <div class="cp" style="font-size:18px;line-height:1.4"><span class="c">Sol          Re</span>
+Cammino piano sul sentiero
+<span class="c">Mim          Do</span>
+e una luce va con me,
+<span class="c">Sol          Re</span>
+passo dopo passo in festa
+<span class="c">Do      Re     Sol</span>
+canto, e canto a te.
+
+<span class="c">Do        Re</span>
+Rit. Luce, luce sul sentiero…</div>
+  </div>
+  <div class="pane" style="flex:1;opacity:.85">
+   <div class="soft" style="font-size:12px">Dopo → Salve Regina · Re · Finale</div>
+   <div class="cp" style="font-size:18px;line-height:1.4"><span class="c">Re           La</span>
+Salve, Regina,
+<span class="c">Re          Sol    Re</span>
+mater misericordiae,
+<span class="c">Sim     Mim    La</span>
+vita, dulcedo, et spes nostra, salve.</div>
+   <div style="flex:1"></div>
+   <div class="note" style="background:#222;color:#ccc;border-color:#777">Giro a mezza pagina: al tocco "avanti" si sostituisce solo la metà già letta, come girare la pagina di un leggio senza perdere il punto.</div>
+  </div>
+ </div>
+</div>
+</div>
+<p class="cap" style="max-width:780px;margin-top:8px">Il tablet in orizzontale è il dispositivo principe di questa proposta: due pagine come un leggio aperto, anteprima reale del canto successivo.</p>
+
+<h2>5. Desktop Windows — tavolo di preparazione</h2>
+<div class="scrollx">
+<div class="big" style="min-width:1100px">
+ <div class="bar"><span class="t">Messa domenicale · Dom 15 nov · Piano</span><span class="sub">Quasi pronta 11/12</span><span class="ic" style="padding:0 8px">Condividi</span><span class="ic" style="padding:0 8px">Esporta PDF</span><span class="btn pri" style="padding:6px 12px">▶ Palco</span></div>
+ <div class="cols" style="height:500px">
+  <div class="pane" style="width:300px;flex:none">
+   <div class="label">Libreria</div>
+   <div class="search">Cerca canti…</div>
+   <div class="chips"><span class="chip on">Comunione ✕</span><span class="chip">Non usati di recente</span></div>
+   <div class="item"><div class="main"><div class="tt">Amazing Grace</div><div class="sub">Sol · EN · usato 10 sett. fa</div></div><span class="ic">+</span></div>
+   <div class="item"><div class="main"><div class="tt">Nome dolcissimo</div><div class="sub">Fa · usato 3 sett. fa</div></div><span class="ic">+</span></div>
+   <div class="item"><div class="main"><div class="tt">Tu scendi dalle stelle</div><div class="sub">Do · Natale</div></div><span class="ic">+</span></div>
+   <div class="note">Trascina nella scaletta, oppure seleziona e premi Invio / "+".</div>
+  </div>
+  <div class="pane" style="width:380px;flex:none">
+   <div class="label">Scaletta (12)</div>
+   <div class="row label" style="border-bottom:1px solid var(--soft);padding-bottom:4px"><span style="width:20px"></span><span style="flex:2">Canto</span><span style="flex:1">Tonalità</span><span style="flex:1.4">Nota</span></div>
+   <div class="sub" style="font-weight:700">Ingresso</div>
+   <div class="row" style="font-size:12.5px"><span style="width:20px">≡</span><span style="flex:2">Ponte di luce</span><span style="flex:1">Re ← Mi</span><span style="flex:1.4">intro 4 batt.</span></div>
+   <div class="sub" style="font-weight:700">Offertorio</div>
+   <div class="row dash" style="font-size:12.5px"><span style="width:20px">≡</span><span style="flex:2">Il seme e il talento</span><span style="flex:1">—</span><span style="flex:1.4">senza accordi</span></div>
+   <div class="sub" style="font-weight:700">Comunione</div>
+   <div class="row sel" style="font-size:12.5px"><span style="width:20px">≡</span><span style="flex:2"><b>Luce sul sentiero</b></span><span style="flex:1">Sol ← La</span><span style="flex:1.4">strofe 1 e 3</span></div>
+   <div class="sub" style="font-weight:700">Finale</div>
+   <div class="row" style="font-size:12.5px"><span style="width:20px">≡</span><span style="flex:2">Salve Regina</span><span style="flex:1">Re</span><span style="flex:1.4"></span></div>
+  </div>
+  <div class="pane" style="flex:1">
+   <div class="row"><div class="main"><div class="tt" style="font-size:17px">Luce sul sentiero</div><div class="sub">Mia composizione · PRIV · Comunione</div></div><div class="seg" style="width:200px"><span>Chitarra</span><span class="on">Piano</span><span>Testo</span></div></div>
+   <div class="row"><span class="ic">−1</span><b>Sol</b><span class="sub">orig. La · solo per questa scaletta</span><span class="ic">+1</span></div>
+   <div class="cp" style="font-size:15px"><span class="c">Sol (sol-si-re)  Re (re-fa♯-la)</span>
+Cammino piano sul sentiero
+<span class="c">Mim          Do</span>
+e una luce va con me…</div>
+   <div class="search" style="border-radius:8px">Nota della sera: solo strofe 1 e 3</div>
+  </div>
+ </div>
+</div>
+</div>
+</main>
+</body>
+</html>
