@@ -93,14 +93,15 @@ public class ChordProParser : IChordProParser
             };
 
             // Extract chords and their positions
-            var chordMatches = ChordRegex.Matches(line);
-            foreach (Match match in chordMatches)
+            var removed = 0;
+            foreach (Match match in ChordRegex.Matches(line))
             {
                 chordLine.Chords.Add(new ChordPosition
                 {
                     Chord = match.Groups[1].Value,
-                    Position = match.Index
+                    Position = match.Index - removed
                 });
+                removed += match.Length;
             }
 
             // Remove chord markers to get lyrics
@@ -117,78 +118,84 @@ public class ChordProParser : IChordProParser
         var sb = new StringBuilder();
         var transposer = new ChordTransposer();
 
-        // Add metadata
-        if (!string.IsNullOrEmpty(document.Title))
-            sb.AppendLine($"{{title:{document.Title}}}");
-        if (!string.IsNullOrEmpty(document.Artist))
-            sb.AppendLine($"{{artist:{document.Artist}}}");
-        if (!string.IsNullOrEmpty(document.Key))
-        {
-            var transposedKey = transposeSteps != 0
-                ? transposer.TransposeKey(document.Key, transposeSteps)
-                : document.Key;
-            sb.AppendLine($"{{key:{transposedKey}}}");
-        }
-        if (!string.IsNullOrEmpty(document.Capo))
-            sb.AppendLine($"{{capo:{document.Capo}}}");
+        AppendMetadata(sb, document, transposer, transposeSteps);
+        sb.Append('\n');
 
-        sb.AppendLine();
-
-        ChordProLineType previousType = ChordProLineType.Verse;
-
+        var previousType = ChordProLineType.Verse;
         foreach (var line in document.Lines)
         {
-            // Add section markers
-            if (line.Type == ChordProLineType.Chorus && previousType != ChordProLineType.Chorus)
-                sb.AppendLine("{start_of_chorus}");
-            else if (line.Type == ChordProLineType.Bridge && previousType != ChordProLineType.Bridge)
-                sb.AppendLine("{start_of_bridge}");
-            else if (previousType == ChordProLineType.Chorus && line.Type != ChordProLineType.Chorus)
-                sb.AppendLine("{end_of_chorus}");
-            else if (previousType == ChordProLineType.Bridge && line.Type != ChordProLineType.Bridge)
-                sb.AppendLine("{end_of_bridge}");
-
-            if (line.Type == ChordProLineType.Empty)
-            {
-                sb.AppendLine();
-            }
-            else if (line.Type == ChordProLineType.Comment)
-            {
-                sb.AppendLine($"{{comment:{line.Text}}}");
-            }
-            else if (line.Type == ChordProLineType.Title)
-            {
-                // Already added in metadata
-            }
-            else
-            {
-                // Build line with chords
-                var lineText = line.Text;
-                var chordPositions = line.Chords.OrderByDescending(c => c.Position).ToList();
-
-                foreach (var chordPos in chordPositions)
-                {
-                    var transposedChord = transposeSteps != 0
-                        ? transposer.TransposeChord(chordPos.Chord, transposeSteps)
-                        : chordPos.Chord;
-
-                    // Insert chord at position
-                    var insertPos = Math.Min(chordPos.Position, lineText.Length);
-                    lineText = lineText.Insert(insertPos, $"[{transposedChord}]");
-                }
-
-                sb.AppendLine(lineText);
-            }
-
+            AppendSectionBoundary(sb, previousType, line.Type);
+            AppendLine(sb, line, transposer, transposeSteps);
             previousType = line.Type;
         }
 
-        // Close any open sections
-        if (previousType == ChordProLineType.Chorus)
-            sb.AppendLine("{end_of_chorus}");
-        else if (previousType == ChordProLineType.Bridge)
-            sb.AppendLine("{end_of_bridge}");
-
+        AppendSectionEnd(sb, previousType);
         return sb.ToString();
+    }
+
+    private static void AppendMetadata(StringBuilder sb, ChordProDocument document, ChordTransposer transposer, int steps)
+    {
+        if (!string.IsNullOrEmpty(document.Title))
+            sb.Append($"{{title:{document.Title}}}\n");
+        if (!string.IsNullOrEmpty(document.Artist))
+            sb.Append($"{{artist:{document.Artist}}}\n");
+        if (!string.IsNullOrEmpty(document.Key))
+            sb.Append($"{{key:{(steps != 0 ? transposer.TransposeKey(document.Key, steps) : document.Key)}}}\n");
+        if (!string.IsNullOrEmpty(document.Capo))
+            sb.Append($"{{capo:{document.Capo}}}\n");
+    }
+
+    private static void AppendSectionBoundary(StringBuilder sb, ChordProLineType previous, ChordProLineType current)
+    {
+        if (previous == current)
+            return;
+
+        AppendSectionEnd(sb, previous);
+        if (current == ChordProLineType.Chorus)
+            sb.Append("{start_of_chorus}\n");
+        else if (current == ChordProLineType.Bridge)
+            sb.Append("{start_of_bridge}\n");
+    }
+
+    private static void AppendSectionEnd(StringBuilder sb, ChordProLineType type)
+    {
+        if (type == ChordProLineType.Chorus)
+            sb.Append("{end_of_chorus}\n");
+        else if (type == ChordProLineType.Bridge)
+            sb.Append("{end_of_bridge}\n");
+    }
+
+    private static void AppendLine(StringBuilder sb, ChordProLine line, ChordTransposer transposer, int steps)
+    {
+        switch (line.Type)
+        {
+            case ChordProLineType.Empty:
+                sb.Append('\n');
+                break;
+            case ChordProLineType.Comment:
+                sb.Append($"{{comment:{line.Text}}}\n");
+                break;
+            case ChordProLineType.Title:
+                break; // Written with the metadata.
+            default:
+                sb.Append(RenderChordLine(line, transposer, steps)).Append('\n');
+                break;
+        }
+    }
+
+    private static string RenderChordLine(ChordProLine line, ChordTransposer transposer, int steps)
+    {
+        var result = new StringBuilder();
+        var cursor = 0;
+        foreach (var chord in line.Chords.OrderBy(c => c.Position))
+        {
+            var position = Math.Clamp(chord.Position, cursor, line.Text.Length);
+            result.Append(line.Text, cursor, position - cursor);
+            var text = steps != 0 ? transposer.TransposeChord(chord.Chord, steps) : chord.Chord;
+            result.Append('[').Append(text).Append(']');
+            cursor = position;
+        }
+
+        return result.Append(line.Text, cursor, line.Text.Length - cursor).ToString();
     }
 }
