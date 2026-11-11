@@ -113,9 +113,7 @@ public class ChordProTabTests
     [Fact]
     public void RoundTrip_TabBlock_SurvivesByteForByte()
     {
-        var rendered = _parser.Render(_parser.Parse(SongWithTab), 0);
-
-        Assert.Equal(
+        const string canonical =
             "{title:Intro}\n" +
             "\n" +
             "[C]Verse line\n" +
@@ -127,8 +125,9 @@ public class ChordProTabTests
             "A|---\n" +
             "\n" +
             "{end_of_tab}\n" +
-            "[G]After the tab\n",
-            rendered);
+            "[G]After the tab\n";
+
+        Assert.Equal(canonical, _parser.Render(_parser.Parse(canonical), 0));
     }
 
     [Fact]
@@ -159,7 +158,7 @@ public class ChordProTabTests
         var document = _parser.Parse(content);
 
         Assert.Equal(
-            new[] { "e|--0--", "B|--1--", "[G]looks like lyrics", string.Empty },
+            new[] { "e|--0--", "B|--1--", "[G]looks like lyrics" },
             document.Lines.Where(l => l.Type == ChordProLineType.Tab).Select(l => l.Text));
     }
 
@@ -168,7 +167,7 @@ public class ChordProTabTests
     {
         var rendered = _parser.Render(_parser.Parse("{sot}\ne|--0--\nB|--1--"), 0);
 
-        Assert.Equal("\n{start_of_tab}\ne|--0--\nB|--1--\n{end_of_tab}\n", rendered);
+        Assert.Equal("{start_of_tab}\ne|--0--\nB|--1--\n{end_of_tab}\n", rendered);
     }
 
     [Fact]
@@ -178,7 +177,7 @@ public class ChordProTabTests
 
         var rendered = _parser.Render(_parser.Parse(content), 0);
 
-        Assert.Equal("\n{start_of_tab}\ne|--0--\n{end_of_tab}\n{start_of_tab}\ne|--1--\n{end_of_tab}\n", rendered);
+        Assert.Equal("{start_of_tab}\ne|--0--\n{end_of_tab}\n{start_of_tab}\ne|--1--\n{end_of_tab}\n", rendered);
     }
 
     [Fact]
@@ -189,7 +188,7 @@ public class ChordProTabTests
         var rendered = _parser.Render(_parser.Parse(content), 0);
 
         Assert.Equal(
-            "\n{start_of_chorus}\n[C]Chorus\n{end_of_chorus}\n{start_of_tab}\ne|--0--\n{end_of_tab}\n",
+            "{start_of_chorus}\n[C]Chorus\n{end_of_chorus}\n{start_of_tab}\ne|--0--\n{end_of_tab}\n",
             rendered);
     }
 

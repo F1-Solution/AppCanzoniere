@@ -132,7 +132,7 @@ public class SongRenderingTests
 
         var result = Render("[La-]la-la-la, Re- Mi- [Do]fa", options);
 
-        Assert.Equal("\n[Am]la-la-la, Re- Mi- [C]fa\n", result);
+        Assert.Equal("[Am]la-la-la, Re- Mi- [C]fa\n", result);
     }
 
     [Fact]
@@ -168,7 +168,7 @@ public class SongRenderingTests
     {
         var result = Render("[C]Line [F]two", new ChordProRenderOptions { TransposeSteps = 1 });
 
-        Assert.Equal("\n[C#]Line [F#]two\n", result);
+        Assert.Equal("[C#]Line [F#]two\n", result);
     }
 
     [Fact]

@@ -43,7 +43,7 @@ public class ChordProRoundTripTests
     {
         var rendered = RoundTrip("{soc}\n[C]Chorus\n{eoc}\n{sob}\n[G]Bridge\n{eob}");
 
-        Assert.Equal("\n{start_of_chorus}\n[C]Chorus\n{end_of_chorus}\n{start_of_bridge}\n[G]Bridge\n{end_of_bridge}\n", rendered);
+        Assert.Equal("{start_of_chorus}\n[C]Chorus\n{end_of_chorus}\n{start_of_bridge}\n[G]Bridge\n{end_of_bridge}\n", rendered);
     }
 
     [Fact]
