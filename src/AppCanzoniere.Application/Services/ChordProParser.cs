@@ -144,7 +144,10 @@ public class ChordProParser : IChordProParser
     public string Render(ChordProDocument document, ChordProRenderOptions options)
     {
         var sb = new StringBuilder();
-        var transformer = new ChordTransformer(options, document.Key, document.CapoFret ?? 0);
+        var chords = document.Lines
+            .Where(l => l.Type != ChordProLineType.Tab)
+            .SelectMany(l => l.Chords.OrderBy(c => c.Position).Select(c => c.Chord));
+        var transformer = new ChordTransformer(options, document.Key, document.CapoFret ?? 0, chords);
 
         var hasMetadata = AppendMetadata(sb, document, transformer, options);
         var body = document.Lines.Where(l => l.Type != ChordProLineType.Title).ToList();

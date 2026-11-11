@@ -11,7 +11,8 @@ public sealed class ChordTransformer
     /// <param name="options">Render settings; a capo outside 0-11 is rejected.</param>
     /// <param name="documentKey">Sounding key of the document, written in the input notation; steers Auto spelling.</param>
     /// <param name="documentCapo">Capo the document's chords were written for.</param>
-    public ChordTransformer(ChordProRenderOptions options, string? documentKey, int documentCapo)
+    /// <param name="documentChords">Chords of the song in order; without a usable key the first one stands in for it.</param>
+    public ChordTransformer(ChordProRenderOptions options, string? documentKey, int documentCapo, IEnumerable<string>? documentChords = null)
     {
         _options = options;
         _transpose = Note.Mod12(options.TransposeSteps);
@@ -22,6 +23,19 @@ public sealed class ChordTransformer
         _shapeShift = options.Capo is null ? _transpose : Note.Mod12(_transpose + documentCapo - capo);
         if (ChordSymbolParser.TryParse(documentKey, options.InputNotation.Notation, out var key))
             _shapeKey = (Note.Mod12(key.Root.PitchClass + _transpose - capo), key.IsMinor);
+        else if (FirstChord(documentChords, options.InputNotation.Notation) is { } first)
+            _shapeKey = (Note.Mod12(first.Root.PitchClass + _shapeShift), first.IsMinor);
+    }
+
+    private static ChordSymbol? FirstChord(IEnumerable<string>? chords, Notation notation)
+    {
+        foreach (var text in chords ?? Enumerable.Empty<string>())
+        {
+            if (ChordSymbolParser.TryParse(text, notation, out var symbol))
+                return symbol;
+        }
+
+        return null;
     }
 
     /// <summary>Chord as it is written in the output: shifted by transposition and capo; non-chords are returned unchanged.</summary>
