@@ -1,4 +1,4 @@
-﻿using AppCanzoniere.Application.Interfaces;
+using AppCanzoniere.Application.Interfaces;
 using AppCanzoniere.Application.Services;
 using AppCanzoniere.Domain.Interfaces;
 using AppCanzoniere.Infrastructure.Data;
@@ -62,8 +62,6 @@ public static class MauiProgram
 
 		// OCR Services - Use Mock by default
 		builder.Services.AddSingleton<IOcrService, MockOcrService>();
-		// Uncomment to use Tesseract (requires installation):
-		// builder.Services.AddSingleton<IOcrService, TesseractOcrService>();
 		// Uncomment to use Azure Computer Vision (requires API key):
 		// builder.Services.AddHttpClient<IOcrService, AzureComputerVisionService>();
 

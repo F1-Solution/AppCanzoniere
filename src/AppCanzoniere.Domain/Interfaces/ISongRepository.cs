@@ -11,9 +11,4 @@ public interface ISongRepository
     Task<Song> AddAsync(Song song, CancellationToken cancellationToken = default);
     Task UpdateAsync(Song song, CancellationToken cancellationToken = default);
     Task DeleteAsync(Guid id, CancellationToken cancellationToken = default);
-    
-    /// <summary>
-    /// Advanced search with multiple criteria and filtering
-    /// </summary>
-    Task<AdvancedSearchResult<Song>> AdvancedSearchAsync(AdvancedSearchCriteria criteria, CancellationToken cancellationToken = default);
 }
