@@ -21,7 +21,7 @@ dotnet build src/AppCanzoniere.MAUI -f net10.0-android
 dotnet build src/AppCanzoniere.MAUI -f net10.0-windows10.0.19041.0 -p:MauiPlatforms=windows
 ```
 
-`AppCanzoniere.slnx` is the main solution (core + MAUI, needs the Android and Windows workloads); `AppCanzoniere.Core.slnx` has no MAUI. Package versions are central in `Directory.Packages.props`, the SDK is pinned in `global.json`. CI is `.github/workflows/ci.yml` (jobs core, android, windows). Core tests: 941 (Domain 5, Application 926, Infrastructure 10).
+`AppCanzoniere.slnx` is the main solution (core + MAUI, needs the Android and Windows workloads); `AppCanzoniere.Core.slnx` has no MAUI. Package versions are central in `Directory.Packages.props`, the SDK is pinned in `global.json`. CI is `.github/workflows/ci.yml` (jobs core, android, windows). Core tests: 1001 (Domain 5, Application 986, Infrastructure 10).
 
 **Backend:** the ASP.NET Core API is frozen and outside the main solution and CI; open it with `AppCanzoniere.Backend.slnx`. It does not work (see `docs/VALUTAZIONE.md`) and its integration tests fail.
 
