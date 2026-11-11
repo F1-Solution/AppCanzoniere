@@ -120,6 +120,9 @@ jobs:
       - name: Install Windows workload
         run: dotnet workload install maui-windows --version ${{ env.WORKLOAD_VERSION }}
 
+      - name: Check MAUI formatting
+        run: dotnet format whitespace src/AppCanzoniere.MAUI/AppCanzoniere.MAUI.csproj --verify-no-changes
+
       - name: Build
         run: >
           dotnet build src/AppCanzoniere.MAUI/AppCanzoniere.MAUI.csproj
