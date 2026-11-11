@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-AppCanzoniere is a .NET 10 / C# multi-platform songbook application using Clean Architecture. It has a .NET MAUI frontend (Android, Windows); the ASP.NET Core backend is frozen outside the main solution. Songs are stored in ChordPro format with transposition, OCR, audio recognition, and offline support.
+AppCanzoniere is a .NET 10 / C# multi-platform songbook application using Clean Architecture. It has a .NET MAUI frontend (Android, Windows); the ASP.NET Core backend is frozen outside the main solution. Songs are stored in ChordPro format with transposition. OCR, audio recognition and chord suggestions exist only as mock implementations by default; there is no offline mode.
 
 ## Build & Test Commands
 
@@ -30,7 +30,7 @@ dotnet build src/AppCanzoniere.MAUI -f net10.0-windows10.0.19041.0 -p:MauiPlatfo
 Clean Architecture with four layers (dependencies flow inward only):
 
 - **Domain** (`src/AppCanzoniere.Domain`) — Entities (Song, Album, Tag, LiturgicalMoment, etc.), enums, repository interfaces. Zero external dependencies.
-- **Application** (`src/AppCanzoniere.Application`) — Services, DTOs, service interfaces. Key services: `ChordProParserService`, `ChordTransposerService`. Depends only on Domain.
+- **Application** (`src/AppCanzoniere.Application`) — Services, DTOs, service interfaces. Key services: `ChordProParser`, `ChordTransposer`. Depends only on Domain.
 - **Infrastructure** (`src/AppCanzoniere.Infrastructure`) — EF Core `AppDbContext` with SQLite, repository implementations, migrations. Implements Application interfaces.
 - **Presentation** — Two frontends:
   - **MAUI** (`src/AppCanzoniere.MAUI`) — Pages, ViewModels (MVVM via CommunityToolkit.Mvvm), platform services
@@ -42,18 +42,18 @@ Clean Architecture with four layers (dependencies flow inward only):
 - **Naming:** `PascalCase` types/methods/properties, `camelCase` variables, `_camelCase` private fields, `I`-prefixed interfaces
 - **DI:** All services registered in `MauiProgram.cs` (MAUI) and `Program.cs` (Backend). Repositories are scoped, parsers/transposers are singleton.
 - **Testing:** xUnit + FluentAssertions + Moq. Arrange/Act/Assert pattern. In-memory EF Core for repository tests.
-- **Database:** SQLite via EF Core 10. The MAUI app creates the schema with `EnsureCreated` (no migrations yet; persistence is redone in a later phase).
+- **Database:** SQLite via EF Core 10. The MAUI app creates the schema with `EnsureCreated` in `MauiProgram.cs`; `App.xaml.cs` then calls `MigrateAsync` and seeds data, but the Infrastructure project has no migrations (persistence is redone in a later phase). The Backend has its own migrations.
 - **Anti-patterns to avoid:** Infrastructure dependencies in Domain/Application; fat controllers; anemic domain models; god services.
 
 ## External Service Integrations
 
 All external services use interface abstractions with mock implementations as defaults:
 - `IChordSuggestionService` — Perplexity AI (mock default)
-- `IOcrService` — Azure Computer Vision / Tesseract (mock default)
+- `IOcrService` — Azure Computer Vision (mock default; there is no Tesseract implementation)
 - `IAudioRecognitionService` — ACRCloud (mock default)
-- `ICloudSyncService` — LocalStorage implemented; OneDrive/GoogleDrive/Dropbox are placeholders
+- `ICloudSyncService` — LocalStorage implemented; OneDrive/GoogleDrive/Dropbox providers do not exist (only commented-out registrations)
 
-API keys are managed via User Secrets (`dotnet user-secrets`) — see `SETUP_INSTRUCTIONS.md` for details.
+The real services are commented out in `MauiProgram.cs`; the Perplexity service reads `PERPLEXITY_API_KEY` from the environment. The old setup guide is archived in `docs/archivio/` and unverified.
 
 ## Project Status
 
