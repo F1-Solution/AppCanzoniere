@@ -1,3 +1,5 @@
+using AppCanzoniere.Application.Music;
+
 namespace AppCanzoniere.Application.Interfaces;
 
 public interface IChordProParser
@@ -11,6 +13,9 @@ public interface IChordProParser
     /// Render ChordPro document with transposed chords
     /// </summary>
     string Render(ChordProDocument document, int transposeSteps = 0);
+
+    /// <summary>Render with transposition, spelling, notation and capo.</summary>
+    string Render(ChordProDocument document, ChordProRenderOptions options);
 }
 
 public class ChordProDocument

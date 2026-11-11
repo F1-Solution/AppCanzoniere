@@ -1,6 +1,7 @@
 using System.Text;
 using System.Text.RegularExpressions;
 using AppCanzoniere.Application.Interfaces;
+using AppCanzoniere.Application.Music;
 
 namespace AppCanzoniere.Application.Services;
 
@@ -134,6 +135,8 @@ public class ChordProParser : IChordProParser
 
         return document;
     }
+
+    public string Render(ChordProDocument document, ChordProRenderOptions options) => Render(document, options.TransposeSteps);
 
     public string Render(ChordProDocument document, int transposeSteps = 0)
     {
