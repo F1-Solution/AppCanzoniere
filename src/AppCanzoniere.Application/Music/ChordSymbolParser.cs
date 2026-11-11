@@ -10,9 +10,11 @@ public static class ChordSymbolParser
     private static readonly Regex EnglishRoot = new($"^([A-Ga-g])({Accidentals}?)(.*)$", RegexOptions.Compiled | RegexOptions.Singleline | RegexOptions.CultureInvariant);
     private static readonly Regex ItalianRoot = new($"^((?i:sol|do|re|mi|fa|la|si))({Accidentals}?)(.*)$", RegexOptions.Compiled | RegexOptions.Singleline | RegexOptions.CultureInvariant);
     private static readonly Regex MinorMarker = new("^(?:-|(?i:min)(?![a-zA-Z])|(?i:mi)(?![a-zA-Z])|m(?!(?i:aj)|(?i:a)[0-9]))", RegexOptions.Compiled | RegexOptions.CultureInvariant);
-    private static readonly Regex ValidSuffix = new(
-        "^(?:maj|ma(?=[0-9])|add|aug|alt|dim|dom|sus|omit|no|M|o|[0-9]|[#b+°ø(),.△Δ♯♭^-]|/(?=[0-9]|maj|ma[0-9]|add|aug|alt|dim|sus|min))*$",
-        RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+    private const string SuffixTokens = "(?:maj|ma(?=[0-9])|add|aug|alt|dim|dom|sus|omit|no|(?-i:M)|[0-9]|[#b+°ø(),.△Δ♯♭^-]|/(?=[0-9]|maj|ma[0-9]|add|aug|alt|dim|sus|min))*$";
+
+    // The bare "o" is a lower-case diminished marker allowed once, right after the root, only in English.
+    private static readonly Regex EnglishSuffix = new("^(?-i:o(?=7|$))?" + SuffixTokens, RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+    private static readonly Regex ItalianSuffix = new("^" + SuffixTokens, RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
 
     public static bool TryParse(string? text, Notation notation, out ChordSymbol chord)
     {
@@ -52,14 +54,22 @@ public static class ChordSymbolParser
         if (accidental.Length > 0 && rest.StartsWith(accidental, StringComparison.Ordinal))
             return false; // Double sharps and flats are not supported.
 
+        if (notation == Notation.English && IsItalianDo(match, rest))
+            return false;
+
         var minor = MinorMarker.Match(rest);
         var suffix = minor.Success ? rest[minor.Length..] : rest;
-        if (!ValidSuffix.IsMatch(suffix))
+        if (!(notation == Notation.Italian ? ItalianSuffix : EnglishSuffix).IsMatch(suffix))
             return false;
 
         chord = new ChordSymbol(ToNote(match, notation), minor.Success, minor.Value, suffix, bass);
         return true;
     }
+
+    // English "D" directly followed by "o" is the Italian Do, not a D diminished.
+    private static bool IsItalianDo(Match root, string rest) =>
+        char.ToUpperInvariant(root.Groups[1].Value[0]) == 'D' && root.Groups[2].Length == 0 &&
+        rest.Length > 0 && (rest[0] == 'o' || rest[0] == 'O');
 
     private static Regex RootRegex(Notation notation) => notation == Notation.Italian ? ItalianRoot : EnglishRoot;
 
