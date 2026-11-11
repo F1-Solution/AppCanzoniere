@@ -69,6 +69,9 @@ public class ChordProParser : IChordProParser
         var value = directive.Groups[2].Value;
         switch (name)
         {
+            case "title" or "t" when string.IsNullOrWhiteSpace(value):
+            case "key" when string.IsNullOrWhiteSpace(value):
+                break; // An empty value never erases an earlier one.
             case "title" or "t":
                 document.Title = value;
                 document.Lines.Add(new ChordProLine { Type = ChordProLineType.Title, Text = value });
@@ -159,7 +162,7 @@ public class ChordProParser : IChordProParser
         var sb = new StringBuilder();
         var chords = document.Lines
             .Where(l => l.Type != ChordProLineType.Tab)
-            .SelectMany(l => l.Chords.OrderBy(c => c.Position).Select(c => c.Chord));
+            .SelectMany(l => (l.Chords ?? new List<ChordPosition>()).OrderBy(c => c.Position).Select(c => c.Chord));
         var transformer = new ChordTransformer(options, document.Key, document.CapoFret ?? 0, chords);
 
         var hasMetadata = AppendMetadata(sb, document, transformer, options);
@@ -246,7 +249,7 @@ public class ChordProParser : IChordProParser
     {
         var result = new StringBuilder();
         var cursor = 0;
-        foreach (var chord in line.Chords.OrderBy(c => c.Position))
+        foreach (var chord in (line.Chords ?? new List<ChordPosition>()).OrderBy(c => c.Position))
         {
             var position = Math.Clamp(chord.Position, cursor, line.Text.Length);
             result.Append(line.Text, cursor, position - cursor);

@@ -9,6 +9,7 @@ public static class ChordSymbolParser
 
     private static readonly Regex EnglishRoot = new($"^([A-Ga-g])({Accidentals}?)(.*)$", RegexOptions.Compiled | RegexOptions.Singleline | RegexOptions.CultureInvariant);
     private static readonly Regex ItalianRoot = new($"^((?i:sol|do|re|mi|fa|la|si))({Accidentals}?)(.*)$", RegexOptions.Compiled | RegexOptions.Singleline | RegexOptions.CultureInvariant);
+    private static readonly Regex AlteredTension = new("^(?:5|9|11|13)(?![0-9])", RegexOptions.Compiled | RegexOptions.CultureInvariant);
     private static readonly Regex MinorMarker = new("^(?:-|(?i:min)(?![a-zA-Z])|(?i:mi)(?![a-zA-Z])|m(?!(?i:aj)|(?i:a)[0-9]))", RegexOptions.Compiled | RegexOptions.CultureInvariant);
     private const string SuffixTokens = "(?:maj|ma(?=[0-9])|add|aug|alt|dim|dom|sus|omit|no|(?-i:M)|[0-9]|[#b+°ø(),.△Δ♯♭^-]|/(?=[0-9]|maj|ma[0-9]|add|aug|alt|dim|sus|min))*$";
 
@@ -51,8 +52,8 @@ public static class ChordSymbolParser
 
         var rest = match.Groups[3].Value;
         var accidental = match.Groups[2].Value;
-        if (accidental.Length > 0 && rest.StartsWith(accidental, StringComparison.Ordinal))
-            return false; // Double sharps and flats are not supported.
+        if (accidental.Length > 0 && rest.StartsWith(accidental, StringComparison.Ordinal) && !AlteredTension.IsMatch(rest[accidental.Length..]))
+            return false; // Double sharps and flats are not supported, but "Bbb5" is Bb with a flat five.
 
         if (notation == Notation.English && IsItalianDo(match, rest))
             return false;
