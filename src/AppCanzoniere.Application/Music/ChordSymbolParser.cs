@@ -11,7 +11,7 @@ public static class ChordSymbolParser
     private static readonly Regex ItalianRoot = new($"^((?i:sol|do|re|mi|fa|la|si))({Accidentals}?)(.*)$", RegexOptions.Compiled | RegexOptions.Singleline);
     private static readonly Regex MinorMarker = new("^(?:-|(?i:min)(?![a-zA-Z])|(?i:mi)(?![a-zA-Z])|m(?!(?i:aj)|(?i:a)[0-9]))", RegexOptions.Compiled | RegexOptions.CultureInvariant);
     private static readonly Regex ValidSuffix = new(
-        "^(?:maj|ma(?=[0-9])|add|aug|alt|dim|dom|sus|no|M|[0-9]|[#b+°ø(),.△Δ♯♭-]|/(?=[0-9]))*$",
+        "^(?:maj|ma(?=[0-9])|add|aug|alt|dim|dom|sus|omit|no|M|o|[0-9]|[#b+°ø(),.△Δ♯♭^-]|/(?=[0-9]|maj|ma[0-9]|add|aug|alt|dim|sus|min))*$",
         RegexOptions.Compiled | RegexOptions.IgnoreCase);
 
     public static bool TryParse(string? text, Notation notation, out ChordSymbol chord)
