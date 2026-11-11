@@ -76,10 +76,10 @@ public class DiminishedSpellingTests
     }
 
     [Theory]
-    [InlineData("C#dim7", 5, "F", "F#dim7")]
-    [InlineData("D#dim7", 5, "F", "G#dim7")]
-    [InlineData("G#dim7", 5, "F", "C#dim7")]
-    [InlineData("A#dim7", 5, "F", "D#dim7")]
+    [InlineData("C#dim7", 5, "C", "F#dim7")]
+    [InlineData("D#dim7", 5, "C", "G#dim7")]
+    [InlineData("G#dim7", 5, "C", "C#dim7")]
+    [InlineData("A#dim7", 5, "C", "D#dim7")]
     [InlineData("C#dim7", 7, "C", "G#dim7")]
     [InlineData("D#dim7", 7, "C", "A#dim7")]
     [InlineData("G#dim7", 7, "C", "D#dim7")]
