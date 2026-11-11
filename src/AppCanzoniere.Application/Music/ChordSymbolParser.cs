@@ -13,7 +13,7 @@ public static class ChordSymbolParser
     private static readonly Regex MinorMarker = new("^(?:-|(?i:min)(?![a-zA-Z])|(?i:mi)(?![a-zA-Z])|m(?!(?i:aj)|(?i:a)[0-9]))", RegexOptions.Compiled | RegexOptions.CultureInvariant);
     private const string SuffixTokens = "(?:maj|ma(?=[0-9])|add|aug|alt|dim|dom|sus|omit|no|(?-i:M)|[0-9]|[#b+°ø(),.△Δ♯♭^-]|/(?=[0-9]|maj|ma[0-9]|add|aug|alt|dim|sus|min))*$";
 
-    // The bare "o" is a lower-case diminished marker allowed once, right after the root, only in English.
+    // The bare "o" is a lower-case diminished marker allowed once, directly after the root (not after a minor marker), only in English.
     private static readonly Regex EnglishSuffix = new("^(?-i:o(?=7|$))?" + SuffixTokens, RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
     private static readonly Regex ItalianSuffix = new("^" + SuffixTokens, RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
 
@@ -59,12 +59,12 @@ public static class ChordSymbolParser
         if (accidental.Length > 0 && rest.StartsWith(accidental, StringComparison.Ordinal) && !AlteredTension.IsMatch(rest[accidental.Length..]))
             return false; // Double sharps and flats are not supported, but "Bbb5" is Bb with a flat five.
 
-        if (notation == Notation.English && IsItalianDo(match, rest))
+        if (notation == Notation.English && IsItalianDo(match, rest) && !rest.StartsWith("omit", StringComparison.Ordinal))
             return false;
 
         var minor = MinorMarker.Match(rest);
         var suffix = minor.Success ? rest[minor.Length..] : rest;
-        if (!(notation == Notation.Italian ? ItalianSuffix : EnglishSuffix).IsMatch(suffix))
+        if (!(notation == Notation.English && !minor.Success ? EnglishSuffix : ItalianSuffix).IsMatch(suffix))
             return false;
 
         chord = new ChordSymbol(ToNote(match, notation), minor.Success, minor.Value, suffix, bass);

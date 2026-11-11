@@ -33,7 +33,7 @@ public static class KeySpelling
     {
         var suffix = chord.Suffix;
         return suffix.StartsWith("dim", StringComparison.OrdinalIgnoreCase) ||
-               suffix.StartsWith('°') || suffix.StartsWith('o') || suffix.StartsWith('ø') ||
+               suffix.StartsWith('°') || ChordSymbolParser.HasBareDiminishedMarker(suffix) || suffix.StartsWith('ø') ||
                (chord.IsMinor && (suffix.Contains("b5", StringComparison.Ordinal) || suffix.Contains("♭5", StringComparison.Ordinal)));
     }
 
