@@ -56,6 +56,35 @@ public class ChordProTabTests
         Assert.Equal("G", after.Chords[0].Chord);
     }
 
+    [Theory]
+    [InlineData("{ start_of_tab }", "")]
+    [InlineData("{sot }", "")]
+    [InlineData("{ sot}", "")]
+    [InlineData("{sot:}", "")]
+    [InlineData("{ SOT : Riff }", "Riff")]
+    [InlineData("{ start_of_tab : Intro riff }", "Intro riff")]
+    public void Parse_TabDirectiveWithSpacesOrEmptyLabel_OpensATabBlock(string start, string label)
+    {
+        var document = _parser.Parse($"{start}\n  E|--[G]--\n{{ eot }}\n[C]Lyrics");
+
+        Assert.Equal(new[] { ChordProLineType.Tab, ChordProLineType.Verse }, document.Lines.Select(l => l.Type));
+        Assert.Equal("  E|--[G]--", document.Lines[0].Text);
+        Assert.Equal(label, document.Lines[0].TabLabel);
+        Assert.True(document.Lines[0].StartsTabBlock);
+    }
+
+    [Theory]
+    [InlineData("{ start_of_tab }", "{start_of_tab}\n")]
+    [InlineData("{sot:}", "{start_of_tab}\n")]
+    [InlineData("{ SOT : Riff }", "{start_of_tab:Riff}\n")]
+    public void Render_TabDirectiveWithSpaces_KeepsTheBlockUntransposed(string start, string opening)
+    {
+        var rendered = _parser.Render(_parser.Parse($"[C]Verse\n{start}\nE|--[G]--\n{{ eot }}"), 2);
+
+        Assert.Contains("[D]Verse\n", rendered);
+        Assert.Contains(opening + "E|--[G]--\n{end_of_tab}\n", rendered);
+    }
+
     [Fact]
     public void Parse_TabLineThatLooksLikeADirective_IsNotInterpreted()
     {
