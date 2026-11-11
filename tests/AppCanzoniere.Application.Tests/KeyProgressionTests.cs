@@ -65,6 +65,17 @@ public class KeyProgressionTests
     private string Render(string song, ChordProRenderOptions options) =>
         _parser.Render(_parser.Parse(song), options with { Accidentals = AccidentalPreference.Auto });
 
+    public static IEnumerable<object[]> Sounding => Rows.Select(r => new object[] { r[0], r[1] });
+
+    [Theory]
+    [MemberData(nameof(Sounding))]
+    public void NoCapo_LeavesTheProgressionAsWritten(string key, string progression)
+    {
+        var expected = $"{{key:{key}}}\n\n{Chords(progression)}\n";
+
+        Assert.Equal(expected, Render(Song(key, progression), new ChordProRenderOptions()));
+    }
+
     [Theory]
     [MemberData(nameof(Keys))]
     public void English_CapoTwo_ShowsTheHandWrittenShapes(string key, string progression, string shapes)

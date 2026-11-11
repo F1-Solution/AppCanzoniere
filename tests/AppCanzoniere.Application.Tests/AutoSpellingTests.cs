@@ -97,4 +97,30 @@ public class AutoSpellingTests
 
         Assert.Equal("{key:Dm}\n\n[Dm]a [A7/C#]b [Bb]c\n", result);
     }
+
+    [Fact]
+    public void Render_AutoWithoutShift_LeavesChordsAndKeyAsWritten()
+    {
+        var result = Render("{key:Gb}\n[Gb]a [Cb]b [Db]c [Ebm]d", new ChordProRenderOptions());
+
+        Assert.Equal("{key:Gb}\n\n[Gb]a [Cb]b [Db]c [Ebm]d\n", result);
+    }
+
+    [Fact]
+    public void Render_AutoWithoutShiftToItalian_ConvertsTheNotationOnly()
+    {
+        var result = Render("{key:Gb}\n[Gb]a [Db]b", new ChordProRenderOptions { OutputNotation = NotationOptions.Italian });
+
+        Assert.Equal("{key:Solb}\n\n[Solb]a [Reb]b\n", result);
+    }
+
+    [Theory]
+    [InlineData("C", "F#")]
+    [InlineData("Am", "Ebm")]
+    public void Render_AutoShiftIntoTheAmbiguousKeys_KeepsTheCurrentChoice(string key, string expected)
+    {
+        var result = Render($"{{key:{key}}}\n[{key}]a", new ChordProRenderOptions { TransposeSteps = 6 });
+
+        Assert.Equal($"{{key:{expected}}}\n\n[{expected}]a\n", result);
+    }
 }
