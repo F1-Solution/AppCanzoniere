@@ -7,9 +7,9 @@ namespace AppCanzoniere.Application.Services;
 
 public class ChordProParser : IChordProParser
 {
-    private static readonly Regex ChordRegex = new Regex(@"\[([^\]]+)\]", RegexOptions.Compiled);
-    private static readonly Regex DirectiveRegex = new Regex(@"\{([^:}]+)(?::(.*))?\}", RegexOptions.Compiled);
-    private static readonly Regex TabEndRegex = new Regex(@"^\{\s*(?:end_of_tab|eot)\s*\}$", RegexOptions.Compiled | RegexOptions.IgnoreCase);
+    private static readonly Regex ChordRegex = new Regex(@"\[([^\]]+)\]", RegexOptions.Compiled | RegexOptions.CultureInvariant);
+    private static readonly Regex DirectiveRegex = new Regex(@"\{([^:}]+)(?::(.*))?\}", RegexOptions.Compiled | RegexOptions.CultureInvariant);
+    private static readonly Regex TabEndRegex = new Regex(@"^\{\s*(?:end_of_tab|eot)\s*\}$", RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
 
     public ChordProDocument Parse(string chordProContent)
     {
@@ -143,6 +143,9 @@ public class ChordProParser : IChordProParser
 
     public string Render(ChordProDocument document, ChordProRenderOptions options)
     {
+        ArgumentNullException.ThrowIfNull(document);
+        ArgumentNullException.ThrowIfNull(options);
+
         var sb = new StringBuilder();
         var chords = document.Lines
             .Where(l => l.Type != ChordProLineType.Tab)

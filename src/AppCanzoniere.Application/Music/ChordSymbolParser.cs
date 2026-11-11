@@ -7,12 +7,12 @@ public static class ChordSymbolParser
 {
     private const string Accidentals = "[#b♯♭]";
 
-    private static readonly Regex EnglishRoot = new($"^([A-Ga-g])({Accidentals}?)(.*)$", RegexOptions.Compiled | RegexOptions.Singleline);
-    private static readonly Regex ItalianRoot = new($"^((?i:sol|do|re|mi|fa|la|si))({Accidentals}?)(.*)$", RegexOptions.Compiled | RegexOptions.Singleline);
+    private static readonly Regex EnglishRoot = new($"^([A-Ga-g])({Accidentals}?)(.*)$", RegexOptions.Compiled | RegexOptions.Singleline | RegexOptions.CultureInvariant);
+    private static readonly Regex ItalianRoot = new($"^((?i:sol|do|re|mi|fa|la|si))({Accidentals}?)(.*)$", RegexOptions.Compiled | RegexOptions.Singleline | RegexOptions.CultureInvariant);
     private static readonly Regex MinorMarker = new("^(?:-|(?i:min)(?![a-zA-Z])|(?i:mi)(?![a-zA-Z])|m(?!(?i:aj)|(?i:a)[0-9]))", RegexOptions.Compiled | RegexOptions.CultureInvariant);
     private static readonly Regex ValidSuffix = new(
         "^(?:maj|ma(?=[0-9])|add|aug|alt|dim|dom|sus|omit|no|M|o|[0-9]|[#b+°ø(),.△Δ♯♭^-]|/(?=[0-9]|maj|ma[0-9]|add|aug|alt|dim|sus|min))*$",
-        RegexOptions.Compiled | RegexOptions.IgnoreCase);
+        RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
 
     public static bool TryParse(string? text, Notation notation, out ChordSymbol chord)
     {
@@ -48,6 +48,10 @@ public static class ChordSymbolParser
             return false;
 
         var rest = match.Groups[3].Value;
+        var accidental = match.Groups[2].Value;
+        if (accidental.Length > 0 && rest.StartsWith(accidental, StringComparison.Ordinal))
+            return false; // Double sharps and flats are not supported.
+
         var minor = MinorMarker.Match(rest);
         var suffix = minor.Success ? rest[minor.Length..] : rest;
         if (!ValidSuffix.IsMatch(suffix))
