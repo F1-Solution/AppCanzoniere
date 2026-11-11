@@ -13,129 +13,139 @@ public class ChordProParser : IChordProParser
 
     public ChordProDocument Parse(string chordProContent)
     {
-        if (string.IsNullOrWhiteSpace(chordProContent))
-            return new ChordProDocument();
-
         var document = new ChordProDocument();
-        var lines = chordProContent.Split(new[] { "\r\n", "\r", "\n" }, StringSplitOptions.None);
-        if (lines.Length > 1 && lines[^1].Length == 0)
-            lines = lines[..^1]; // A terminating newline ends the last line, it does not start another.
+        if (string.IsNullOrWhiteSpace(chordProContent))
+            return document;
 
-        ChordProLineType currentSection = ChordProLineType.Verse;
-        var inTab = false;
-        var tabStart = false;
-        var tabLabel = string.Empty;
-
-        foreach (var line in lines)
-        {
-            var trimmedLine = line.Trim();
-
-            if (inTab)
-            {
-                if (TabEndRegex.IsMatch(trimmedLine))
-                {
-                    inTab = false;
-                    continue;
-                }
-
-                document.Lines.Add(new ChordProLine { Type = ChordProLineType.Tab, Text = line, StartsTabBlock = tabStart, TabLabel = tabStart ? tabLabel : string.Empty });
-                tabStart = false;
-                continue;
-            }
-
-            // Skip empty lines but add them to document
-            if (string.IsNullOrWhiteSpace(trimmedLine))
-            {
-                document.Lines.Add(new ChordProLine { Type = ChordProLineType.Empty });
-                continue;
-            }
-
-            // Check for directives {title:...}, {artist:...}, etc.
-            var directiveMatch = DirectiveRegex.Match(trimmedLine);
-            if (directiveMatch.Success)
-            {
-                var directive = directiveMatch.Groups[1].Value.Trim().ToLowerInvariant();
-                var value = directiveMatch.Groups.Count > 2 ? directiveMatch.Groups[2].Value : string.Empty;
-
-                switch (directive)
-                {
-                    case "title" or "t":
-                        document.Title = value;
-                        document.Lines.Add(new ChordProLine
-                        {
-                            Type = ChordProLineType.Title,
-                            Text = value
-                        });
-                        break;
-                    case "artist" or "subtitle" or "st":
-                        document.Artist = value;
-                        break;
-                    case "key":
-                        document.Key = value;
-                        break;
-                    case "capo":
-                        document.Capo = value.Trim();
-                        break;
-                    case "tempo":
-                        document.Tempo = value;
-                        break;
-                    case "time":
-                        document.Time = value;
-                        break;
-                    case "start_of_tab" or "sot":
-                        inTab = true;
-                        tabStart = true;
-                        tabLabel = value.Trim();
-                        break;
-                    case "start_of_chorus" or "soc":
-                        currentSection = ChordProLineType.Chorus;
-                        break;
-                    case "end_of_chorus" or "eoc":
-                        currentSection = ChordProLineType.Verse;
-                        break;
-                    case "start_of_bridge" or "sob":
-                        currentSection = ChordProLineType.Bridge;
-                        break;
-                    case "end_of_bridge" or "eob":
-                        currentSection = ChordProLineType.Verse;
-                        break;
-                    case "comment" or "c":
-                        document.Lines.Add(new ChordProLine
-                        {
-                            Type = ChordProLineType.Comment,
-                            Text = value
-                        });
-                        break;
-                }
-                continue;
-            }
-
-            // Parse lines with chords [C] [G] etc.
-            var chordLine = new ChordProLine
-            {
-                Type = currentSection,
-                Chords = new List<ChordPosition>()
-            };
-
-            // Extract chords and their positions
-            var removed = 0;
-            foreach (Match match in ChordRegex.Matches(line))
-            {
-                chordLine.Chords.Add(new ChordPosition
-                {
-                    Chord = match.Groups[1].Value,
-                    Position = match.Index - removed
-                });
-                removed += match.Length;
-            }
-
-            // Remove chord markers to get lyrics
-            chordLine.Text = ChordRegex.Replace(line, string.Empty);
-
-            document.Lines.Add(chordLine);
-        }
+        var state = new ParseState();
+        foreach (var line in SplitLines(chordProContent))
+            ParseLine(line, document, state);
 
         return document;
+    }
+
+    private static string[] SplitLines(string content)
+    {
+        var lines = content.Split(new[] { "\r\n", "\r", "\n" }, StringSplitOptions.None);
+        return lines.Length > 1 && lines[^1].Length == 0
+            ? lines[..^1] // A terminating newline ends the last line, it does not start another.
+            : lines;
+    }
+
+    private static void ParseLine(string line, ChordProDocument document, ParseState state)
+    {
+        var trimmed = line.Trim();
+        if (state.InTab)
+            ParseTabLine(line, trimmed, document, state);
+        else if (trimmed.Length == 0)
+            document.Lines.Add(new ChordProLine { Type = ChordProLineType.Empty });
+        else if (DirectiveRegex.Match(trimmed) is { Success: true } directive)
+            ApplyDirective(directive, document, state);
+        else
+            document.Lines.Add(ParseChordLine(line, state.Section));
+    }
+
+    private static void ParseTabLine(string line, string trimmed, ChordProDocument document, ParseState state)
+    {
+        if (TabEndRegex.IsMatch(trimmed))
+        {
+            state.InTab = false;
+            return;
+        }
+
+        document.Lines.Add(new ChordProLine
+        {
+            Type = ChordProLineType.Tab,
+            Text = line,
+            StartsTabBlock = state.TabStart,
+            TabLabel = state.TabStart ? state.TabLabel : string.Empty
+        });
+        state.TabStart = false;
+    }
+
+    private static void ApplyDirective(Match directive, ChordProDocument document, ParseState state)
+    {
+        var name = directive.Groups[1].Value.Trim().ToLowerInvariant();
+        var value = directive.Groups[2].Value;
+        switch (name)
+        {
+            case "title" or "t":
+                document.Title = value;
+                document.Lines.Add(new ChordProLine { Type = ChordProLineType.Title, Text = value });
+                break;
+            case "comment" or "c":
+                document.Lines.Add(new ChordProLine { Type = ChordProLineType.Comment, Text = value });
+                break;
+            case "start_of_tab" or "sot":
+                state.StartTab(value.Trim());
+                break;
+            default:
+                ApplyMetadataOrSection(name, value, document, state);
+                break;
+        }
+    }
+
+    private static void ApplyMetadataOrSection(string name, string value, ChordProDocument document, ParseState state)
+    {
+        switch (name)
+        {
+            case "artist" or "subtitle" or "st":
+                document.Artist = value;
+                break;
+            case "key":
+                document.Key = value;
+                break;
+            case "capo":
+                document.Capo = value.Trim();
+                break;
+            case "tempo":
+                document.Tempo = value;
+                break;
+            case "time":
+                document.Time = value;
+                break;
+            case "start_of_chorus" or "soc":
+                state.Section = ChordProLineType.Chorus;
+                break;
+            case "start_of_bridge" or "sob":
+                state.Section = ChordProLineType.Bridge;
+                break;
+            case "end_of_chorus" or "eoc" or "end_of_bridge" or "eob":
+                state.Section = ChordProLineType.Verse;
+                break;
+        }
+    }
+
+    private static ChordProLine ParseChordLine(string line, ChordProLineType section)
+    {
+        var chordLine = new ChordProLine { Type = section, Chords = new List<ChordPosition>() };
+        var removed = 0;
+        foreach (Match match in ChordRegex.Matches(line))
+        {
+            chordLine.Chords.Add(new ChordPosition { Chord = match.Groups[1].Value, Position = match.Index - removed });
+            removed += match.Length;
+        }
+
+        chordLine.Text = ChordRegex.Replace(line, string.Empty);
+        return chordLine;
+    }
+
+    private sealed class ParseState
+    {
+        public ChordProLineType Section { get; set; } = ChordProLineType.Verse;
+
+        public bool InTab { get; set; }
+
+        public bool TabStart { get; set; }
+
+        public string TabLabel { get; set; } = string.Empty;
+
+        public void StartTab(string label)
+        {
+            InTab = true;
+            TabStart = true;
+            TabLabel = label;
+        }
     }
 
     public string Render(ChordProDocument document, int transposeSteps = 0) =>
