@@ -18,6 +18,8 @@ public class ChordProParser : IChordProParser
 
         var document = new ChordProDocument();
         var lines = chordProContent.Split(new[] { "\r\n", "\r", "\n" }, StringSplitOptions.None);
+        if (lines.Length > 1 && lines[^1].Length == 0)
+            lines = lines[..^1]; // A terminating newline ends the last line, it does not start another.
 
         ChordProLineType currentSection = ChordProLineType.Verse;
         var inTab = false;
@@ -144,11 +146,13 @@ public class ChordProParser : IChordProParser
         var sb = new StringBuilder();
         var transformer = new ChordTransformer(options, document.Key, document.CapoFret ?? 0);
 
-        AppendMetadata(sb, document, transformer, options);
-        sb.Append('\n');
+        var hasMetadata = AppendMetadata(sb, document, transformer, options);
+        var body = document.Lines.Where(l => l.Type != ChordProLineType.Title).ToList();
+        if (hasMetadata && body.Count > 0 && body[0].Type != ChordProLineType.Empty)
+            sb.Append('\n');
 
         var previousType = ChordProLineType.Verse;
-        foreach (var line in document.Lines)
+        foreach (var line in body)
         {
             AppendSectionBoundary(sb, previousType, line);
             AppendLine(sb, line, transformer);
@@ -159,8 +163,9 @@ public class ChordProParser : IChordProParser
         return sb.ToString();
     }
 
-    private static void AppendMetadata(StringBuilder sb, ChordProDocument document, ChordTransformer transformer, ChordProRenderOptions options)
+    private static bool AppendMetadata(StringBuilder sb, ChordProDocument document, ChordTransformer transformer, ChordProRenderOptions options)
     {
+        var start = sb.Length;
         if (!string.IsNullOrEmpty(document.Title))
             sb.Append($"{{title:{document.Title}}}\n");
         if (!string.IsNullOrEmpty(document.Artist))
@@ -171,6 +176,7 @@ public class ChordProParser : IChordProParser
         var capo = options.Capo is { } fret ? (fret > 0 ? fret.ToString() : string.Empty) : document.Capo;
         if (!string.IsNullOrEmpty(capo))
             sb.Append($"{{capo:{capo}}}\n");
+        return sb.Length > start;
     }
 
     private static void AppendSectionBoundary(StringBuilder sb, ChordProLineType previous, ChordProLine line)
