@@ -6,6 +6,7 @@ public sealed class ChordTransformer
     private readonly ChordProRenderOptions _options;
     private readonly ChordSymbol? _key;
     private readonly int _shapeShift;
+    private readonly int _capoUsed;
 
     /// <param name="options">Render settings; a capo outside 0-11 is rejected.</param>
     /// <param name="documentKey">Sounding key of the document, written in the input notation; steers Auto spelling.</param>
@@ -14,6 +15,7 @@ public sealed class ChordTransformer
     {
         _options = options;
         _shapeShift = options.TransposeSteps;
+        _capoUsed = options.Capo ?? documentCapo;
         if (options.Capo is { } capo)
         {
             if (capo is < 0 or > CapoCalculator.MaxFret)
@@ -31,7 +33,9 @@ public sealed class ChordTransformer
         if (!ChordSymbolParser.TryParse(chord, _options.InputNotation.Notation, out var symbol))
             return chord;
 
-        var flats = ResolveFlats(symbol, _shapeShift, _key);
+        var flats = _key is null
+            ? ResolveFlats(symbol, _shapeShift, null)
+            : ResolveFlats(_key, _options.TransposeSteps - _capoUsed, _key);
         return Write(chord, symbol, _shapeShift, flats);
     }
 
