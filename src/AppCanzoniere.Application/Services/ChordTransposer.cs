@@ -1,5 +1,6 @@
 using System.Text.RegularExpressions;
 using AppCanzoniere.Application.Interfaces;
+using AppCanzoniere.Application.Music;
 
 namespace AppCanzoniere.Application.Services;
 
@@ -62,6 +63,12 @@ public class ChordTransposer : IChordTransposer
 
         return isMinor ? transposedNote + "m" : transposedNote;
     }
+
+    public string TransposeChord(string chord, int steps, AccidentalPreference preference, string? key = null) =>
+        TransposeChord(chord, steps, preference == AccidentalPreference.Flats);
+
+    public string TransposeKey(string key, int steps, AccidentalPreference preference) =>
+        TransposeKey(key, steps, preference == AccidentalPreference.Flats);
 
     public int NormalizeSteps(int steps)
     {

@@ -1,3 +1,5 @@
+using AppCanzoniere.Application.Music;
+
 namespace AppCanzoniere.Application.Interfaces;
 
 public interface IChordTransposer
@@ -20,4 +22,10 @@ public interface IChordTransposer
     /// Normalize steps to be within 0-11 range
     /// </summary>
     int NormalizeSteps(int steps);
+
+    /// <summary>Transposes a chord; Auto picks the spelling from the target key.</summary>
+    string TransposeChord(string chord, int steps, AccidentalPreference preference, string? key = null);
+
+    /// <summary>Transposes a key with the given accidental spelling.</summary>
+    string TransposeKey(string key, int steps, AccidentalPreference preference);
 }
