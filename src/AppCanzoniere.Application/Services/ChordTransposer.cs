@@ -11,8 +11,8 @@ public class ChordTransposer : IChordTransposer
     public string TransposeKey(string key, int steps, bool useFlats = false) =>
         TransposeKey(key, steps, useFlats ? AccidentalPreference.Flats : AccidentalPreference.Sharps);
 
-    public string TransposeChord(string chord, int steps, AccidentalPreference preference, string? key = null) =>
-        Transpose(chord, steps, preference, key);
+    public string TransposeChord(string chord, int steps, AccidentalPreference preference, string? sourceKey = null) =>
+        Transpose(chord, steps, preference, sourceKey);
 
     public string TransposeKey(string key, int steps, AccidentalPreference preference) =>
         Transpose(key, steps, preference, key);

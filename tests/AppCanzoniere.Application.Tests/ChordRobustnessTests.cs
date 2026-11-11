@@ -108,6 +108,13 @@ public class ChordRobustnessTests
     }
 
     [Fact]
+    public void TransposeChord_SourceKeyParameter_IsTheKeyTheChordIsCurrentlyIn()
+    {
+        Assert.Equal("Eb", _transposer.TransposeChord("D#", 0, AccidentalPreference.Auto, sourceKey: "F"));
+        Assert.Equal("Eb", _transposer.TransposeChord("C", 3, AccidentalPreference.Auto, sourceKey: "C"));
+    }
+
+    [Fact]
     public void Render_NullDocument_ThrowsArgumentNullException()
     {
         Assert.Throws<ArgumentNullException>(() => _parser.Render(null!, new ChordProRenderOptions()));
