@@ -8,6 +8,7 @@ public class ChordProParser : IChordProParser
 {
     private static readonly Regex ChordRegex = new Regex(@"\[([^\]]+)\]", RegexOptions.Compiled);
     private static readonly Regex DirectiveRegex = new Regex(@"\{([^:}]+)(?::(.+))?\}", RegexOptions.Compiled);
+    private static readonly Regex TabEndRegex = new Regex(@"^\{\s*(?:end_of_tab|eot)\s*\}$", RegexOptions.Compiled | RegexOptions.IgnoreCase);
 
     public ChordProDocument Parse(string chordProContent)
     {
@@ -18,10 +19,26 @@ public class ChordProParser : IChordProParser
         var lines = chordProContent.Split(new[] { "\r\n", "\r", "\n" }, StringSplitOptions.None);
 
         ChordProLineType currentSection = ChordProLineType.Verse;
+        var inTab = false;
+        var tabStart = false;
+        var tabLabel = string.Empty;
 
         foreach (var line in lines)
         {
             var trimmedLine = line.Trim();
+
+            if (inTab)
+            {
+                if (TabEndRegex.IsMatch(trimmedLine))
+                {
+                    inTab = false;
+                    continue;
+                }
+
+                document.Lines.Add(new ChordProLine { Type = ChordProLineType.Tab, Text = line, StartsTabBlock = tabStart, TabLabel = tabStart ? tabLabel : string.Empty });
+                tabStart = false;
+                continue;
+            }
 
             // Skip empty lines but add them to document
             if (string.IsNullOrWhiteSpace(trimmedLine))
@@ -61,6 +78,11 @@ public class ChordProParser : IChordProParser
                         break;
                     case "time":
                         document.Time = value;
+                        break;
+                    case "start_of_tab" or "sot":
+                        inTab = true;
+                        tabStart = true;
+                        tabLabel = value.Trim();
                         break;
                     case "start_of_chorus" or "soc":
                         currentSection = ChordProLineType.Chorus;
@@ -124,7 +146,7 @@ public class ChordProParser : IChordProParser
         var previousType = ChordProLineType.Verse;
         foreach (var line in document.Lines)
         {
-            AppendSectionBoundary(sb, previousType, line.Type);
+            AppendSectionBoundary(sb, previousType, line);
             AppendLine(sb, line, transposer, transposeSteps);
             previousType = line.Type;
         }
@@ -145,9 +167,11 @@ public class ChordProParser : IChordProParser
             sb.Append($"{{capo:{document.Capo}}}\n");
     }
 
-    private static void AppendSectionBoundary(StringBuilder sb, ChordProLineType previous, ChordProLineType current)
+    private static void AppendSectionBoundary(StringBuilder sb, ChordProLineType previous, ChordProLine line)
     {
-        if (previous == current)
+        var current = line.Type;
+        var newTabBlock = current == ChordProLineType.Tab && line.StartsTabBlock;
+        if (previous == current && !newTabBlock)
             return;
 
         AppendSectionEnd(sb, previous);
@@ -155,6 +179,8 @@ public class ChordProParser : IChordProParser
             sb.Append("{start_of_chorus}\n");
         else if (current == ChordProLineType.Bridge)
             sb.Append("{start_of_bridge}\n");
+        else if (current == ChordProLineType.Tab)
+            sb.Append(line.TabLabel.Length > 0 ? $"{{start_of_tab:{line.TabLabel}}}\n" : "{start_of_tab}\n");
     }
 
     private static void AppendSectionEnd(StringBuilder sb, ChordProLineType type)
@@ -163,6 +189,8 @@ public class ChordProParser : IChordProParser
             sb.Append("{end_of_chorus}\n");
         else if (type == ChordProLineType.Bridge)
             sb.Append("{end_of_bridge}\n");
+        else if (type == ChordProLineType.Tab)
+            sb.Append("{end_of_tab}\n");
     }
 
     private static void AppendLine(StringBuilder sb, ChordProLine line, ChordTransposer transposer, int steps)
@@ -174,6 +202,9 @@ public class ChordProParser : IChordProParser
                 break;
             case ChordProLineType.Comment:
                 sb.Append($"{{comment:{line.Text}}}\n");
+                break;
+            case ChordProLineType.Tab:
+                sb.Append(line.Text).Append('\n');
                 break;
             case ChordProLineType.Title:
                 break; // Written with the metadata.
