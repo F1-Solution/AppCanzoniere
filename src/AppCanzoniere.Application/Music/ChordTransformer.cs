@@ -45,7 +45,7 @@ public sealed class ChordTransformer
 
     private string Write(string original, ChordSymbol symbol, int steps, (int Tonic, bool Minor) reference)
     {
-        var untouched = steps == 0 && _options.Accidentals is null;
+        var untouched = steps == 0 && _options.Accidentals is null or AccidentalPreference.Auto;
         if (untouched && _options.InputNotation == _options.OutputNotation)
             return original;
 
