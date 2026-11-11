@@ -33,6 +33,12 @@ public class ChordProLine
     public ChordProLineType Type { get; set; }
     public string Text { get; set; } = string.Empty;
     public List<ChordPosition> Chords { get; set; } = new();
+
+    /// <summary>True on the first line of a tab block.</summary>
+    public bool StartsTabBlock { get; set; }
+
+    /// <summary>Optional label of the tab block, set on its first line.</summary>
+    public string TabLabel { get; set; } = string.Empty;
 }
 
 public class ChordPosition
@@ -48,5 +54,8 @@ public enum ChordProLineType
     Bridge,
     Title,
     Comment,
-    Empty
+    Empty,
+
+    /// <summary>Line of a tab block: kept verbatim, monospace, never transposed or converted.</summary>
+    Tab
 }
