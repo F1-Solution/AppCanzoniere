@@ -47,7 +47,8 @@ public static class KeySpelling
 
     private static Note SpellBass(int pitchClass, Note root, int tonic, bool minor)
     {
-        var below = Note.Mod12(root.PitchClass - pitchClass) == 1;
+        var diatonic = (minor ? MinorScale : MajorScale).Contains(Note.Mod12(pitchClass - tonic));
+        var below = !diatonic && Note.Mod12(root.PitchClass - pitchClass) == 1;
         var interval = Note.Mod12(pitchClass - root.PitchClass);
         if ((interval == 4 || below) && OnLetter(root, below ? 6 : 2, pitchClass) is { } note)
             return note;
