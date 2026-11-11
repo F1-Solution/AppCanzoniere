@@ -16,12 +16,18 @@ public static class ChordNotation
         if (chord.IsMinor)
             builder.Append(keepMinorToken ? chord.MinorToken : options.MinorStyle == MinorStyle.Dash ? "-" : "m");
 
-        builder.Append(chord.Suffix);
+        builder.Append(ChordSymbolParser.HasBareDiminishedMarker(chord.Suffix) && UsesDegreeSign(chord.Root, options.Notation)
+            ? "°" + chord.Suffix[1..]
+            : chord.Suffix);
         if (chord.Bass is { } bass)
             builder.Append('/').Append(FormatNote(bass, options.Notation));
 
         return builder.ToString();
     }
+
+    // Italian "Do" and English "D" followed by "o" would read back as the wrong chord, so they take the degree sign.
+    private static bool UsesDegreeSign(Note root, Notation notation) =>
+        notation == Notation.Italian || (root.Letter == 'D' && root.Accidental == 0);
 
     public static string FormatNote(Note note, Notation notation)
     {

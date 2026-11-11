@@ -32,6 +32,10 @@ public static class ChordSymbolParser
         return TryParseBody(trimmed, notation, null, out chord);
     }
 
+    /// <summary>True when the suffix starts with the bare lower-case "o" diminished marker (not "omit").</summary>
+    internal static bool HasBareDiminishedMarker(string suffix) =>
+        suffix.StartsWith('o') && (suffix.Length == 1 || suffix[1] == '7');
+
     public static bool TryParseNote(string text, Notation notation, out Note note)
     {
         note = default;
