@@ -1,7 +1,7 @@
-using AppCanzoniere.Application.DTOs.Backend;
-using AppCanzoniere.Application.Interfaces;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
+using AppCanzoniere.Application.DTOs.Backend;
+using AppCanzoniere.Application.Interfaces;
 
 namespace AppCanzoniere.Application.Services;
 
@@ -22,7 +22,7 @@ public class BackendSongService : IBackendSongService
         try
         {
             var response = await _httpClient.GetAsync($"songs?page={page}&pageSize={pageSize}");
-            
+
             if (!response.IsSuccessStatusCode)
                 return Enumerable.Empty<PublicSongDto>();
 
@@ -40,7 +40,7 @@ public class BackendSongService : IBackendSongService
         try
         {
             var response = await _httpClient.GetAsync($"songs/{id}");
-            
+
             if (!response.IsSuccessStatusCode)
                 return null;
 
@@ -57,7 +57,7 @@ public class BackendSongService : IBackendSongService
         try
         {
             var response = await _httpClient.GetAsync($"songs/search?query={Uri.EscapeDataString(query)}");
-            
+
             if (!response.IsSuccessStatusCode)
                 return Enumerable.Empty<PublicSongDto>();
 
@@ -77,7 +77,7 @@ public class BackendSongService : IBackendSongService
             await EnsureAuthenticatedAsync();
 
             var response = await _httpClient.PostAsJsonAsync("songs", request);
-            
+
             if (!response.IsSuccessStatusCode)
                 return null;
 
@@ -122,7 +122,7 @@ public class BackendSongService : IBackendSongService
     private async Task EnsureAuthenticatedAsync()
     {
         var token = await _authService.GetCurrentTokenAsync();
-        
+
         if (!string.IsNullOrEmpty(token))
         {
             _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);

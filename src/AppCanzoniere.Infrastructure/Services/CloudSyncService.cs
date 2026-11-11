@@ -16,7 +16,7 @@ public class CloudSyncService : ICloudSyncService
     public CloudSyncService(AppDbContext dbContext)
     {
         _dbContext = dbContext;
-        
+
         // Get database path from connection string
         var connection = _dbContext.Database.GetConnectionString();
         if (!string.IsNullOrEmpty(connection) && connection.Contains("Data Source="))
@@ -236,7 +236,7 @@ public class CloudSyncService : ICloudSyncService
         try
         {
             var remoteExists = await CurrentProvider.FileExistsAsync(RemoteDatabaseName, cancellationToken);
-            
+
             if (!remoteExists)
             {
                 return conflicts; // No conflict if remote doesn't exist
@@ -345,7 +345,7 @@ public class CloudSyncService : ICloudSyncService
 
         // Download
         var success = await CurrentProvider.DownloadFileAsync(RemoteDatabaseName, _databasePath, cancellationToken);
-        
+
         if (success)
         {
             // Reopen connection to reload

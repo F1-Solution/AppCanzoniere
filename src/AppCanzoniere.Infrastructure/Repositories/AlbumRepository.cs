@@ -49,7 +49,7 @@ public class AlbumRepository : IAlbumRepository
     {
         if (album.Id == Guid.Empty)
             album.Id = Guid.NewGuid();
-        
+
         _context.Albums.Add(album);
         await _context.SaveChangesAsync(cancellationToken);
         return album;
@@ -90,7 +90,7 @@ public class AlbumRepository : IAlbumRepository
             OrderIndex = orderIndex,
             AddedAt = DateTime.UtcNow
         };
-        
+
         _context.AlbumSongs.Add(albumSong);
         await _context.SaveChangesAsync(cancellationToken);
     }
@@ -99,7 +99,7 @@ public class AlbumRepository : IAlbumRepository
     {
         var albumSong = await _context.AlbumSongs
             .FirstOrDefaultAsync(als => als.AlbumId == albumId && als.SongId == songId, cancellationToken);
-        
+
         if (albumSong != null)
         {
             _context.AlbumSongs.Remove(albumSong);

@@ -54,7 +54,7 @@ public partial class LoginViewModel : ObservableObject
             {
                 IsAuthenticated = true;
                 StatusMessage = $"Welcome {result.Email}!";
-                
+
                 // Navigate back or to main page
                 await Shell.Current.GoToAsync("..");
             }
@@ -99,7 +99,7 @@ public partial class LoginViewModel : ObservableObject
             {
                 IsAuthenticated = true;
                 StatusMessage = $"Welcome {result.Email}! Registration successful.";
-                
+
                 // Navigate back or to main page
                 await Shell.Current.GoToAsync("..");
             }

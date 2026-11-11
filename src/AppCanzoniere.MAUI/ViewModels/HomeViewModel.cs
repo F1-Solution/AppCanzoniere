@@ -66,7 +66,7 @@ public partial class HomeViewModel : ObservableObject
     private async Task NavigateToSongDetailAsync(Song song)
     {
         if (song == null) return;
-        
+
         await Shell.Current.GoToAsync($"songdetail", new Dictionary<string, object>
         {
             { "Song", song }

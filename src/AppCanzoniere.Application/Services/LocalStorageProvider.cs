@@ -54,7 +54,7 @@ public class LocalStorageProvider : ICloudStorageProvider
         {
             var destinationPath = GetFullPath(remoteFilePath);
             var destinationDir = Path.GetDirectoryName(destinationPath);
-            
+
             if (!string.IsNullOrEmpty(destinationDir))
             {
                 Directory.CreateDirectory(destinationDir);
@@ -79,7 +79,7 @@ public class LocalStorageProvider : ICloudStorageProvider
         {
             var destinationPath = GetFullPath(remoteFilePath);
             var destinationDir = Path.GetDirectoryName(destinationPath);
-            
+
             if (!string.IsNullOrEmpty(destinationDir))
             {
                 Directory.CreateDirectory(destinationDir);
@@ -104,7 +104,7 @@ public class LocalStorageProvider : ICloudStorageProvider
         try
         {
             var sourcePath = GetFullPath(remoteFilePath);
-            
+
             if (!File.Exists(sourcePath))
             {
                 return Task.FromResult(false);
@@ -132,7 +132,7 @@ public class LocalStorageProvider : ICloudStorageProvider
         try
         {
             var sourcePath = GetFullPath(remoteFilePath);
-            
+
             if (!File.Exists(sourcePath))
             {
                 return Task.FromResult<Stream?>(null);
@@ -154,7 +154,7 @@ public class LocalStorageProvider : ICloudStorageProvider
         try
         {
             var filePath = GetFullPath(remoteFilePath);
-            
+
             if (File.Exists(filePath))
             {
                 File.Delete(filePath);
@@ -176,7 +176,7 @@ public class LocalStorageProvider : ICloudStorageProvider
         try
         {
             var folderPath = GetFullPath(remoteFolderPath);
-            
+
             if (!Directory.Exists(folderPath))
             {
                 return Task.FromResult(new List<CloudFileInfo>());
@@ -231,7 +231,7 @@ public class LocalStorageProvider : ICloudStorageProvider
         try
         {
             var fullPath = GetFullPath(remoteFilePath);
-            
+
             if (File.Exists(fullPath))
             {
                 var fileInfo = new FileInfo(fullPath);

@@ -1,6 +1,6 @@
-using AppCanzoniere.Application.Interfaces;
 using System.Net.Http.Json;
 using System.Text.Json;
+using AppCanzoniere.Application.Interfaces;
 
 namespace AppCanzoniere.Application.Services;
 
@@ -20,18 +20,18 @@ public class PerplexityChordSuggestionService : IChordSuggestionService
     }
 
     public async Task<ChordSuggestionResult> GetChordSuggestionsAsync(
-        string title, 
-        string artist, 
+        string title,
+        string artist,
         CancellationToken cancellationToken = default)
     {
         return await GetChordSuggestionsWithContextAsync(title, artist, null, null, cancellationToken);
     }
 
     public async Task<ChordSuggestionResult> GetChordSuggestionsWithContextAsync(
-        string title, 
-        string artist, 
-        string? lyrics = null, 
-        string? key = null, 
+        string title,
+        string artist,
+        string? lyrics = null,
+        string? key = null,
         CancellationToken cancellationToken = default)
     {
         if (string.IsNullOrEmpty(_apiKey))
@@ -126,7 +126,7 @@ public class PerplexityChordSuggestionService : IChordSuggestionService
             // Simple ping to check if API is reachable
             _httpClient.DefaultRequestHeaders.Clear();
             _httpClient.DefaultRequestHeaders.Add("Authorization", $"Bearer {_apiKey}");
-            
+
             var testRequest = new
             {
                 model = "llama-3.1-sonar-small-128k-online",
@@ -147,7 +147,7 @@ public class PerplexityChordSuggestionService : IChordSuggestionService
     {
         var promptBuilder = new System.Text.StringBuilder();
         promptBuilder.AppendLine($"Provide the chord progression for the song \"{title}\" by {artist}.");
-        
+
         if (!string.IsNullOrEmpty(key))
         {
             promptBuilder.AppendLine($"The song is in the key of {key}.");

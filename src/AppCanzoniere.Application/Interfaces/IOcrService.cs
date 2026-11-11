@@ -8,24 +8,24 @@ public interface IOcrService
     /// Extract text from an image file
     /// </summary>
     Task<OcrResult> ExtractTextFromImageAsync(
-        string imagePath, 
-        string language = "ita", 
+        string imagePath,
+        string language = "ita",
         CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Extract text from image bytes
     /// </summary>
     Task<OcrResult> ExtractTextFromImageAsync(
-        byte[] imageBytes, 
-        string language = "ita", 
+        byte[] imageBytes,
+        string language = "ita",
         CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Extract text from a PDF file
     /// </summary>
     Task<OcrResult> ExtractTextFromPdfAsync(
-        string pdfPath, 
-        string language = "ita", 
+        string pdfPath,
+        string language = "ita",
         CancellationToken cancellationToken = default);
 
     /// <summary>

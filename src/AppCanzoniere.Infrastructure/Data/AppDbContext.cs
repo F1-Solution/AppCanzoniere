@@ -21,7 +21,6 @@ public class AppDbContext : DbContext
     public DbSet<YouTubeLink> YouTubeLinks => Set<YouTubeLink>();
     public DbSet<Mp3Attachment> Mp3Attachments => Set<Mp3Attachment>();
     public DbSet<PdfAttachment> PdfAttachments => Set<PdfAttachment>();
-    public DbSet<OfflineSong> OfflineSongs => Set<OfflineSong>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -35,7 +34,7 @@ public class AppDbContext : DbContext
             entity.Property(e => e.Artist).HasMaxLength(200);
             entity.Property(e => e.Language).HasMaxLength(10);
             entity.Property(e => e.OriginalKey).HasMaxLength(10);
-            
+
             entity.HasIndex(e => e.Title);
             entity.HasIndex(e => e.Artist);
             entity.HasIndex(e => e.IsPublic);
@@ -59,12 +58,12 @@ public class AppDbContext : DbContext
         modelBuilder.Entity<AlbumSong>(entity =>
         {
             entity.HasKey(e => new { e.AlbumId, e.SongId });
-            
+
             entity.HasOne(e => e.Album)
                 .WithMany(a => a.AlbumSongs)
                 .HasForeignKey(e => e.AlbumId)
                 .OnDelete(DeleteBehavior.Cascade);
-            
+
             entity.HasOne(e => e.Song)
                 .WithMany(s => s.AlbumSongs)
                 .HasForeignKey(e => e.SongId)
@@ -83,12 +82,12 @@ public class AppDbContext : DbContext
         modelBuilder.Entity<SongTag>(entity =>
         {
             entity.HasKey(e => new { e.SongId, e.TagId });
-            
+
             entity.HasOne(e => e.Song)
                 .WithMany(s => s.SongTags)
                 .HasForeignKey(e => e.SongId)
                 .OnDelete(DeleteBehavior.Cascade);
-            
+
             entity.HasOne(e => e.Tag)
                 .WithMany(t => t.SongTags)
                 .HasForeignKey(e => e.TagId)
@@ -108,12 +107,12 @@ public class AppDbContext : DbContext
         modelBuilder.Entity<SongLiturgicalMoment>(entity =>
         {
             entity.HasKey(e => new { e.SongId, e.LiturgicalMomentId });
-            
+
             entity.HasOne(e => e.Song)
                 .WithMany(s => s.SongLiturgicalMoments)
                 .HasForeignKey(e => e.SongId)
                 .OnDelete(DeleteBehavior.Cascade);
-            
+
             entity.HasOne(e => e.LiturgicalMoment)
                 .WithMany(lm => lm.SongLiturgicalMoments)
                 .HasForeignKey(e => e.LiturgicalMomentId)
@@ -126,7 +125,7 @@ public class AppDbContext : DbContext
             entity.HasKey(e => e.Id);
             entity.Property(e => e.Book).IsRequired().HasMaxLength(10);
             entity.Property(e => e.DisplayText).IsRequired().HasMaxLength(50);
-            
+
             entity.HasOne(e => e.Song)
                 .WithMany(s => s.BibleReferences)
                 .HasForeignKey(e => e.SongId)
@@ -138,7 +137,7 @@ public class AppDbContext : DbContext
         {
             entity.HasKey(e => e.Id);
             entity.Property(e => e.VideoId).IsRequired().HasMaxLength(20);
-            
+
             entity.HasOne(e => e.Song)
                 .WithMany(s => s.YouTubeLinks)
                 .HasForeignKey(e => e.SongId)
@@ -150,7 +149,7 @@ public class AppDbContext : DbContext
         {
             entity.HasKey(e => e.Id);
             entity.Property(e => e.FileName).IsRequired().HasMaxLength(255);
-            
+
             entity.HasOne(e => e.Song)
                 .WithMany(s => s.Mp3Attachments)
                 .HasForeignKey(e => e.SongId)
@@ -162,7 +161,7 @@ public class AppDbContext : DbContext
         {
             entity.HasKey(e => e.Id);
             entity.Property(e => e.FileName).IsRequired().HasMaxLength(255);
-            
+
             entity.HasOne(e => e.Song)
                 .WithMany(s => s.PdfAttachments)
                 .HasForeignKey(e => e.SongId)

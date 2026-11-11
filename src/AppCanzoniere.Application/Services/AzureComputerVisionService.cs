@@ -1,9 +1,9 @@
-using AppCanzoniere.Application.DTOs;
-using AppCanzoniere.Application.Interfaces;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Text;
 using System.Text.Json;
+using AppCanzoniere.Application.DTOs;
+using AppCanzoniere.Application.Interfaces;
 
 namespace AppCanzoniere.Application.Services;
 
@@ -28,8 +28,8 @@ public class AzureComputerVisionService : IOcrService
     }
 
     public async Task<OcrResult> ExtractTextFromImageAsync(
-        string imagePath, 
-        string language = "ita", 
+        string imagePath,
+        string language = "ita",
         CancellationToken cancellationToken = default)
     {
         if (!File.Exists(imagePath))
@@ -46,8 +46,8 @@ public class AzureComputerVisionService : IOcrService
     }
 
     public async Task<OcrResult> ExtractTextFromImageAsync(
-        byte[] imageBytes, 
-        string language = "ita", 
+        byte[] imageBytes,
+        string language = "ita",
         CancellationToken cancellationToken = default)
     {
         if (string.IsNullOrEmpty(_apiKey) || string.IsNullOrEmpty(_endpoint))
@@ -63,7 +63,7 @@ public class AzureComputerVisionService : IOcrService
         {
             // Step 1: Submit image for OCR (Read API)
             var readUrl = $"{_endpoint.TrimEnd('/')}/vision/v3.2/read/analyze?language={MapLanguage(language)}";
-            
+
             using var imageContent = new ByteArrayContent(imageBytes);
             imageContent.Headers.ContentType = new MediaTypeHeaderValue("application/octet-stream");
 
@@ -146,7 +146,7 @@ public class AzureComputerVisionService : IOcrService
                     foreach (var line in pageLines.EnumerateArray())
                     {
                         var text = line.GetProperty("text").GetString() ?? string.Empty;
-                        
+
                         // Azure doesn't provide per-line confidence, use default
                         var confidence = 0.9f;
 
@@ -182,8 +182,8 @@ public class AzureComputerVisionService : IOcrService
     }
 
     public async Task<OcrResult> ExtractTextFromPdfAsync(
-        string pdfPath, 
-        string language = "ita", 
+        string pdfPath,
+        string language = "ita",
         CancellationToken cancellationToken = default)
     {
         await Task.CompletedTask;

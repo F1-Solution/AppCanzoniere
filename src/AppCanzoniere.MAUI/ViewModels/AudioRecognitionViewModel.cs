@@ -48,7 +48,7 @@ public partial class AudioRecognitionViewModel : ObservableObject
     {
         _audioRecognitionService = audioRecognitionService;
         _songRepository = songRepository;
-        
+
         ServiceName = _audioRecognitionService.ServiceName;
     }
 
@@ -75,11 +75,11 @@ public partial class AudioRecognitionViewModel : ObservableObject
             };
 
             var result = await FilePicker.PickAsync(options);
-            
+
             if (result != null)
             {
                 SelectedFilePath = result.FullPath;
-                
+
                 // Auto-process after selection
                 await RecognizeFromFileAsync();
             }
@@ -102,8 +102,8 @@ public partial class AudioRecognitionViewModel : ObservableObject
         if (!IsServiceAvailable)
         {
             await Shell.Current.DisplayAlert(
-                "Service Unavailable", 
-                $"{ServiceName} is not configured. Check SETUP_INSTRUCTIONS.md for configuration steps.", 
+                "Service Unavailable",
+                $"{ServiceName} is not configured. Check SETUP_INSTRUCTIONS.md for configuration steps.",
                 "OK"
             );
             return;
@@ -124,8 +124,8 @@ public partial class AudioRecognitionViewModel : ObservableObject
                 ErrorMessage = null;
 
                 await Shell.Current.DisplayAlert(
-                    "Track Identified!", 
-                    $"Found: {result.Title} by {result.Artist}\nScore: {result.Score:F1}%", 
+                    "Track Identified!",
+                    $"Found: {result.Title} by {result.Artist}\nScore: {result.Score:F1}%",
                     "OK"
                 );
             }
@@ -152,8 +152,8 @@ public partial class AudioRecognitionViewModel : ObservableObject
         if (!IsServiceAvailable)
         {
             await Shell.Current.DisplayAlert(
-                "Service Unavailable", 
-                $"{ServiceName} is not configured.", 
+                "Service Unavailable",
+                $"{ServiceName} is not configured.",
                 "OK"
             );
             return;
@@ -162,8 +162,8 @@ public partial class AudioRecognitionViewModel : ObservableObject
         // TODO: Implement actual audio recording from microphone
         // This requires platform-specific permissions and audio capture
         await Shell.Current.DisplayAlert(
-            "Not Implemented", 
-            "Audio recording from microphone is not yet implemented. Please use the file selection option instead.", 
+            "Not Implemented",
+            "Audio recording from microphone is not yet implemented. Please use the file selection option instead.",
             "OK"
         );
 
@@ -233,7 +233,7 @@ public partial class AudioRecognitionViewModel : ObservableObject
         {
             // Check if song already exists
             var existingSongs = await _songRepository.SearchAsync(RecognitionResult.Title ?? "");
-            var duplicate = existingSongs.FirstOrDefault(s => 
+            var duplicate = existingSongs.FirstOrDefault(s =>
                 s.Title == RecognitionResult.Title && s.Artist == RecognitionResult.Artist);
 
             if (duplicate != null)
@@ -279,8 +279,8 @@ public partial class AudioRecognitionViewModel : ObservableObject
             await _songRepository.AddAsync(song);
 
             await Shell.Current.DisplayAlert(
-                "Success", 
-                $"Song '{song.Title}' created from audio recognition", 
+                "Success",
+                $"Song '{song.Title}' created from audio recognition",
                 "OK"
             );
 

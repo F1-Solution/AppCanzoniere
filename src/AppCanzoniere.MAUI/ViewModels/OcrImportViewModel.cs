@@ -54,7 +54,7 @@ public partial class OcrImportViewModel : ObservableObject
         _ocrService = ocrService;
         _songRepository = songRepository;
         _chordProParser = chordProParser;
-        
+
         ServiceName = _ocrService.ServiceName;
     }
 
@@ -81,11 +81,11 @@ public partial class OcrImportViewModel : ObservableObject
             };
 
             var result = await FilePicker.PickAsync(options);
-            
+
             if (result != null)
             {
                 SelectedFilePath = result.FullPath;
-                
+
                 // Auto-process after selection
                 await ProcessFileAsync();
             }
@@ -108,8 +108,8 @@ public partial class OcrImportViewModel : ObservableObject
         if (!IsServiceAvailable)
         {
             await Shell.Current.DisplayAlert(
-                "Service Unavailable", 
-                $"{ServiceName} is not configured. Check SETUP_INSTRUCTIONS.md for configuration steps.", 
+                "Service Unavailable",
+                $"{ServiceName} is not configured. Check SETUP_INSTRUCTIONS.md for configuration steps.",
                 "OK"
             );
             return;
@@ -126,14 +126,14 @@ public partial class OcrImportViewModel : ObservableObject
             if (SelectedFilePath.EndsWith(".pdf", StringComparison.OrdinalIgnoreCase))
             {
                 ocrResult = await _ocrService.ExtractTextFromPdfAsync(
-                    SelectedFilePath, 
+                    SelectedFilePath,
                     SelectedLanguage
                 );
             }
             else
             {
                 ocrResult = await _ocrService.ExtractTextFromImageAsync(
-                    SelectedFilePath, 
+                    SelectedFilePath,
                     SelectedLanguage
                 );
             }
@@ -190,8 +190,8 @@ public partial class OcrImportViewModel : ObservableObject
             await _songRepository.AddAsync(song);
 
             await Shell.Current.DisplayAlert(
-                "Success", 
-                $"Song '{song.Title}' created successfully from OCR", 
+                "Success",
+                $"Song '{song.Title}' created successfully from OCR",
                 "OK"
             );
 

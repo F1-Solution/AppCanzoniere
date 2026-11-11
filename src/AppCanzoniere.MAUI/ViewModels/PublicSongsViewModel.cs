@@ -49,7 +49,7 @@ public partial class PublicSongsViewModel : ObservableObject
         try
         {
             var songs = await _backendSongService.GetPublicSongsAsync(_currentPage, PageSize);
-            
+
             Songs.Clear();
             foreach (var song in songs)
             {
@@ -72,7 +72,7 @@ public partial class PublicSongsViewModel : ObservableObject
     private async Task SearchSongsAsync()
     {
         if (IsBusy) return;
-        
+
         if (string.IsNullOrWhiteSpace(SearchQuery))
         {
             await LoadSongsAsync();
@@ -85,7 +85,7 @@ public partial class PublicSongsViewModel : ObservableObject
         try
         {
             var songs = await _backendSongService.SearchSongsAsync(SearchQuery);
-            
+
             Songs.Clear();
             foreach (var song in songs)
             {
@@ -110,10 +110,10 @@ public partial class PublicSongsViewModel : ObservableObject
         if (song == null) return;
 
         SelectedSong = song;
-        
+
         // Navigate to song detail or show details
-        await Shell.Current.DisplayAlert("Song Details", 
-            $"Title: {song.Title}\nArtist: {song.Artist}\nKey: {song.OriginalKey}", 
+        await Shell.Current.DisplayAlert("Song Details",
+            $"Title: {song.Title}\nArtist: {song.Artist}\nKey: {song.OriginalKey}",
             "OK");
     }
 

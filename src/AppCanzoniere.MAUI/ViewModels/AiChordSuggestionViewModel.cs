@@ -133,16 +133,16 @@ public partial class AiChordSuggestionViewModel : ObservableObject
                 DisclaimerAccepted = false;
 
                 await Shell.Current.DisplayAlert(
-                    "Success", 
-                    $"Chord suggestions received from {Source}", 
+                    "Success",
+                    $"Chord suggestions received from {Source}",
                     "OK"
                 );
             }
             else
             {
                 await Shell.Current.DisplayAlert(
-                    "Error", 
-                    result.ErrorMessage ?? "Failed to get suggestions", 
+                    "Error",
+                    result.ErrorMessage ?? "Failed to get suggestions",
                     "OK"
                 );
             }
@@ -150,8 +150,8 @@ public partial class AiChordSuggestionViewModel : ObservableObject
         catch (Exception ex)
         {
             await Shell.Current.DisplayAlert(
-                "Error", 
-                $"An error occurred: {ex.Message}", 
+                "Error",
+                $"An error occurred: {ex.Message}",
                 "OK"
             );
         }
@@ -167,8 +167,8 @@ public partial class AiChordSuggestionViewModel : ObservableObject
         if (!DisclaimerAccepted)
         {
             await Shell.Current.DisplayAlert(
-                "Disclaimer Required", 
-                "Please read and accept the disclaimer before applying suggestions.", 
+                "Disclaimer Required",
+                "Please read and accept the disclaimer before applying suggestions.",
                 "OK"
             );
             return;
@@ -200,8 +200,8 @@ public partial class AiChordSuggestionViewModel : ObservableObject
             await _songRepository.UpdateAsync(Song);
 
             await Shell.Current.DisplayAlert(
-                "Success", 
-                "Chord suggestions applied to song", 
+                "Success",
+                "Chord suggestions applied to song",
                 "OK"
             );
 
@@ -210,8 +210,8 @@ public partial class AiChordSuggestionViewModel : ObservableObject
         catch (Exception ex)
         {
             await Shell.Current.DisplayAlert(
-                "Error", 
-                $"Failed to apply suggestions: {ex.Message}", 
+                "Error",
+                $"Failed to apply suggestions: {ex.Message}",
                 "OK"
             );
         }
