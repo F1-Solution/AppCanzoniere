@@ -10,5 +10,9 @@ public sealed record NotationOptions(Notation Notation, MinorStyle MinorStyle)
     public static NotationOptions ItalianDash { get; } = new(Notation.Italian, MinorStyle.Dash);
 
     /// <summary>Default notation for a language tag: Italian gets Do-Re-Mi with "Lam", everything else C-D-E with "Am".</summary>
-    public static NotationOptions ForLanguage(string? languageTag) => English;
+    public static NotationOptions ForLanguage(string? languageTag)
+    {
+        var primary = languageTag?.Trim().Split('-', '_')[0];
+        return string.Equals(primary, "it", StringComparison.OrdinalIgnoreCase) ? Italian : English;
+    }
 }
