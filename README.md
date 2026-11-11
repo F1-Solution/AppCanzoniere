@@ -1,9 +1,9 @@
 # AppCanzoniere - .NET MAUI
 
-**Versione:** 0.17.0-alpha ✨ **ULTIMA FASE COMPLETATA**  
+**Versione:** 0.17.0-alpha  
 **Framework:** .NET 10.0  
-**Piattaforme:** Android, iOS, Windows, macOS  
-**Status:** Phase 17 Complete - Production Ready (Infrastructure) 🎉
+**Piattaforme:** Android, Windows  
+**Status:** in ripartenza: vedi [ROADMAP.md](ROADMAP.md) e [docs/VALUTAZIONE.md](docs/VALUTAZIONE.md) (le percentuali di completamento storiche non sono affidabili)
 
 ## 📋 Descrizione
 
@@ -45,7 +45,7 @@ AppCanzoniere/
 │   └── AppCanzoniere.Infrastructure.Tests/
 └── docs/
     ├── plan.md                        # Piano architetturale completo
-    └── prompt_iniziale.md             # Requisiti iniziali
+    └── PROMPT-INIZIALE.md             # Requisiti iniziali
 ```
 
 ## 🚀 Setup Iniziale
@@ -56,7 +56,7 @@ AppCanzoniere/
 - Visual Studio 2025 (o VS Code con C# Dev Kit)
 - Workload MAUI installati:
   ```bash
-  dotnet workload install maui android ios maccatalyst maui-windows
+  dotnet workload install maui-android maui-windows
   ```
 
 ### Build del Progetto
@@ -66,19 +66,15 @@ AppCanzoniere/
 git clone <repository-url>
 cd AppCanzoniere
 
-# Restore dei pacchetti
-dotnet restore AppCanzoniere.slnx
+# Librerie e test (senza MAUI, nessun workload richiesto)
+dotnet test AppCanzoniere.Core.slnx
 
-# Build della soluzione
-dotnet build AppCanzoniere.slnx --configuration Debug
-
-# Run dell'app MAUI (specificare piattaforma)
-cd src/AppCanzoniere.MAUI
-dotnet build -t:Run -f net10.0-android     # Android
-dotnet build -t:Run -f net10.0-ios         # iOS
-dotnet build -t:Run -f net10.0-windows     # Windows
-dotnet build -t:Run -f net10.0-maccatalyst # macOS
+# App MAUI: Android e Windows (iOS e Mac Catalyst non sono più nei target)
+dotnet build src/AppCanzoniere.MAUI -f net10.0-android
+dotnet build src/AppCanzoniere.MAUI -f net10.0-windows10.0.19041.0 -p:MauiPlatforms=windows
 ```
+
+Il backend ASP.NET Core è fuori dalla soluzione principale e dalla CI: si apre con `AppCanzoniere.Backend.slnx` (non funzionante, vedi [docs/VALUTAZIONE.md](docs/VALUTAZIONE.md)).
 
 ## 📦 Pacchetti NuGet Principali
 
@@ -166,7 +162,7 @@ L'app utilizza **SQLite** come database locale con **Entity Framework Core**.
 ### Statistiche Progetto
 
 - **Progetti:** 12 (.NET: Domain, Application, Infrastructure, MAUI, Backend + test)
-- **Test:** 77/77 passati ✅ (+ 12 integration debugging)
+- **Test:** 60 passati nella soluzione principale (Domain 5, Application 45, Infrastructure 10); i test del backend sono separati
 - **Righe di codice:** ~15,000+ LOC
 - **File sorgente:** 220+ (.cs + .xaml + .yml + .md)
 - **Build:** Succeeded ✅
@@ -253,13 +249,13 @@ L'app utilizza **SQLite** come database locale con **Entity Framework Core**.
 ## 🧪 Testing
 
 ```bash
-# Run tutti i test (63 tests)
-dotnet test
+# Run tutti i test della soluzione principale (60 tests)
+dotnet test AppCanzoniere.Core.slnx
 
 # Run test per progetto specifico
-dotnet test tests/AppCanzoniere.Domain.Tests         # 6 tests
-dotnet test tests/AppCanzoniere.Application.Tests    # 46 tests
-dotnet test tests/AppCanzoniere.Infrastructure.Tests # 11 tests
+dotnet test tests/AppCanzoniere.Domain.Tests         # 5 tests
+dotnet test tests/AppCanzoniere.Application.Tests    # 45 tests
+dotnet test tests/AppCanzoniere.Infrastructure.Tests # 10 tests
 
 # Run test con coverage
 dotnet test --collect:"XPlat Code Coverage"
@@ -269,14 +265,14 @@ dotnet test --collect:"XPlat Code Coverage"
 
 - **ChordTransposer:** 28 tests (simple chords, complex chords, bass notes, sharp/flat preference)
 - **ChordProParser:** 18 tests (parsing, rendering, transposition)
-- **Domain Entities:** 6 tests (validation, relationships)
-- **Repositories:** 11 tests (CRUD, relationships, ordering)
+- **Domain Entities:** 5 tests (validation, relationships)
+- **Repositories:** 10 tests (CRUD, relationships, ordering)
 
 ## 📚 Documentazione
 
 - **[SETUP_INSTRUCTIONS.md](SETUP_INSTRUCTIONS.md)** - Configurazione completa con secrets management
 - **[docs/plan.md](docs/plan.md)** - Piano architetturale dettagliato (17 fasi)
-- **[docs/prompt_iniziale.md](docs/prompt_iniziale.md)** - Requisiti originali in italiano
+- **[docs/PROMPT-INIZIALE.md](docs/PROMPT-INIZIALE.md)** - Requisiti originali in italiano
 
 ### Configurazione Servizi Esterni
 
@@ -305,4 +301,4 @@ Vedi `SETUP_INSTRUCTIONS.md` per configurazione API keys con User Secrets.
 **Ultimo aggiornamento:** 2026-02-01  
 **Versione:** 0.10.0  
 **Fase Corrente:** 11/17 (Backend API)  
-**Build Status:** ✅ Passing | **Tests:** ✅ 63/63
+**CI:** vedi la scheda Actions su GitHub | **Tests:** 60 (soluzione principale)

@@ -1,0 +1,132 @@
+name: CI
+
+on:
+  push:
+    branches: ['**']
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  DOTNET_NOLOGO: true
+  DOTNET_CLI_TELEMETRY_OPTOUT: true
+
+jobs:
+  core:
+    name: core (Linux)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7.0.1
+
+      - uses: actions/setup-dotnet@v6.1.0
+        with:
+          global-json-file: global.json
+
+      - uses: actions/cache@v6.1.0
+        with:
+          path: ~/.nuget/packages
+          key: nuget-core-${{ runner.os }}-${{ hashFiles('global.json', 'Directory.Packages.props', '**/*.csproj') }}
+          restore-keys: nuget-core-${{ runner.os }}-
+
+      - name: Restore
+        run: dotnet restore AppCanzoniere.Core.slnx
+
+      - name: Build
+        run: dotnet build AppCanzoniere.Core.slnx --configuration Release --no-restore
+
+      - name: Test
+        run: >
+          dotnet test AppCanzoniere.Core.slnx --configuration Release --no-build
+          --logger "trx" --collect:"XPlat Code Coverage" --results-directory TestResults
+
+      - name: Check formatting
+        run: dotnet format AppCanzoniere.Core.slnx --verify-no-changes --no-restore
+
+      - name: Check vulnerable packages
+        run: |
+          dotnet list AppCanzoniere.Core.slnx package --vulnerable --include-transitive 2>&1 | tee vulnerable.txt
+          if grep -q "has the following vulnerable packages" vulnerable.txt; then
+            echo "Vulnerable packages found."
+            exit 1
+          fi
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v7.0.2
+        with:
+          name: test-results
+          path: TestResults
+          if-no-files-found: error
+
+  android:
+    name: MAUI Android
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v7.0.1
+
+      - uses: actions/setup-dotnet@v6.1.0
+        with:
+          global-json-file: global.json
+
+      - uses: actions/setup-java@v6.2.0
+        with:
+          distribution: microsoft
+          java-version: '21'
+
+      - uses: actions/cache@v6.1.0
+        with:
+          path: ~/.nuget/packages
+          key: nuget-android-${{ runner.os }}-${{ hashFiles('global.json', 'Directory.Packages.props', '**/*.csproj') }}
+          restore-keys: nuget-android-${{ runner.os }}-
+
+      - name: Install Android workload
+        run: dotnet workload install maui-android
+
+      - name: Build debug APK
+        run: >
+          dotnet build src/AppCanzoniere.MAUI/AppCanzoniere.MAUI.csproj
+          --framework net10.0-android --configuration Debug
+          -p:MauiPlatforms=android -p:AndroidPackageFormat=apk -p:EmbedAssembliesIntoApk=true
+          -t:Build -t:SignAndroidPackage
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v7.0.2
+        with:
+          name: android-debug-apk
+          path: src/AppCanzoniere.MAUI/bin/Debug/net10.0-android/*-Signed.apk
+          if-no-files-found: error
+
+  windows:
+    name: MAUI Windows
+    runs-on: windows-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7.0.1
+
+      - uses: actions/setup-dotnet@v6.1.0
+        with:
+          global-json-file: global.json
+
+      - uses: actions/cache@v6.1.0
+        with:
+          path: ~/.nuget/packages
+          key: nuget-windows-${{ runner.os }}-${{ hashFiles('global.json', 'Directory.Packages.props', '**/*.csproj') }}
+          restore-keys: nuget-windows-${{ runner.os }}-
+
+      - name: Install Windows workload
+        run: dotnet workload install maui-windows
+
+      - name: Build
+        run: >
+          dotnet build src/AppCanzoniere.MAUI/AppCanzoniere.MAUI.csproj
+          --framework net10.0-windows10.0.19041.0 --configuration Debug
+          -p:MauiPlatforms=windows
