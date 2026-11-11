@@ -111,7 +111,7 @@ public class SongRenderingTests
 
         var result = Render(content, options);
 
-        Assert.Equal("\n{start_of_tab}\nE|---\nA|---\nDo|-3-\nLam\n{end_of_tab}\n", result);
+        Assert.Equal("{capo:2}\n\n{start_of_tab}\nE|---\nA|---\nDo|-3-\nLam\n{end_of_tab}\n", result);
     }
 
     [Fact]

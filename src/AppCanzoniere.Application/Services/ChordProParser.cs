@@ -136,21 +136,22 @@ public class ChordProParser : IChordProParser
         return document;
     }
 
-    public string Render(ChordProDocument document, ChordProRenderOptions options) => Render(document, options.TransposeSteps);
+    public string Render(ChordProDocument document, int transposeSteps = 0) =>
+        Render(document, new ChordProRenderOptions { TransposeSteps = transposeSteps });
 
-    public string Render(ChordProDocument document, int transposeSteps = 0)
+    public string Render(ChordProDocument document, ChordProRenderOptions options)
     {
         var sb = new StringBuilder();
-        var transposer = new ChordTransposer();
+        var transformer = new ChordTransformer(options, document.Key, document.CapoFret ?? 0);
 
-        AppendMetadata(sb, document, transposer, transposeSteps);
+        AppendMetadata(sb, document, transformer, options);
         sb.Append('\n');
 
         var previousType = ChordProLineType.Verse;
         foreach (var line in document.Lines)
         {
             AppendSectionBoundary(sb, previousType, line);
-            AppendLine(sb, line, transposer, transposeSteps);
+            AppendLine(sb, line, transformer);
             previousType = line.Type;
         }
 
@@ -158,16 +159,18 @@ public class ChordProParser : IChordProParser
         return sb.ToString();
     }
 
-    private static void AppendMetadata(StringBuilder sb, ChordProDocument document, ChordTransposer transposer, int steps)
+    private static void AppendMetadata(StringBuilder sb, ChordProDocument document, ChordTransformer transformer, ChordProRenderOptions options)
     {
         if (!string.IsNullOrEmpty(document.Title))
             sb.Append($"{{title:{document.Title}}}\n");
         if (!string.IsNullOrEmpty(document.Artist))
             sb.Append($"{{artist:{document.Artist}}}\n");
         if (!string.IsNullOrEmpty(document.Key))
-            sb.Append($"{{key:{(steps != 0 ? transposer.TransposeKey(document.Key, steps) : document.Key)}}}\n");
-        if (!string.IsNullOrEmpty(document.Capo))
-            sb.Append($"{{capo:{document.Capo}}}\n");
+            sb.Append($"{{key:{transformer.Key(document.Key)}}}\n");
+
+        var capo = options.Capo is { } fret ? (fret > 0 ? fret.ToString() : string.Empty) : document.Capo;
+        if (!string.IsNullOrEmpty(capo))
+            sb.Append($"{{capo:{capo}}}\n");
     }
 
     private static void AppendSectionBoundary(StringBuilder sb, ChordProLineType previous, ChordProLine line)
@@ -196,7 +199,7 @@ public class ChordProParser : IChordProParser
             sb.Append("{end_of_tab}\n");
     }
 
-    private static void AppendLine(StringBuilder sb, ChordProLine line, ChordTransposer transposer, int steps)
+    private static void AppendLine(StringBuilder sb, ChordProLine line, ChordTransformer transformer)
     {
         switch (line.Type)
         {
@@ -212,12 +215,12 @@ public class ChordProParser : IChordProParser
             case ChordProLineType.Title:
                 break; // Written with the metadata.
             default:
-                sb.Append(RenderChordLine(line, transposer, steps)).Append('\n');
+                sb.Append(RenderChordLine(line, transformer)).Append('\n');
                 break;
         }
     }
 
-    private static string RenderChordLine(ChordProLine line, ChordTransposer transposer, int steps)
+    private static string RenderChordLine(ChordProLine line, ChordTransformer transformer)
     {
         var result = new StringBuilder();
         var cursor = 0;
@@ -225,7 +228,7 @@ public class ChordProParser : IChordProParser
         {
             var position = Math.Clamp(chord.Position, cursor, line.Text.Length);
             result.Append(line.Text, cursor, position - cursor);
-            var text = steps != 0 ? transposer.TransposeChord(chord.Chord, steps) : chord.Chord;
+            var text = transformer.Chord(chord.Chord);
             result.Append('[').Append(text).Append(']');
             cursor = position;
         }
