@@ -8,7 +8,7 @@ namespace AppCanzoniere.Application.Services;
 public class ChordProParser : IChordProParser
 {
     private static readonly Regex ChordRegex = new Regex(@"\[([^\]]+)\]", RegexOptions.Compiled);
-    private static readonly Regex DirectiveRegex = new Regex(@"\{([^:}]+)(?::(.+))?\}", RegexOptions.Compiled);
+    private static readonly Regex DirectiveRegex = new Regex(@"\{([^:}]+)(?::(.*))?\}", RegexOptions.Compiled);
     private static readonly Regex TabEndRegex = new Regex(@"^\{\s*(?:end_of_tab|eot)\s*\}$", RegexOptions.Compiled | RegexOptions.IgnoreCase);
 
     public ChordProDocument Parse(string chordProContent)
@@ -52,7 +52,7 @@ public class ChordProParser : IChordProParser
             var directiveMatch = DirectiveRegex.Match(trimmedLine);
             if (directiveMatch.Success)
             {
-                var directive = directiveMatch.Groups[1].Value.ToLowerInvariant();
+                var directive = directiveMatch.Groups[1].Value.Trim().ToLowerInvariant();
                 var value = directiveMatch.Groups.Count > 2 ? directiveMatch.Groups[2].Value : string.Empty;
 
                 switch (directive)
