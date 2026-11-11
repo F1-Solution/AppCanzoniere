@@ -98,6 +98,42 @@ public class AutoSpellingTests
         Assert.Equal("{key:Dm}\n\n[Dm]a [A7/C#]b [Bb]c\n", result);
     }
 
+    [Theory]
+    [InlineData("[C]a [Am]b [F]c [G]d", 1, "[Db]a [Bbm]b [Gb]c [Ab]d")]
+    [InlineData("[Am]a [C]b [G]c", 1, "[Bbm]a [Db]b [Ab]c")]
+    [InlineData("[N.C.]a [C]b [F]c [G7]d", 5, "[N.C.]a [F]b [Bb]c [C7]d")]
+    [InlineData("[C]a [Ab]b [Bb]c [C]d", 7, "[G]a [Eb]b [F]c [G]d")]
+    [InlineData("[E]a [A]b [B7]c", 3, "[G]a [C]b [D7]c")]
+    public void Render_AutoWithoutAKeyLine_UsesTheFirstChordAsTheKeyForTheWholeSong(string song, int steps, string expected)
+    {
+        var result = Render(song, new ChordProRenderOptions { TransposeSteps = steps });
+
+        Assert.Equal(expected + "\n", result);
+    }
+
+    [Fact]
+    public void Render_AutoWithoutAKeyLineAndACapo_SpellsTheShapesFromTheFirstChord()
+    {
+        var result = Render("[G]a [C]b [D]c", new ChordProRenderOptions { Capo = 2 });
+
+        Assert.Equal("{capo:2}\n\n[F]a [Bb]b [C]c\n", result);
+    }
+
+    [Fact]
+    public void Render_AutoWithoutAKeyLine_IgnoresChordsInsideTabBlocks()
+    {
+        var result = Render("{sot}\ne|-[F#]-\n{eot}\n[C]a [F]b", new ChordProRenderOptions { TransposeSteps = 1 });
+
+        Assert.Equal("{start_of_tab}\ne|-[F#]-\n{end_of_tab}\n[Db]a [Gb]b\n", result);
+    }
+
+    [Fact]
+    public void TransposeChord_AutoWithoutAKey_StillTreatsTheChordAsItsOwnKey()
+    {
+        Assert.Equal("Bbm", _transposer.TransposeChord("Am", 1, AccidentalPreference.Auto));
+        Assert.Equal("Db", _transposer.TransposeChord("C", 1, AccidentalPreference.Auto));
+    }
+
     [Fact]
     public void Render_AutoWithoutShift_LeavesChordsAndKeyAsWritten()
     {
