@@ -92,7 +92,7 @@ public partial class CloudSyncViewModel : ObservableObject
             {
                 IsAuthenticated = true;
                 StatusMessage = $"Authenticated as {result.UserEmail}";
-                
+
                 await Shell.Current.DisplayAlert(
                     "Authentication Success",
                     $"Successfully authenticated with {_cloudSyncService.CurrentProvider.ProviderName}",
@@ -103,7 +103,7 @@ public partial class CloudSyncViewModel : ObservableObject
             {
                 IsAuthenticated = false;
                 StatusMessage = $"Authentication failed: {result.ErrorMessage}";
-                
+
                 await Shell.Current.DisplayAlert(
                     "Authentication Failed",
                     result.ErrorMessage ?? "Unknown error",
@@ -142,7 +142,7 @@ public partial class CloudSyncViewModel : ObservableObject
             if (result.Success)
             {
                 StatusMessage = $"Sync completed: {result.FilesUploaded} uploaded, {result.FilesDownloaded} downloaded";
-                
+
                 await UpdateLastSyncTimeAsync();
 
                 await Shell.Current.DisplayAlert(
@@ -156,9 +156,9 @@ public partial class CloudSyncViewModel : ObservableObject
                 HasConflicts = true;
                 var conflicts = await _cloudSyncService.DetectConflictsAsync();
                 Conflicts = new ObservableCollection<SyncConflict>(conflicts);
-                
+
                 StatusMessage = $"Sync conflicts detected: {result.Conflicts}";
-                
+
                 await Shell.Current.DisplayAlert(
                     "Conflicts Detected",
                     $"Found {result.Conflicts} conflicts. Please resolve them manually.",
@@ -168,7 +168,7 @@ public partial class CloudSyncViewModel : ObservableObject
             else
             {
                 StatusMessage = $"Sync failed: {result.ErrorMessage}";
-                
+
                 await Shell.Current.DisplayAlert(
                     "Sync Failed",
                     result.ErrorMessage ?? "Unknown error",
@@ -310,7 +310,7 @@ public partial class CloudSyncViewModel : ObservableObject
     private async Task UpdateLastSyncTimeAsync()
     {
         var lastSync = await _cloudSyncService.GetLastSyncTimeAsync();
-        
+
         if (lastSync.HasValue)
         {
             var timeAgo = DateTime.UtcNow - lastSync.Value;

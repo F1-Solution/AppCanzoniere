@@ -182,7 +182,7 @@ public partial class AlbumDetailViewModel : ObservableObject
             AlbumSongs[i].OrderIndex = i + 1;
         }
 
-        await _albumRepository.UpdateSongOrderAsync(Album.Id, 
+        await _albumRepository.UpdateSongOrderAsync(Album.Id,
             AlbumSongs.ToDictionary(x => x.SongId, x => x.OrderIndex));
     }
 
