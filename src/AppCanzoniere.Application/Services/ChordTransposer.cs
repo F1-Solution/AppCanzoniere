@@ -1,5 +1,5 @@
-using AppCanzoniere.Application.Interfaces;
 using System.Text.RegularExpressions;
+using AppCanzoniere.Application.Interfaces;
 
 namespace AppCanzoniere.Application.Services;
 
@@ -7,7 +7,7 @@ public class ChordTransposer : IChordTransposer
 {
     // Chromatic scale with sharps
     private static readonly string[] NotesSharp = { "C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B" };
-    
+
     // Chromatic scale with flats
     private static readonly string[] NotesFlat = { "C", "Db", "D", "Eb", "E", "F", "Gb", "G", "Ab", "A", "Bb", "B" };
 
@@ -59,7 +59,7 @@ public class ChordTransposer : IChordTransposer
         var keyNote = isMinor ? key.Substring(0, key.Length - 1) : key;
 
         var transposedNote = TransposeNote(keyNote, steps, useFlats);
-        
+
         return isMinor ? transposedNote + "m" : transposedNote;
     }
 
@@ -77,12 +77,12 @@ public class ChordTransposer : IChordTransposer
             return note;
 
         var notes = useFlats ? NotesFlat : NotesSharp;
-        
+
         // Find current position
         var currentIndex = FindNoteIndex(note, NotesSharp);
         if (currentIndex == -1)
             currentIndex = FindNoteIndex(note, NotesFlat);
-        
+
         if (currentIndex == -1)
             return note; // Can't find note, return original
 

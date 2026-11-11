@@ -1,6 +1,6 @@
+using System.Net.Http.Json;
 using AppCanzoniere.Application.DTOs.Backend;
 using AppCanzoniere.Application.Interfaces;
-using System.Net.Http.Json;
 
 namespace AppCanzoniere.Application.Services;
 
@@ -26,7 +26,7 @@ public class AuthService : IAuthService
                 return null;
 
             var authResponse = await response.Content.ReadFromJsonAsync<AuthResponse>();
-            
+
             if (authResponse != null)
             {
                 await SaveTokenAsync(authResponse);
@@ -51,7 +51,7 @@ public class AuthService : IAuthService
                 return null;
 
             var authResponse = await response.Content.ReadFromJsonAsync<AuthResponse>();
-            
+
             if (authResponse != null)
             {
                 await SaveTokenAsync(authResponse);

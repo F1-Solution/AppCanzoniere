@@ -8,8 +8,8 @@ public class MockOcrService : IOcrService
     public string ServiceName => "Mock OCR (Demo)";
 
     public Task<OcrResult> ExtractTextFromImageAsync(
-        string imagePath, 
-        string language = "ita", 
+        string imagePath,
+        string language = "ita",
         CancellationToken cancellationToken = default)
     {
         // Return sample ChordPro content
@@ -50,8 +50,8 @@ The [D]hour I first be[G]lieved
     }
 
     public Task<OcrResult> ExtractTextFromImageAsync(
-        byte[] imageBytes, 
-        string language = "ita", 
+        byte[] imageBytes,
+        string language = "ita",
         CancellationToken cancellationToken = default)
     {
         // Same as file-based version
@@ -59,8 +59,8 @@ The [D]hour I first be[G]lieved
     }
 
     public Task<OcrResult> ExtractTextFromPdfAsync(
-        string pdfPath, 
-        string language = "ita", 
+        string pdfPath,
+        string language = "ita",
         CancellationToken cancellationToken = default)
     {
         // Return multiple pages of sample content

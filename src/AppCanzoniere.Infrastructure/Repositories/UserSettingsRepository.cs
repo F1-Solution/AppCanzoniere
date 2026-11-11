@@ -22,14 +22,14 @@ public class UserSettingsRepository : IUserSettingsRepository
     public async Task<UserSettings> GetOrCreateAsync(CancellationToken cancellationToken = default)
     {
         var settings = await GetAsync(cancellationToken);
-        
+
         if (settings == null)
         {
             settings = new UserSettings();
             _context.UserSettings.Add(settings);
             await _context.SaveChangesAsync(cancellationToken);
         }
-        
+
         return settings;
     }
 

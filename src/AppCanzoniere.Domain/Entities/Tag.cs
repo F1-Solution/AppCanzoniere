@@ -6,7 +6,7 @@ public class Tag
     public string Name { get; set; } = string.Empty;
     public string? Category { get; set; }
     public string? Color { get; set; }
-    
+
     // Navigation properties
     public List<SongTag> SongTags { get; set; } = new();
 }

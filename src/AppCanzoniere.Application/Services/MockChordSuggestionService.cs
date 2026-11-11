@@ -8,18 +8,18 @@ namespace AppCanzoniere.Application.Services;
 public class MockChordSuggestionService : IChordSuggestionService
 {
     public Task<ChordSuggestionResult> GetChordSuggestionsAsync(
-        string title, 
-        string artist, 
+        string title,
+        string artist,
         CancellationToken cancellationToken = default)
     {
         return GetChordSuggestionsWithContextAsync(title, artist, null, null, cancellationToken);
     }
 
     public Task<ChordSuggestionResult> GetChordSuggestionsWithContextAsync(
-        string title, 
-        string artist, 
-        string? lyrics = null, 
-        string? key = null, 
+        string title,
+        string artist,
+        string? lyrics = null,
+        string? key = null,
         CancellationToken cancellationToken = default)
     {
         // Generate mock ChordPro content

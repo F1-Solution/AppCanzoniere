@@ -1,8 +1,8 @@
-using AppCanzoniere.Application.DTOs;
-using AppCanzoniere.Application.Interfaces;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
+using AppCanzoniere.Application.DTOs;
+using AppCanzoniere.Application.Interfaces;
 
 namespace AppCanzoniere.Application.Services;
 
@@ -139,7 +139,7 @@ public class ACRCloudAudioRecognitionService : IAudioRecognitionService
     {
         // ACRCloud signature: HMAC-SHA1 of HTTP method + URI path + access_key + data_type + signature_version + timestamp
         var stringToSign = $"POST\n/v1/identify\n{_accessKey}\naudio\nv1\n{timestamp}";
-        
+
         using var hmac = new HMACSHA1(Encoding.UTF8.GetBytes(_accessSecret!));
         var hash = hmac.ComputeHash(Encoding.UTF8.GetBytes(stringToSign));
         return Convert.ToBase64String(hash);
@@ -203,8 +203,8 @@ public class ACRCloudAudioRecognitionService : IAudioRecognitionService
                 if (externalMetadata.TryGetProperty("spotify", out var spotify) && spotify.GetArrayLength() > 0)
                 {
                     var spotifyTrack = spotify[0];
-                    result.SpotifyId = spotifyTrack.TryGetProperty("track", out var track) 
-                        ? track.TryGetProperty("id", out var id) ? id.GetString() : null 
+                    result.SpotifyId = spotifyTrack.TryGetProperty("track", out var track)
+                        ? track.TryGetProperty("id", out var id) ? id.GetString() : null
                         : null;
                 }
 

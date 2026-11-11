@@ -39,7 +39,7 @@ public class SongRepositoryTests : IDisposable
         // Assert
         Assert.NotNull(result);
         Assert.NotEqual(Guid.Empty, result.Id);
-        
+
         var savedSong = await _context.Songs.FindAsync(result.Id);
         Assert.NotNull(savedSong);
         Assert.Equal("Test Song", savedSong.Title);
@@ -96,7 +96,7 @@ public class SongRepositoryTests : IDisposable
         // Arrange
         var song = new Song { Title = "Original Title", Artist = "Artist" };
         await _repository.AddAsync(song);
-        
+
         song.Title = "Updated Title";
         var originalVersion = song.Version;
 
