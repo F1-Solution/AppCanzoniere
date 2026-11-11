@@ -1,28 +1,30 @@
 # ROADMAP
 
-Tabella delle fasi tratta da [docs/FASI.md](docs/FASI.md), che resta la fonte del perimetro. Lo stato dei lavori eseguiti è in [PROGRESS.md](PROGRESS.md).
+Tabella delle fasi tratta da [docs/FASI.md](docs/FASI.md), che resta la fonte del perimetro. Lo stato dei lavori eseguiti è in [PROGRESS.md](PROGRESS.md). Le decisioni del proprietario sono in [docs/DECISIONI-ROUND-1.md](docs/DECISIONI-ROUND-1.md).
 
 Stati: **completata** · **in corso** · **da iniziare** · **condizionata** (si apre solo se scatta un gate).
 
-Decisioni del proprietario successive a FASI.md, che prevalgono su di esso:
-- la prima versione esce su Android e Windows insieme: la CI compila il progetto MAUI per entrambi; iOS e Mac Catalyst sono fuori dai target (F10 li riaggiunge se serve);
-- la prima versione non ha backend, account né catalogo pubblico: il backend è fuori dalla soluzione principale e dalla CI ma il suo codice non è cancellato;
-- si lavora su ramo con pull request e si unisce solo con la CI verde.
+Windows fa parte della prima versione insieme ad Android (non è una fase condizionata); iOS e Mac Catalyst sono fuori dai target e tornano con F16. Il backend è fuori dalla soluzione principale e dalla CI. Si lavora su ramo con pull request e si unisce solo con la CI verde.
 
 | ID | Titolo | Stato | Dipende da | Bloccata da |
-|---|---|---|---|---|
-| F0 | Ricognizione: valutazione del codice, proposte UX e UI, piano commerciale, collegamento del repo a GitHub | **completata** | — | — |
-| G0 | Validazione commerciale (Gate 0, lavoro del proprietario, in parallelo) | da iniziare | F0 | D1 provvisoria, D3 (avvio), D4 (ore dichiarate) |
-| F1 | Risanamento del repository e CI verde | **in corso** (PR aperta, in attesa di CI verde e merge) | F0 | Nulla: può partire subito. Per la build Android **in locale** serve riparare i workload della macchina (azione del proprietario, da amministratore) |
-| F2 | Nucleo musicale: ChordPro, trasposizione, notazione, "incolla" | da iniziare | F1 (job "core" della CI) | Nulla. D8 fissa solo i valori predefiniti (Do-Re-Mi, "Lam"/"La-"), modificabili dopo |
-| F3 | Prove tecniche del Gate 0: leggio "Palco" su tablet e import da PDF | da iniziare | F1 (job Android), F2 (modello di impaginazione) | Tablet Android economico e pedale Bluetooth; 10 libretti PDF reali (proprietario) |
-| F4 | Fondamenta dell'app: persistenza, navigazione, libreria | da iniziare | F1, F2 | Persistenza: nulla (anticipabile prima del Gate 0). Navigazione e UI: esito G0 "procedo", D2, D5, D8 |
-| F5 | Leggio e import: primo flusso completo (traguardo T1) | da iniziare | F3, F4 | Esito G0 (prova import, D2), D5, D8 |
-| F6 | Scalette della Messa, condivisione, backup ed export | da iniziare | F4, F5 | D5, D7, decisioni UX 3-5 |
-| F7 | Canale di rilascio Android: firma, versioni, Play test interno e chiuso | da iniziare | F1 (si sviluppa in parallelo a F5-F6) | D10 (nome, `ApplicationId`, account Play), segreti, account Play verificato |
-| F8 | Pilota e prontezza della v1 (Gate Pilota) | da iniziare | F5, F6, F7 | Cori pilota e ≥ 12 tester (G0), D11 (parere legale), dominio ed email per privacy e segnalazioni |
-| F9 | Lancio in produzione su Google Play | da iniziare | F8 | Gate Pilota (30/06/2027), D6, D12 |
-| F10 | Seconda piattaforma (iPad o Windows) | condizionata | F9 | Gate 1 + D9 (iPad > 40%) oppure ≥ 3 cori che chiedono Windows; per iPad account Apple e runner macOS |
-| F11 | Piano Coro e licenza diocesana (server della sola scaletta) | condizionata | F9 | Gate 2, D13, D14, secondo parere legale |
-| F12 | Strumenti Pro | condizionata | F11 | D15 e condizioni di [PC §4.2] |
-| F13 | Estensioni di contenuto (inglese, accordi per pianoforte, filtri estesi, indice liturgico, calendario) | condizionata | F9 | Gate 1; richieste esplicite dei cori |
+|---|---|---|---|---|| F0 | Ricognizione: valutazione del codice, proposte UX e UI, piano commerciale, collegamento a GitHub | **completata** | — | — |
+| G0 | Validazione commerciale e d'uso (Gate 0, lavoro del proprietario, in parallelo) | da iniziare | F0 | Avvio entro il 16/11/2026; copione delle interviste aggiornato a tre modalità, pubblicità e Pro |
+| F1 | Risanamento del repository e CI verde (build Android e Windows) | **in corso** (PR aperta, in attesa di CI verde e unione) | F0 | Protezione del branch e minuti Actions sul piano GitHub (V-09); workload della macchina locale (proprietario) |
+| F2 | Nucleo musicale: ChordPro, trasposizione, notazione legata alla lingua, "incolla" | da iniziare | F1 (job core) | Nulla |
+| F3 | Prove tecniche del Gate 0: leggio su tablet Android e su Windows, import da PDF | da iniziare | F1 (job Android e Windows), F2 | Tablet economico, pedale Bluetooth, PC Windows di prova; 10 libretti PDF reali |
+| F4 | Sistema di token, cinque temi e componenti | da iniziare | F1 | Installazione della taste-skill (proprietario) |
+| F5 | Prove visive automatiche (confronto di schermate) in CI | da iniziare | F1, F4 | Cattura su emulatore Android e su Windows nei runner (V-09) |
+| F6 | Fondamenta: persistenza, impostazioni sul dispositivo, navigazione a tre modalità, libreria | da iniziare | F1, F2; F4 per la UI | Persistenza: nulla. UI: i due temi predefiniti di F4 |
+| F7 | Leggio e import su Android e Windows (traguardo T1) | da iniziare | F3, F6 | Esito della prova import (G0) |
+| F8 | Scalette, repertori, Palco in sequenza, condivisione, backup ed export | da iniziare | F6, F7 | Nulla oltre le dipendenze |
+| F9 | Calendario liturgico: motore e riferimenti delle letture | da iniziare | F1, F2 (formato dei riferimenti biblici) | Calendari ufficiali di riferimento per i test (proprietario); V-11 |
+| F10 | Modalità Liturgia: celebrazioni, slot, suggerimenti locali, storico | da iniziare | F8, F9 | Nulla oltre le dipendenze |
+| F11 | Pubblicità e consenso | da iniziare | F6, F13 (identificativo dell'app) | Account AdMob; V-01, V-02, V-06, V-07 |
+| F12 | Acquisti in app: Pro e donazioni | da iniziare | F6, F13 | Profilo pagamenti Play, account Partner Center; V-03, V-04, V-05, V-07 |
+| F13 | Canali di rilascio: Google Play; Windows su GitHub, poi Microsoft Store | da iniziare | F1 (in parallelo a F7-F10) | D10, account Play e Partner Center, segreti; V-04, V-08, V-10 |
+| F14 | Anteprima ai cori e pilota (Gate Anteprima e Gate Pilota) | da iniziare | Anteprima: F7, F8, F13. Pilota: anche F10, F11, F12 | Cori e ≥ 12 tester (G0); D11 parere legale; V-05; dominio ed email |
+| F15 | Lancio: Google Play, Microsoft Store, sito con pagina di donazione | da iniziare | F14 | Gate Pilota; D12; posizione fiscale definita; V-03 |
+| F16 | iPad / iOS | condizionata | F15 | Gate 1 e censimento (iPad > 40%); account Apple e runner macOS |
+| F17 | Piano Coro e licenza diocesana (server della sola scaletta) | condizionata | F15 | Gate 2, D13, D14, secondo parere legale |
+| F18 | Nuove funzioni a pagamento | condizionata | F17 | D15 e richieste dei cori |
+| F19 | Estensioni di contenuto (rito ambrosiano, note per pianoforte, allegati, pianificatore a settimane, indice pubblico senza testi) | condizionata | F15 | Gate 1 e richieste esplicite |
