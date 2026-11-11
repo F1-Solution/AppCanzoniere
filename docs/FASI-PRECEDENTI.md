@@ -5,13 +5,13 @@
 **Ultimi aggiornamenti dei documenti:** plan.md 2026-01-31; README, SETUP_INSTRUCTIONS, TEST_AND_COMPLETE, KNOWN_ISSUES, FUTURE_IMPLEMENTATIONS 2026-02-01.
 
 **Legenda sigle delle fonti:**
-- [PLAN] = `docs/plan.md`
-- [TEST] = `TEST_AND_COMPLETE.md`
-- [FUT] = `FUTURE_IMPLEMENTATIONS.md`
-- [KNOWN] = `KNOWN_ISSUES.md`
-- [MEM] = `docs/copilot_memory.md`
+- [PLAN] = `docs/archivio/plan.md`
+- [TEST] = `docs/archivio/TEST_AND_COMPLETE.md`
+- [FUT] = `docs/archivio/FUTURE_IMPLEMENTATIONS.md`
+- [KNOWN] = `docs/archivio/KNOWN_ISSUES.md`
+- [MEM] = `docs/archivio/copilot_memory.md`
 - [README] = `README.md`
-- [SETUP] = `SETUP_INSTRUCTIONS.md`
+- [SETUP] = `docs/archivio/SETUP_INSTRUCTIONS.md`
 
 ---
 
