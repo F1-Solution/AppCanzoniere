@@ -190,6 +190,32 @@ public class SongRenderingTests
     }
 
     [Fact]
+    public void Render_AutoWithRequestedCapo_SpellsTheShapesFromTheShapeKey()
+    {
+        // Sounding A with the document capo 2 and a new capo 4: shapes in F, so Bb and not A#.
+        var result = Render("{key:A}\n{capo:2}\n[C]x", new ChordProRenderOptions { Capo = 4, Accidentals = AccidentalPreference.Auto });
+
+        Assert.Equal("{key:A}\n{capo:4}\n\n[Bb]x\n", result);
+    }
+
+    [Fact]
+    public void Render_AutoWithDocumentCapoAndNoChange_KeepsTheShapesAsWritten()
+    {
+        var result = Render("{key:Bb}\n{capo:3}\n[D/F#]x", new ChordProRenderOptions { Accidentals = AccidentalPreference.Auto });
+
+        Assert.Equal("{key:Bb}\n{capo:3}\n\n[D/F#]x\n", result);
+    }
+
+    [Fact]
+    public void Render_AutoWithDocumentCapoAndTransposition_SpellsFromTheShapeKey()
+    {
+        // Sounding Bb, capo 3: shapes in G; one semitone up gives Ab shapes, so Db and not C#.
+        var result = Render("{key:Bb}\n{capo:3}\n[C]x", new ChordProRenderOptions { TransposeSteps = 1, Accidentals = AccidentalPreference.Auto });
+
+        Assert.Equal("{key:B}\n{capo:3}\n\n[Db]x\n", result);
+    }
+
+    [Fact]
     public void Render_CapoWithTransposition_CombinesBoth()
     {
         var options = new ChordProRenderOptions { TransposeSteps = 2, Capo = 2 };
