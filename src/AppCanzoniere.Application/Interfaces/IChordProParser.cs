@@ -21,7 +21,8 @@ public class ChordProDocument
     public string Capo { get; set; } = string.Empty;
 
     /// <summary>Capo fret read from <see cref="Capo"/>; null when absent or not a fret from 0 to 11.</summary>
-    public int? CapoFret => null;
+    public int? CapoFret =>
+        int.TryParse(Capo?.Trim(), System.Globalization.NumberStyles.None, System.Globalization.CultureInfo.InvariantCulture, out var fret) && fret <= 11 ? fret : null;
     public string Tempo { get; set; } = string.Empty;
     public string Time { get; set; } = string.Empty;
     public List<ChordProLine> Lines { get; set; } = new();

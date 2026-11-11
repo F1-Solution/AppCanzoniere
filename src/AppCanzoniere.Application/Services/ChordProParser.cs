@@ -54,7 +54,7 @@ public class ChordProParser : IChordProParser
                         document.Key = value;
                         break;
                     case "capo":
-                        document.Capo = value;
+                        document.Capo = value.Trim();
                         break;
                     case "tempo":
                         document.Tempo = value;
