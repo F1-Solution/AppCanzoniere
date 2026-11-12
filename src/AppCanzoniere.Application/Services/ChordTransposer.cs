@@ -1,105 +1,40 @@
-using System.Text.RegularExpressions;
 using AppCanzoniere.Application.Interfaces;
+using AppCanzoniere.Application.Music;
 
 namespace AppCanzoniere.Application.Services;
 
 public class ChordTransposer : IChordTransposer
 {
-    // Chromatic scale with sharps
-    private static readonly string[] NotesSharp = { "C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B" };
+    public string TransposeChord(string chord, int steps, bool useFlats = false) =>
+        TransposeChord(chord, steps, useFlats ? AccidentalPreference.Flats : AccidentalPreference.Sharps);
 
-    // Chromatic scale with flats
-    private static readonly string[] NotesFlat = { "C", "Db", "D", "Eb", "E", "F", "Gb", "G", "Ab", "A", "Bb", "B" };
+    public string TransposeKey(string key, int steps, bool useFlats = false) =>
+        TransposeKey(key, steps, useFlats ? AccidentalPreference.Flats : AccidentalPreference.Sharps);
 
-    // Regex to match chord components: root note, optional sharp/flat, quality, bass note
-    private static readonly Regex ChordRegex = new Regex(
-        @"^([A-G])(b|#)?(.*?)(/([A-G])(b|#)?)?$",
-        RegexOptions.Compiled
-    );
+    public string TransposeChord(string chord, int steps, AccidentalPreference preference, string? sourceKey = null) =>
+        Transpose(chord, steps, preference, sourceKey);
 
-    public string TransposeChord(string chord, int steps, bool useFlats = false)
+    public string TransposeKey(string key, int steps, AccidentalPreference preference) =>
+        Transpose(key, steps, preference, key);
+
+    public int NormalizeSteps(int steps) => Note.Mod12(steps);
+
+    private static string Transpose(string text, int steps, AccidentalPreference preference, string? key)
     {
-        if (string.IsNullOrWhiteSpace(chord))
-            return chord;
+        if (!ChordSymbolParser.TryParse(text, Notation.English, out var symbol))
+            return text;
 
-        var match = ChordRegex.Match(chord.Trim());
-        if (!match.Success)
-            return chord; // Return original if can't parse
-
-        var root = match.Groups[1].Value;
-        var accidental = match.Groups[2].Value;
-        var quality = match.Groups[3].Value;
-        var hasBassnote = match.Groups[4].Success;
-        var bassNote = hasBassnote ? match.Groups[5].Value : string.Empty;
-        var bassAccidental = hasBassnote ? match.Groups[6].Value : string.Empty;
-
-        // Transpose root note
-        var transposedRoot = TransposeNote(root + accidental, steps, useFlats);
-
-        // Transpose bass note if present
-        var transposedBass = hasBassnote
-            ? TransposeNote(bassNote + bassAccidental, steps, useFlats)
-            : string.Empty;
-
-        // Build transposed chord
-        var result = transposedRoot + quality;
-        if (hasBassnote)
-            result += "/" + transposedBass;
-
-        return result;
+        var shifted = preference == AccidentalPreference.Auto
+            ? SpellAuto(symbol, steps, key)
+            : symbol.Transpose(steps, preference == AccidentalPreference.Flats);
+        return ChordNotation.Format(shifted, NotationOptions.English, keepMinorToken: true);
     }
 
-    public string TransposeKey(string key, int steps, bool useFlats = false)
+    private static ChordSymbol SpellAuto(ChordSymbol symbol, int steps, string? key)
     {
-        if (string.IsNullOrWhiteSpace(key))
-            return key;
-
-        // Handle minor keys (e.g., "Am", "Dm")
-        var isMinor = key.EndsWith("m", StringComparison.OrdinalIgnoreCase);
-        var keyNote = isMinor ? key.Substring(0, key.Length - 1) : key;
-
-        var transposedNote = TransposeNote(keyNote, steps, useFlats);
-
-        return isMinor ? transposedNote + "m" : transposedNote;
-    }
-
-    public int NormalizeSteps(int steps)
-    {
-        steps = steps % 12;
-        if (steps < 0)
-            steps += 12;
-        return steps;
-    }
-
-    private string TransposeNote(string note, int steps, bool useFlats)
-    {
-        if (string.IsNullOrWhiteSpace(note))
-            return note;
-
-        var notes = useFlats ? NotesFlat : NotesSharp;
-
-        // Find current position
-        var currentIndex = FindNoteIndex(note, NotesSharp);
-        if (currentIndex == -1)
-            currentIndex = FindNoteIndex(note, NotesFlat);
-
-        if (currentIndex == -1)
-            return note; // Can't find note, return original
-
-        // Calculate new position
-        var normalizedSteps = NormalizeSteps(steps);
-        var newIndex = (currentIndex + normalizedSteps) % 12;
-
-        return notes[newIndex];
-    }
-
-    private int FindNoteIndex(string note, string[] noteArray)
-    {
-        for (int i = 0; i < noteArray.Length; i++)
-        {
-            if (noteArray[i].Equals(note, StringComparison.OrdinalIgnoreCase))
-                return i;
-        }
-        return -1;
+        var reference = key is not null && ChordSymbolParser.TryParse(key, Notation.English, out var keySymbol)
+            ? keySymbol
+            : symbol;
+        return KeySpelling.Transpose(symbol, steps, reference.Root.PitchClass + Note.Mod12(steps), reference.IsMinor);
     }
 }
