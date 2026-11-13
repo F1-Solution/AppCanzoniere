@@ -85,7 +85,11 @@ public sealed record SheetLineDiagnostic(
     SheetLineKind Kind,
     double Confidence,
     IReadOnlyList<SheetWarning> Warnings,
-    int OutputLine);
+    int OutputLine)
+{
+    /// <summary>True for a chord line and for a label line whose own text is chords; false for a lyric that only received chords.</summary>
+    public bool CarriesChords { get; init; }
+}
 
 /// <summary>Converted song with one diagnostic per input line.</summary>
 public sealed record ChordSheetResult(
