@@ -58,4 +58,60 @@ public class LyricsOnlyTests
 
         Assert.Equal(2, section.Lines.Count);
     }
+
+    [Fact]
+    public void ACommentBeforeADroppedInstrumentalLine_IsShownAsAComment()
+    {
+        var flow = Flow(Lines("{c: Intro}", "[G] [C] [D]", "", "[G]Verse"), LyricsOnly());
+
+        Assert.Equal(new[] { SectionKind.Comment, SectionKind.Verse }, flow.Sections.Select(s => s.Kind));
+        Assert.Equal("Intro", Single(OnlyRow(flow.Sections[0].Lines[0]), RunKind.Comment).Text);
+        Assert.Equal(38, flow.Sections[1].Y);
+    }
+
+    [Fact]
+    public void ALabel_KeepsLabellingTheSection_WhenItsFirstLineIsInstrumentalButLaterLinesRemain()
+    {
+        var section = OnlySection(Flow(Lines("{c: Intro}", "[G] [C]", "[G]Verse"), LyricsOnly()));
+
+        Assert.Equal("Intro", section.Label);
+        Assert.Equal(2, Assert.Single(section.Lines).SourceLineIndex);
+        Assert.Equal(22, section.Lines[0].Y);
+    }
+
+    [Fact]
+    public void ACommentThenADroppedLineThenAnotherComment_ShowsTheFirstAndLabelsWithTheSecond()
+    {
+        var flow = Flow(Lines("{c: A}", "[G]", "{c: B}", "Verse"), LyricsOnly());
+
+        Assert.Equal(new[] { SectionKind.Comment, SectionKind.Verse }, flow.Sections.Select(s => s.Kind));
+        Assert.Equal("A", Single(OnlyRow(flow.Sections[0].Lines[0]), RunKind.Comment).Text);
+        Assert.Equal("B", flow.Sections[1].Label);
+    }
+
+    [Fact]
+    public void ACommentBeforeADroppedLineAtTheEnd_IsShownAsAComment()
+    {
+        var flow = Flow(Lines("Verse", "", "{c: Outro}", "[G] [C]"), LyricsOnly());
+
+        Assert.Equal(new[] { SectionKind.Verse, SectionKind.Comment }, flow.Sections.Select(s => s.Kind));
+    }
+
+    [Fact]
+    public void ALabelIsNotCarriedOverToASectionOfAnotherKind()
+    {
+        var flow = Flow(Lines("{c: Intro}", "[G]", "{soc}", "Santo", "{eoc}"), LyricsOnly());
+
+        Assert.Equal(new[] { SectionKind.Comment, SectionKind.Chorus }, flow.Sections.Select(s => s.Kind));
+        Assert.Null(flow.Sections[1].Label);
+    }
+
+    [Fact]
+    public void InChordsAndLyricsMode_TheLabelStaysOnTheInstrumentalSection()
+    {
+        var section = OnlySection(Flow(Lines("{c: Intro}", "[G] [C]", "[G]Verse")));
+
+        Assert.Equal("Intro", section.Label);
+        Assert.Equal(2, section.Lines.Count);
+    }
 }
