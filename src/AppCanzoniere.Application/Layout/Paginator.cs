@@ -22,6 +22,12 @@ internal static class Paginator
 
     private static void PlaceSection(PageState pages, SectionCursor cursor, LayoutOptions options, double height)
     {
+        if (cursor.Lines.Count == 0)
+        {
+            PlaceEmpty(pages, cursor.Template, options, height);
+            return;
+        }
+
         while (true)
         {
             var gap = pages.Empty ? 0 : options.SectionSpacing;
@@ -46,6 +52,20 @@ internal static class Paginator
                 return;
             pages.NewPage();
         }
+    }
+
+    /// <summary>A section without lines (only a hand-built flow has one) is placed as one block.</summary>
+    private static void PlaceEmpty(PageState pages, LayoutSection section, LayoutOptions options, double height)
+    {
+        var gap = pages.Empty ? 0 : options.SectionSpacing;
+        if (!pages.Empty && pages.Y + gap + section.Height > height + Tolerance)
+        {
+            pages.NewPage();
+            gap = 0;
+        }
+
+        var top = pages.Y + gap;
+        pages.Add(section with { Y = top, LabelRuns = LayoutShift.Runs(section.LabelRuns, top - section.Y) });
     }
 
     /// <summary>Places a leading part of the section; false means a new page was opened and the section must be retried.</summary>

@@ -9,10 +9,20 @@ public sealed record LayoutRun(
     bool HyphenAfter);
 
 /// <summary>A visual row of one source line; Index 0 is the first row, above 0 are wrapped continuation rows; Overflow means it is wider than its width.</summary>
-public sealed record LayoutRow(int Index, double Y, double Height, IReadOnlyList<LayoutRun> Runs, bool HardBreakAfter, bool Overflow = false);
+public sealed record LayoutRow(int Index, double Y, double Height, IReadOnlyList<LayoutRun> Runs, bool HardBreakAfter, bool Overflow = false)
+{
+    private readonly IReadOnlyList<LayoutRun> _runs = Frozen.Copy(Runs, nameof(Runs));
+
+    public IReadOnlyList<LayoutRun> Runs { get => _runs; init => _runs = Frozen.Copy(value, nameof(Runs)); }
+}
 
 /// <summary>A source line laid out in one or more rows; Number is set only on the fragment holding row 0; IsComment marks a comment inside a section.</summary>
-public sealed record LayoutLine(int SourceLineIndex, int? Number, double Y, double Height, IReadOnlyList<LayoutRow> Rows, bool IsComment = false);
+public sealed record LayoutLine(int SourceLineIndex, int? Number, double Y, double Height, IReadOnlyList<LayoutRow> Rows, bool IsComment = false)
+{
+    private readonly IReadOnlyList<LayoutRow> _rows = Frozen.Copy(Rows, nameof(Rows));
+
+    public IReadOnlyList<LayoutRow> Rows { get => _rows; init => _rows = Frozen.Copy(value, nameof(Rows)); }
+}
 
 /// <summary>A section or the part of it that falls on one page; LabelRuns holds one run per row of a wrapped label.</summary>
 public sealed record LayoutSection(
@@ -22,22 +32,37 @@ public sealed record LayoutSection(
     bool ContinuedFromPrevious, bool ContinuesOnNext,
     IReadOnlyList<LayoutLine> Lines)
 {
+    private readonly IReadOnlyList<LayoutRun> _labelRuns = Frozen.Copy(LabelRuns, nameof(LabelRuns));
+    private readonly IReadOnlyList<LayoutLine> _lines = Frozen.Copy(Lines, nameof(Lines));
+
+    public IReadOnlyList<LayoutRun> LabelRuns { get => _labelRuns; init => _labelRuns = Frozen.Copy(value, nameof(LabelRuns)); }
+
+    public IReadOnlyList<LayoutLine> Lines { get => _lines; init => _lines = Frozen.Copy(value, nameof(Lines)); }
+
     /// <summary>The first row of the label, or null when the section has none.</summary>
     public LayoutRun? LabelRun => LabelRuns.Count > 0 ? LabelRuns[0] : null;
 }
 
 /// <summary>Result of the flow phase: every section stacked from Y 0, independent of page height.</summary>
-public sealed record FlowLayout(double Width, double GutterWidth, double Height, int NumberedLineCount, IReadOnlyList<LayoutSection> Sections);
+public sealed record FlowLayout(double Width, double GutterWidth, double Height, int NumberedLineCount, IReadOnlyList<LayoutSection> Sections)
+{
+    private readonly IReadOnlyList<LayoutSection> _sections = Frozen.Copy(Sections, nameof(Sections));
+
+    public IReadOnlyList<LayoutSection> Sections { get => _sections; init => _sections = Frozen.Copy(value, nameof(Sections)); }
+}
 
 /// <summary>One page of a paginated song; Overflow is true when something taller than the page was placed anyway.</summary>
-public sealed record LayoutPage(int Index, double Height, bool Overflow, IReadOnlyList<LayoutSection> Sections);
+public sealed record LayoutPage(int Index, double Height, bool Overflow, IReadOnlyList<LayoutSection> Sections)
+{
+    private readonly IReadOnlyList<LayoutSection> _sections = Frozen.Copy(Sections, nameof(Sections));
+
+    public IReadOnlyList<LayoutSection> Sections { get => _sections; init => _sections = Frozen.Copy(value, nameof(Sections)); }
+}
 
 /// <summary>A song laid out in pages.</summary>
-public sealed record SongLayout(IReadOnlyList<LayoutPage> Pages, double GutterWidth, int NumberedLineCount);
-
-internal static class Frozen
+public sealed record SongLayout(IReadOnlyList<LayoutPage> Pages, double GutterWidth, int NumberedLineCount)
 {
-    public static IReadOnlyList<T> From<T>(List<T> items) => Array.AsReadOnly(items.ToArray());
+    private readonly IReadOnlyList<LayoutPage> _pages = Frozen.Copy(Pages, nameof(Pages));
 
-    public static IReadOnlyList<T> From<T>(T[] items) => Array.AsReadOnly(items);
+    public IReadOnlyList<LayoutPage> Pages { get => _pages; init => _pages = Frozen.Copy(value, nameof(Pages)); }
 }
