@@ -53,7 +53,7 @@ public class WordLikeChordTests
         var result = Run("Do  Lab  Sim  Rem  Mim  Lam  Solm  Fam  Dom", "Ti lodo Signore mio");
 
         Assert.Equal(SheetLineKind.ChordLine, result.Diag(1).Kind);
-        Assert.Equal(1.0, result.Diag(1).Confidence);
+        Assert.True(result.Diag(1).Confidence >= 0.9);
         Assert.StartsWith("[Do]", result.ChordPro);
         Assert.Equal(9, result.ChordPro.Count(c => c == '['));
     }
@@ -64,7 +64,7 @@ public class WordLikeChordTests
         var result = Run("C  Em  Gsus  Cmaj  Dmin  Aaug  Bdim  Bb  F#m  Dsus", "Lord hear us all today please");
 
         Assert.Equal(SheetLineKind.ChordLine, result.Diag(1).Kind);
-        Assert.Equal(1.0, result.Diag(1).Confidence);
+        Assert.True(result.Diag(1).Confidence >= 0.9);
         Assert.Equal(10, result.ChordPro.Count(c => c == '['));
     }
 

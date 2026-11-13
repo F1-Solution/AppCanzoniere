@@ -118,10 +118,11 @@ internal static class LineClassifier
         LineClassification Make(bool chord, bool pending, double confidence, params SheetWarning[] warnings) =>
             new(chord, pending, confidence, warnings, tokens, u, a, w);
 
-        if (u >= 1)
+        var wordLikeAlone = tokens.Count == 1 && tokens[0].Kind == TokenKind.Chord && ChordWords.IsWordLike(tokens[0].Chord);
+        if (u >= 1 && !wordLikeAlone)
             return Make(true, false, a > 0 ? MixedChord : SureChord);
 
-        if (a == 1)
+        if (a == 1 || wordLikeAlone)
             return tokens.Any(SheetTokenizer.IsNoChord)
                 ? Make(true, false, LikelyChord) // A no-chord mark beside a note name is chord-line evidence by itself.
                 : Make(false, true, UnsureSingle, SheetWarning.AmbiguousSingleToken);

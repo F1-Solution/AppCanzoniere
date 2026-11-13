@@ -6,24 +6,27 @@ namespace AppCanzoniere.Application.Import;
 internal static class LooseChords
 {
     private const int MinForeignAnchors = 3;
+    private const int MinDoubtfulAnchors = 2;
     private const int MinWideGap = 3;
     private const int MinWideIndent = 6;
 
     /// <summary>The tokens with loose chords turned into chords, or null when the line does not qualify.</summary>
     public static IReadOnlyList<SheetToken>? Promote(IReadOnlyList<SheetToken> tokens, Notation notation)
     {
-        var loose = tokens.Where(t => t.LowerChord || t.Foreign).ToList();
-        var hasRealWords = tokens.Any(t => t.Kind == TokenKind.Word && !t.LowerChord && !t.Foreign);
+        var loose = tokens.Where(t => t.LowerChord || t.Foreign || t.Doubtful).ToList();
+        var hasRealWords = tokens.Any(t => t.Kind == TokenKind.Word && !t.LowerChord && !t.Foreign && !t.Doubtful);
         var strict = tokens.Count(t => t.Kind == TokenKind.Chord);
         if (loose.Count == 0 || hasRealWords || strict + loose.Count < 2)
             return null;
 
         var lowers = loose.Where(t => t.LowerChord).ToList();
-        var foreign = loose.Count - lowers.Count;
-        if ((lowers.Count > 0 && !LowerCaseLooksLikeChords(tokens, lowers, notation)) || (foreign > 0 && strict < MinForeignAnchors))
+        var foreign = loose.Count(t => t.Foreign);
+        var doubtful = loose.Count(t => t.Doubtful);
+        if ((lowers.Count > 0 && !LowerCaseLooksLikeChords(tokens, lowers, notation)) ||
+            (foreign > 0 && strict < MinForeignAnchors) || (doubtful > 0 && strict < MinDoubtfulAnchors))
             return null;
 
-        return tokens.Select(t => t.LowerChord || t.Foreign ? ToChord(t, notation) : t).ToList();
+        return tokens.Select(t => t.LowerChord || t.Foreign || t.Doubtful ? ToChord(t, notation) : t).ToList();
     }
 
     private static bool LowerCaseLooksLikeChords(IReadOnlyList<SheetToken> tokens, List<SheetToken> lowers, Notation notation)
@@ -48,6 +51,7 @@ internal static class LooseChords
             Chord = token.Parenthesised ? token.Text[1..^1] : token.Text,
             Ambiguous = token.LowerChord && SheetTokenizer.IsAmbiguous(token.Parenthesised ? token.Text[1..^1] : token.Text, notation),
             LowerChord = false,
-            Foreign = false
+            Foreign = false,
+            Doubtful = false
         };
 }

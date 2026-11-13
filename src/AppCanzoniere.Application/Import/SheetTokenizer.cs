@@ -19,7 +19,8 @@ internal sealed record SheetToken(
     bool Ambiguous = false,
     bool Parenthesised = false,
     bool LowerChord = false,
-    bool Foreign = false);
+    bool Foreign = false,
+    bool Doubtful = false);
 
 /// <summary>Splits a line into neutral marks, words and chords (spec 3.2).</summary>
 internal static class SheetTokenizer
@@ -84,7 +85,7 @@ internal static class SheetTokenizer
 
     /// <summary>True when the text is a chord of the notation and starts with an upper-case letter.</summary>
     public static bool TryChord(string text, Notation notation) =>
-        text.Length > 0 && char.IsUpper(text[0]) && ChordSymbolParser.TryParse(text, notation, out _);
+        text.Length > 0 && char.IsUpper(text[0]) && ChordWords.TryParseDefinite(text, notation, out _);
 
     public static bool IsAmbiguous(string chord, Notation notation) =>
         notation == Notation.Italian ? ItalianBareNames.Contains(chord) : EnglishAmbiguous.Contains(chord);
@@ -162,7 +163,7 @@ internal static class SheetTokenizer
         if (TryChord(inner, notation))
             return Chord(core, column, inner, notation, true);
 
-        return char.IsLower(inner[0]) && ChordSymbolParser.TryParse(inner, notation, out _)
+        return char.IsLower(inner[0]) && ChordWords.TryParseDefinite(inner, notation, out _)
             ? new SheetToken(core, column, TokenKind.Word, Parenthesised: true, LowerChord: true)
             : Word(core, column);
     }
@@ -171,12 +172,16 @@ internal static class SheetTokenizer
     private static SheetToken WordOrLooseChord(string core, int column, Notation notation)
     {
         var other = notation == Notation.Italian ? Notation.English : Notation.Italian;
-        if (char.IsLower(core[0]) && ChordSymbolParser.TryParse(core, notation, out _))
+        if (char.IsLower(core[0]) && ChordWords.TryParseDefinite(core, notation, out _))
             return new SheetToken(core, column, TokenKind.Word, LowerChord: true);
 
-        return char.IsUpper(core[0]) && ChordSymbolParser.TryParse(core, other, out _)
-            ? new SheetToken(core, column, TokenKind.Word, Foreign: true)
-            : Word(core, column);
+        if (!char.IsUpper(core[0]))
+            return Word(core, column);
+
+        if (ChordWords.TryParseDefinite(core, other, out _))
+            return new SheetToken(core, column, TokenKind.Word, Foreign: true);
+
+        return ChordWords.IsDoubtful(core, notation) ? new SheetToken(core, column, TokenKind.Word, Doubtful: true) : Word(core, column);
     }
 
     private static SheetToken Word(string text, int column) => new(text, column, TokenKind.Word);
