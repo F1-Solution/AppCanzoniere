@@ -187,10 +187,7 @@ public class ChordProParser : IChordProParser
         ArgumentNullException.ThrowIfNull(document);
         ArgumentNullException.ThrowIfNull(options);
 
-        var chords = document.Lines
-            .Where(l => l.Type != ChordProLineType.Tab)
-            .SelectMany(l => (l.Chords ?? new List<ChordPosition>()).OrderBy(c => c.Position).Select(c => c.Chord));
-        var transformer = new ChordTransformer(options, document.Key, document.CapoFret ?? 0, chords);
+        var transformer = new ChordTransformer(options, document.Key, document.CapoFret ?? 0, ChordProKeys.ChordsOf(document));
         if (document.SourceLines is { } source && document.Snapshot?.Matches(document) == true)
             return ChordProSourceRenderer.Render(source, transformer, options.Capo);
 

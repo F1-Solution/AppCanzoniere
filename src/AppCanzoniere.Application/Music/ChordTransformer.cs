@@ -11,6 +11,7 @@ public sealed class ChordTransformer
     private readonly int _shift;
     private readonly AccidentalPreference? _writtenPreference;
     private readonly (int Tonic, bool Minor)? _reference;
+    private readonly bool _keyFollows;
 
     /// <param name="options">Render settings; a capo outside 0-11 is rejected.</param>
     /// <param name="documentKey">Key of the chords as written, in either notation or in words; steers Auto spelling.</param>
@@ -32,13 +33,32 @@ public sealed class ChordTransformer
 
         // With a capo the written chords are shapes, spelled by their own key whatever the preference.
         _writtenPreference = capo > 0 ? AccidentalPreference.Auto : options.Accidentals;
-        if (KeyValue.TryParse(documentKey, options.InputNotation.Notation, out var key))
+        var chordList = documentChords?.ToList();
+        _keyFollows = !WrittenInOtherNotation(chordList, options.InputNotation.Notation);
+        if (_keyFollows && KeyValue.TryParse(documentKey, options.InputNotation.Notation, out var key))
         {
             _documentKey = key;
             _reference = (Note.Mod12(key.Symbol.Root.PitchClass + _shift), key.Symbol.IsMinor);
         }
-        else if (FirstChord(documentChords, options.InputNotation.Notation) is { } first)
+        else if (FirstChord(chordList, options.InputNotation.Notation) is { } first)
             _reference = (Note.Mod12(first.Root.PitchClass + _shift), first.IsMinor);
+    }
+
+    // More chords readable only in the other notation than in the requested one: the key is left alone with them.
+    private static bool WrittenInOtherNotation(List<string>? chords, Notation input)
+    {
+        var other = input == Notation.English ? Notation.Italian : Notation.English;
+        var inInput = 0;
+        var inOther = 0;
+        foreach (var text in chords ?? new List<string>())
+        {
+            if (ChordSymbolParser.TryParse(text, input, out _))
+                inInput++;
+            else if (ChordSymbolParser.TryParse(text, other, out _))
+                inOther++;
+        }
+
+        return inOther > inInput;
     }
 
     private static ChordSymbol? FirstChord(IEnumerable<string>? chords, Notation notation)
@@ -71,7 +91,7 @@ public sealed class ChordTransformer
 
     /// <summary>Key as it is written in the output: it moves with the chords; text that is not a key is returned unchanged.</summary>
     public string Key(string key) =>
-        KeyValue.TryParse(key, _options.InputNotation.Notation, out var value) ? WriteKey(key, value, _shift, _writtenPreference) : key;
+        _keyFollows && KeyValue.TryParse(key, _options.InputNotation.Notation, out var value) ? WriteKey(key, value, _shift, _writtenPreference) : key;
 
     /// <summary>Key of the chords as written in the output, or null when the document has no readable key.</summary>
     public string? WrittenKey() =>

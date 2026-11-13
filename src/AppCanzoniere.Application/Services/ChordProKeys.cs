@@ -26,6 +26,12 @@ public static class ChordProKeys
     {
         ArgumentNullException.ThrowIfNull(document);
         ArgumentNullException.ThrowIfNull(options);
-        return new ChordTransformer(options, document.Key, document.CapoFret ?? 0);
+        return new ChordTransformer(options, document.Key, document.CapoFret ?? 0, ChordsOf(document));
     }
+
+    /// <summary>The bracketed chords of a document in reading order, tab blocks left out.</summary>
+    internal static IEnumerable<string> ChordsOf(ChordProDocument document) =>
+        document.Lines
+            .Where(l => l.Type != ChordProLineType.Tab)
+            .SelectMany(l => (l.Chords ?? new List<ChordPosition>()).OrderBy(c => c.Position).Select(c => c.Chord));
 }
