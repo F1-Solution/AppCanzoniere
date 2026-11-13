@@ -8,19 +8,27 @@ namespace AppCanzoniere.Application.Services;
 public class ChordProParser : IChordProParser
 {
     private static readonly Regex ChordRegex = new Regex(@"\[([^\]]+)\]", RegexOptions.Compiled | RegexOptions.CultureInvariant);
-    private static readonly Regex DirectiveRegex = new Regex(@"\{([^:}]+)(?::(.*))?\}", RegexOptions.Compiled | RegexOptions.CultureInvariant);
+    private static readonly Regex DirectiveRegex = new Regex(@"^\{([^:}]+)(?::(.*))?\}$", RegexOptions.Compiled | RegexOptions.CultureInvariant);
     private static readonly Regex TabEndRegex = new Regex(@"^\{\s*(?:end_of_tab|eot)\s*\}$", RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+
+    private const char Bom = '﻿';
 
     public ChordProDocument Parse(string chordProContent)
     {
         var document = new ChordProDocument();
-        if (string.IsNullOrWhiteSpace(chordProContent))
+        if (string.IsNullOrEmpty(chordProContent))
             return document;
 
         var state = new ParseState();
-        foreach (var line in SplitLines(chordProContent))
-            ParseLine(line, document, state);
+        var source = new List<ChordProSourceLine>();
+        var lines = SplitLines(chordProContent);
+        for (var i = 0; i < lines.Length; i++)
+        {
+            var kind = ParseLine(i == 0 ? lines[i].TrimStart(Bom) : lines[i], document, state);
+            source.Add(new ChordProSourceLine(kind, lines[i]));
+        }
 
+        document.SourceLines = source;
         return document;
     }
 
@@ -32,17 +40,29 @@ public class ChordProParser : IChordProParser
             : lines;
     }
 
-    private static void ParseLine(string line, ChordProDocument document, ParseState state)
+    private static ChordProSourceKind ParseLine(string line, ChordProDocument document, ParseState state)
     {
         var trimmed = line.Trim();
         if (state.InTab)
+        {
             ParseTabLine(line, trimmed, document, state);
-        else if (trimmed.Length == 0)
+            return ChordProSourceKind.Verbatim;
+        }
+
+        if (trimmed.Length == 0)
+        {
             document.Lines.Add(new ChordProLine { Type = ChordProLineType.Empty });
-        else if (DirectiveRegex.Match(trimmed) is { Success: true } directive)
-            ApplyDirective(directive, document, state);
-        else
-            document.Lines.Add(ParseChordLine(line, state.Section));
+            return ChordProSourceKind.Verbatim;
+        }
+
+        if (line[0] == '#')
+            return ChordProSourceKind.Verbatim; // A ChordPro file comment, not a lyric.
+
+        if (DirectiveRegex.Match(trimmed) is { Success: true } directive)
+            return ApplyDirective(directive, document, state);
+
+        document.Lines.Add(ParseChordLine(line, state.Section));
+        return ChordProSourceKind.Lyrics;
     }
 
     private static void ParseTabLine(string line, string trimmed, ChordProDocument document, ParseState state)
@@ -63,7 +83,7 @@ public class ChordProParser : IChordProParser
         state.TabStart = false;
     }
 
-    private static void ApplyDirective(Match directive, ChordProDocument document, ParseState state)
+    private static ChordProSourceKind ApplyDirective(Match directive, ChordProDocument document, ParseState state)
     {
         var name = directive.Groups[1].Value.Trim().ToLowerInvariant();
         var value = directive.Groups[2].Value;
@@ -86,6 +106,13 @@ public class ChordProParser : IChordProParser
                 ApplyMetadataOrSection(name, value, document, state);
                 break;
         }
+
+        return name switch
+        {
+            "key" => ChordProSourceKind.Key,
+            "capo" => ChordProSourceKind.Capo,
+            _ => ChordProSourceKind.Verbatim
+        };
     }
 
     private static void ApplyMetadataOrSection(string name, string value, ChordProDocument document, ParseState state)
@@ -159,6 +186,9 @@ public class ChordProParser : IChordProParser
         ArgumentNullException.ThrowIfNull(document);
         ArgumentNullException.ThrowIfNull(options);
 
+        if (document.SourceLines is { } source && IsUntransformed(options))
+            return ChordProSourceRenderer.Render(source);
+
         var sb = new StringBuilder();
         var chords = document.Lines
             .Where(l => l.Type != ChordProLineType.Tab)
@@ -181,6 +211,10 @@ public class ChordProParser : IChordProParser
         AppendSectionEnd(sb, previousType);
         return sb.ToString();
     }
+
+    private static bool IsUntransformed(ChordProRenderOptions options) =>
+        options.TransposeSteps == 0 && options.Accidentals is null && options.Capo is null &&
+        options.InputNotation == options.OutputNotation;
 
     private static bool AppendMetadata(StringBuilder sb, ChordProDocument document, ChordTransformer transformer, ChordProRenderOptions options)
     {

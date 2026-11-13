@@ -39,7 +39,7 @@ public class LowFindingsTests
 
         Assert.Equal("Real", document.Title);
         Assert.Equal("G", document.Key);
-        Assert.Equal("{title:Real}\n{key:G}\n\n[G]x\n", _parser.Render(document, 0));
+        Assert.Equal("{title:Real}\n{key:G}\n{title:}\n{key:}\n{title}\n[G]x\n", _parser.Render(document, 0));
     }
 
     [Fact]
@@ -52,14 +52,13 @@ public class LowFindingsTests
     }
 
     [Fact]
-    public void Render_TabSample_ProducesTheCanonicalTextAndReparsingKeepsIt()
+    public void Render_TabSample_ComesBackAsWrittenAndReparsingKeepsIt()
     {
         const string sample = "{title:Intro}\n[C]Verse line\n\n{start_of_tab}\n  e|--0--[3]--|  \nB|---1-------|\n{end_of_tab}\n[G]After the tab";
-        const string canonical = "{title:Intro}\n\n[C]Verse line\n\n{start_of_tab}\n  e|--0--[3]--|  \nB|---1-------|\n{end_of_tab}\n[G]After the tab\n";
 
         var rendered = _parser.Render(_parser.Parse(sample), 0);
 
-        Assert.Equal(canonical, rendered);
+        Assert.Equal(sample + "\n", rendered);
         Assert.Equal(rendered, _parser.Render(_parser.Parse(rendered), 0));
     }
 
@@ -80,6 +79,6 @@ public class LowFindingsTests
     {
         var rendered = _parser.Render(_parser.Parse("{soc}\n[C]a\n{title:Mid}\n[G]b\n{eoc}"), 0);
 
-        Assert.Equal("{title:Mid}\n\n{start_of_chorus}\n[C]a\n[G]b\n{end_of_chorus}\n", rendered);
+        Assert.Equal("{soc}\n[C]a\n{title:Mid}\n[G]b\n{eoc}\n", rendered);
     }
 }

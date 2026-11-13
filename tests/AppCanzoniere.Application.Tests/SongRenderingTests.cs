@@ -140,7 +140,7 @@ public class SongRenderingTests
     {
         var result = Render("{key:Db}\n[Bb]Line [C#m]two", new ChordProRenderOptions());
 
-        Assert.Equal("{key:Db}\n\n[Bb]Line [C#m]two\n", result);
+        Assert.Equal("{key:Db}\n[Bb]Line [C#m]two\n", result);
     }
 
     [Fact]
@@ -186,7 +186,7 @@ public class SongRenderingTests
     {
         var result = Render("{capo:2}\n[G]Line", new ChordProRenderOptions());
 
-        Assert.Equal("{capo:2}\n\n[G]Line\n", result);
+        Assert.Equal("{capo:2}\n[G]Line\n", result);
     }
 
     [Fact]
