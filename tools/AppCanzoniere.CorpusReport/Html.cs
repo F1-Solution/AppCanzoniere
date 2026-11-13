@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Net;
 using AppCanzoniere.Application.Import;
 
@@ -32,6 +33,13 @@ internal static class Html
         """;
 
     public static string Escape(string text) => WebUtility.HtmlEncode(text);
+
+    /// <summary>A relative file name as an href: percent-encoded, then HTML-escaped.</summary>
+    public static string Link(string fileName) => Escape(Uri.EscapeDataString(fileName));
+
+    public static string Number(int value) => value.ToString(CultureInfo.InvariantCulture);
+
+    public static string Score(double value) => value.ToString("0.00", CultureInfo.InvariantCulture);
 
     public static string Page(string title, string body) =>
         $"<!doctype html>\n<html lang=\"it\">\n<head>\n<meta charset=\"utf-8\">\n" +

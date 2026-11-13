@@ -1,8 +1,11 @@
+using System.Globalization;
 using System.Text;
 using AppCanzoniere.Application.Import;
 using AppCanzoniere.CorpusReport;
 
 const string CorpusFolderName = "corpus-locale";
+
+CultureInfo.CurrentCulture = CultureInfo.InvariantCulture;
 
 var corpus = args.Length > 0 ? args[0] : FindCorpus(Directory.GetCurrentDirectory());
 if (corpus is null || !Directory.Exists(Path.Combine(corpus, "testo")))
@@ -26,7 +29,7 @@ foreach (var file in Directory.EnumerateFiles(Path.Combine(corpus, "testo"), "*.
 
 var index = Path.Combine(reportFolder, "index.html");
 File.WriteAllText(index, IndexPage.Render(songs), utf8);
-Console.WriteLine($"{songs.Count} brani convertiti. Rapporto: {index}");
+Console.WriteLine($"{songs.Count.ToString(CultureInfo.InvariantCulture)} brani convertiti. Rapporto: {index}");
 return 0;
 
 static string? FindCorpus(string start)

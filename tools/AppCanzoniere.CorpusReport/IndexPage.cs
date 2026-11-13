@@ -22,7 +22,7 @@ internal static class IndexPage
     {
         var body = new StringBuilder();
         body.Append("<h1>Corpus: conversione degli accordi sopra il testo</h1>\n");
-        body.Append($"<p class=\"muted\">{songs.Count} brani, i più dubbi in alto.</p>\n");
+        body.Append($"<p class=\"muted\">{Html.Number(songs.Count)} brani, i più dubbi in alto.</p>\n");
         body.Append("<table>\n<tr><th>Brano</th><th class=\"n\">Righe</th><th class=\"n\">Righe accordi</th>");
         body.Append("<th class=\"n\">Righe testo</th><th class=\"n\">Avvisi</th><th class=\"n\">Righe dubbie</th><th>Notazione</th></tr>\n");
         foreach (var song in songs.OrderByDescending(s => s.DoubtfulLines).ThenByDescending(s => s.Warnings).ThenBy(s => s.Name, StringComparer.Ordinal))
@@ -32,7 +32,7 @@ internal static class IndexPage
     }
 
     private static string Row(SongSummary song) =>
-        $"<tr><td><a href=\"{Html.Escape(song.PageName)}\">{Html.Escape(song.Name)}</a></td>" +
-        $"<td class=\"n\">{song.Lines}</td><td class=\"n\">{song.Result.ChordLineCount}</td><td class=\"n\">{song.LyricLines}</td>" +
-        $"<td class=\"n\">{song.Warnings}</td><td class=\"n\">{song.DoubtfulLines}</td><td>{Html.Escape(Html.NotationLabel(song.Result))}</td></tr>\n";
+        $"<tr><td><a href=\"{Html.Link(song.PageName)}\">{Html.Escape(song.Name)}</a></td>" +
+        $"<td class=\"n\">{Html.Number(song.Lines)}</td><td class=\"n\">{Html.Number(song.Result.ChordLineCount)}</td><td class=\"n\">{Html.Number(song.LyricLines)}</td>" +
+        $"<td class=\"n\">{Html.Number(song.Warnings)}</td><td class=\"n\">{Html.Number(song.DoubtfulLines)}</td><td>{Html.Escape(Html.NotationLabel(song.Result))}</td></tr>\n";
 }

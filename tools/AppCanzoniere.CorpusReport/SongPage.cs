@@ -31,9 +31,9 @@ internal static class SongPage
         {
             var isDoubtful = doubtful.TryGetValue(line.LineNumber, out var diagnostic);
             var cssClass = Html.KindClass(line.Kind) + (isDoubtful ? " doubt" : string.Empty);
-            var title = Html.Escape($"{Html.KindLabel(line.Kind)}, affidabilità {line.Confidence:0.00}" +
+            var title = Html.Escape($"{Html.KindLabel(line.Kind)}, affidabilità {Html.Score(line.Confidence)}" +
                 (isDoubtful ? ": " + Describe(diagnostic!) : string.Empty));
-            rows.Append($"<span class=\"row {cssClass}\" title=\"{title}\"><span class=\"no\">{line.LineNumber}</span>{Html.Escape(line.Source)}");
+            rows.Append($"<span class=\"row {cssClass}\" title=\"{title}\"><span class=\"no\">{Html.Number(line.LineNumber)}</span>{Html.Escape(line.Source)}");
             if (isDoubtful)
                 rows.Append($"<span class=\"warn\">⚠ {Html.Escape(Describe(diagnostic!))}</span>");
             rows.Append("</span>");
@@ -64,8 +64,8 @@ internal static class SongPage
         var table = new StringBuilder("<h2>Righe dubbie</h2>\n<table><tr><th class=\"n\">Riga</th><th>Tipo</th><th class=\"n\">Affidabilità</th><th>Motivo</th></tr>\n");
         foreach (var line in rows)
         {
-            table.Append($"<tr><td class=\"n\">{line.LineNumber}</td><td>{Html.Escape(Html.KindLabel(line.Kind))}</td>");
-            table.Append($"<td class=\"n\">{line.Confidence:0.00}</td><td>{Html.Escape(Describe(line))}</td></tr>\n");
+            table.Append($"<tr><td class=\"n\">{Html.Number(line.LineNumber)}</td><td>{Html.Escape(Html.KindLabel(line.Kind))}</td>");
+            table.Append($"<td class=\"n\">{Html.Score(line.Confidence)}</td><td>{Html.Escape(Describe(line))}</td></tr>\n");
         }
 
         return table.Append("</table>\n").ToString();
