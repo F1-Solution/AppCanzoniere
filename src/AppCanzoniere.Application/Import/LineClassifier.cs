@@ -118,6 +118,9 @@ internal static class LineClassifier
         LineClassification Make(bool chord, bool pending, double confidence, params SheetWarning[] warnings) =>
             new(chord, pending, confidence, warnings, tokens, u, a, w);
 
+        if (tokens is [{ Kind: TokenKind.Chord } single] && ChordWords.IsMiMinor(single.Chord))
+            return Make(false, false, CertainLyric);
+
         var wordLikeAlone = tokens.Count == 1 && tokens[0].Kind == TokenKind.Chord && ChordWords.IsWordLike(tokens[0].Chord);
         if (u >= 1 && !wordLikeAlone)
             return Make(true, false, a > 0 ? MixedChord : SureChord);

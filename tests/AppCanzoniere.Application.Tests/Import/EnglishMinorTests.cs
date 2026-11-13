@@ -24,12 +24,12 @@ public class EnglishMinorTests
     [Theory]
     [InlineData("Ami")]
     [InlineData("Emi")]
-    public void SingleMiMinor_FollowsTheSingleTokenRule(string line)
+    public void SingleMiMinor_StaysAWordEvenBesideChordLines(string line)
     {
-        var result = RunWith(new ChordSheetOptions { Notation = Notation.English }, line);
+        var result = Run("C     G", "Lord, hear us", line);
 
-        Assert.Equal(SheetLineKind.Lyric, result.Diag(1).Kind);
-        Assert.Contains(SheetWarning.AmbiguousSingleToken, result.Diag(1).Warnings);
+        Assert.Equal(Out("[C]Lord, [G]hear us", line), result.ChordPro);
+        Assert.Equal(SheetLineKind.Lyric, result.Diag(3).Kind);
     }
 
     [Theory]

@@ -11,6 +11,11 @@ internal static class ChordWords
         string.Empty, "m", "min", "maj", "dim", "aug", "sus", "alt", "dom"
     };
 
+    private const string EnglishMinorWord = "mi";
+
+    private static readonly System.Text.RegularExpressions.Regex EnglishMiMinor =
+        new("^[A-G][#b]?mi$", System.Text.RegularExpressions.RegexOptions.Compiled | System.Text.RegularExpressions.RegexOptions.CultureInvariant);
+
     // Real chords that are also words: alone on a line they need document context.
     private static readonly HashSet<string> WordLike = new(StringComparer.OrdinalIgnoreCase)
     {
@@ -19,11 +24,11 @@ internal static class ChordWords
 
     /// <summary>True when the text parses as a chord and its quality is not a bare letter run outside the real qualities.</summary>
     public static bool TryParseDefinite(string text, Notation notation, out ChordSymbol chord) =>
-        TryParse(text, notation, out chord) && IsDefinite(chord);
+        TryParse(text, notation, out chord) && IsDefinite(chord, notation);
 
     /// <summary>True when the text parses as a chord but only through a letter-only suffix that is not a real quality.</summary>
     public static bool IsDoubtful(string text, Notation notation) =>
-        TryParse(text, notation, out var chord) && !IsDefinite(chord);
+        TryParse(text, notation, out var chord) && !IsDefinite(chord, notation);
 
     /// <summary>True when the text parses as a chord of the notation and its parentheses are balanced.</summary>
     public static bool IsChord(string text, Notation notation) => TryParse(text, notation, out _);
@@ -46,9 +51,12 @@ internal static class ChordWords
 
     public static bool IsWordLike(string chord) => WordLike.Contains(chord);
 
-    private static bool IsDefinite(ChordSymbol chord)
+    /// <summary>True for an English root plus the bare "mi" quality (Ami, Emi): alone on a line it is a word.</summary>
+    public static bool IsMiMinor(string chord) => EnglishMiMinor.IsMatch(chord);
+
+    private static bool IsDefinite(ChordSymbol chord, Notation notation)
     {
         var quality = chord.MinorToken + chord.Suffix;
-        return !quality.All(char.IsLetter) || RealQualities.Contains(quality);
+        return !quality.All(char.IsLetter) || RealQualities.Contains(quality) || (notation == Notation.English && quality == EnglishMinorWord);
     }
 }
