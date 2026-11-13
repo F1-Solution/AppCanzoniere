@@ -45,8 +45,7 @@ public class ChordProParser : IChordProParser
         var trimmed = line.Trim();
         if (state.InTab)
         {
-            ParseTabLine(line, trimmed, document, state);
-            return ChordProSourceKind.Verbatim;
+            return ParseTabLine(line, trimmed, document, state);
         }
 
         if (trimmed.Length == 0)
@@ -65,12 +64,12 @@ public class ChordProParser : IChordProParser
         return ChordProSourceKind.Lyrics;
     }
 
-    private static void ParseTabLine(string line, string trimmed, ChordProDocument document, ParseState state)
+    private static ChordProSourceKind ParseTabLine(string line, string trimmed, ChordProDocument document, ParseState state)
     {
         if (TabEndRegex.IsMatch(trimmed))
         {
             state.InTab = false;
-            return;
+            return ChordProSourceKind.Verbatim;
         }
 
         document.Lines.Add(new ChordProLine
@@ -81,6 +80,7 @@ public class ChordProParser : IChordProParser
             TabLabel = state.TabStart ? state.TabLabel : string.Empty
         });
         state.TabStart = false;
+        return ChordProSourceKind.Tab;
     }
 
     private static ChordProSourceKind ApplyDirective(Match directive, ChordProDocument document, ParseState state)

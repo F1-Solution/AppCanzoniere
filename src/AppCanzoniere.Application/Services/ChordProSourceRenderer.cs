@@ -13,6 +13,7 @@ internal static class ChordProSourceRenderer
 
     private static readonly Regex ChordToken = new(@"\[([^\]]*)\]", RegexOptions.Compiled | RegexOptions.CultureInvariant);
     private static readonly Regex DirectiveValue = new(@"^(?<head>﻿?\s*\{[^:}]*:)(?<value>.*)(?<tail>\}\s*)$", RegexOptions.Compiled | RegexOptions.CultureInvariant);
+    private static readonly Regex CapoDirective = new(@"^(?<lead>﻿?\s*\{[^:}]*)(?::(?<value>.*))?(?<tail>\}\s*)$", RegexOptions.Compiled | RegexOptions.CultureInvariant);
     private static readonly Regex TitleDirective = new(@"^﻿?\s*\{\s*(?:title|t)\s*[:}]", RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
 
     public static string Render(IReadOnlyList<ChordProSourceLine> lines, ChordTransformer transformer, int? capo)
@@ -80,7 +81,7 @@ internal static class ChordProSourceRenderer
                 if (fret == 0)
                     return; // The line is removed together with its line feed.
 
-                sb.Append(RewriteValue(line.Raw, v => KeepPadding(v, c => CurrentFret(c) == fret ? c : fret.ToString(CultureInfo.InvariantCulture))));
+                sb.Append(RewriteCapo(line.Raw, fret));
                 break;
             default:
                 sb.Append(line.Raw);
@@ -92,6 +93,22 @@ internal static class ChordProSourceRenderer
 
     private static int? CurrentFret(string text) =>
         int.TryParse(text, NumberStyles.None, CultureInfo.InvariantCulture, out var fret) ? fret : null;
+
+    private static string RewriteCapo(string raw, int fret)
+    {
+        var match = CapoDirective.Match(raw);
+        if (!match.Success)
+            return raw;
+
+        var value = match.Groups["value"].Value;
+        var core = value.Trim();
+        if (CurrentFret(core) == fret)
+            return raw;
+
+        var written = fret.ToString(CultureInfo.InvariantCulture);
+        var newValue = core.Length == 0 ? value + written : KeepPadding(value, _ => written);
+        return match.Groups["lead"].Value + ":" + newValue + match.Groups["tail"].Value;
+    }
 
     private static string RewriteValue(string raw, Func<string, string> rewrite)
     {

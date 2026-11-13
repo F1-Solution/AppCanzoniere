@@ -13,7 +13,10 @@ public enum ChordProSourceKind
     Key,
 
     /// <summary>A <c>{capo}</c> directive whose value follows a requested capo.</summary>
-    Capo
+    Capo,
+
+    /// <summary>A line inside a tab block: written back exactly as read and never a place to insert a directive.</summary>
+    Tab
 }
 
 /// <summary>One line of the parsed file, exactly as written but for its line ending.</summary>
