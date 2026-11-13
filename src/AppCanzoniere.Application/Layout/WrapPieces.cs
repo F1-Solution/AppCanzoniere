@@ -1,7 +1,13 @@
 namespace AppCanzoniere.Application.Layout;
 
 /// <summary>An atom of a wrapped line: text between chord positions and word starts; Candidate marks a legal row start.</summary>
-internal readonly record struct WrapPiece(int Start, int End, int ChordIndex, double TextWidth, double ChordWidth, bool Candidate);
+internal readonly record struct WrapPiece(int Start, int End, int ChordIndex, double TextWidth, double ChordWidth, bool Candidate, bool Approximate = false);
+
+/// <summary>Which whitespace may separate rows: no-break spaces glue their neighbours together.</summary>
+internal static class TextBreaks
+{
+    public static bool IsBreakSpace(char c) => char.IsWhiteSpace(c) && c is not ('\u00A0' or '\u202F' or '\u2007');
+}
 
 /// <summary>Running width of a row under construction, following the chord advance rules.</summary>
 internal struct RowAccumulator
@@ -90,11 +96,11 @@ internal static class WrapPieces
         var chord = 0;
         for (var b = 1; b < text.Length; b++)
         {
-            if (char.IsWhiteSpace(text[b]) || !char.IsWhiteSpace(text[b - 1]))
+            if (TextBreaks.IsBreakSpace(text[b]) || !TextBreaks.IsBreakSpace(text[b - 1]))
                 continue;
 
             var runStart = b - 1;
-            while (runStart > 0 && char.IsWhiteSpace(text[runStart - 1]))
+            while (runStart > 0 && TextBreaks.IsBreakSpace(text[runStart - 1]))
                 runStart--;
 
             if (runStart == 0)

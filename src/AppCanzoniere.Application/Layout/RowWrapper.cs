@@ -3,7 +3,7 @@ using System.Globalization;
 namespace AppCanzoniere.Application.Layout;
 
 /// <summary>Greedy word wrapping of one lyric line into rows, keeping chords over their text.</summary>
-internal sealed class RowWrapper
+internal sealed partial class RowWrapper
 {
     private readonly LineModel _model;
     private readonly FlowContext _ctx;
@@ -55,7 +55,7 @@ internal sealed class RowWrapper
         var lastFit = -1;
         for (var j = start; j < _pieces.Count; j++)
         {
-            acc.Add(_pieces[j]);
+            acc.Add(Resolved(j));
             if (!IsRowEnd(j))
                 continue;
 
@@ -73,90 +73,13 @@ internal sealed class RowWrapper
 
     private bool IsRowEnd(int j) => j == _pieces.Count - 1 || _pieces[j + 1].Candidate;
 
-    private int HardBreak(int start, double available)
-    {
-        var acc = new RowAccumulator(Gap);
-        for (var j = start; j < _pieces.Count; j++)
-        {
-            var before = acc;
-            acc.Add(_pieces[j]);
-            if (acc.Width(0) > available + SegmentMath.FitTolerance)
-                return BreakInside(start, j, before, available);
-        }
-
-        return _pieces.Count;
-    }
-
-    private int BreakInside(int start, int j, RowAccumulator before, double available)
-    {
-        var piece = _pieces[j];
-        var ends = ElementEnds(piece);
-        if (ends.Count == 0)
-            return j == start ? j + 1 : j;
-
-        var best = LargestFittingPrefix(piece, ends, before, available);
-        if (best == 0 && j == start)
-            best = 1;
-        if (best == 0)
-            return j;
-        if (best >= ends.Count)
-            return j + 1;
-
-        SplitPiece(j, ends[best - 1]);
-        return j + 1;
-    }
-
-    private int LargestFittingPrefix(WrapPiece piece, List<int> ends, RowAccumulator before, double available)
-    {
-        var best = 0;
-        int low = 1, high = ends.Count - 1;
-        while (low <= high)
-        {
-            var mid = (low + high) / 2;
-            var trial = before;
-            trial.Add(piece with { End = ends[mid - 1], TextWidth = WidthOf(piece.Start, ends[mid - 1]) });
-            if (trial.Width(0) <= available + SegmentMath.FitTolerance)
-            {
-                best = mid;
-                low = mid + 1;
-            }
-            else
-            {
-                high = mid - 1;
-            }
-        }
-
-        return best;
-    }
-
-    private void SplitPiece(int j, int cut)
-    {
-        var piece = _pieces[j];
-        _pieces[j] = piece with { End = cut, TextWidth = WidthOf(piece.Start, cut) };
-        _pieces.Insert(j + 1, new WrapPiece(cut, piece.End, -1, WidthOf(cut, piece.End), 0, false));
-    }
-
-    private List<int> ElementEnds(WrapPiece piece)
-    {
-        var ends = new List<int>();
-        var span = Text.AsSpan(piece.Start, piece.End - piece.Start);
-        var offset = 0;
-        while (offset < span.Length)
-        {
-            offset += StringInfo.GetNextTextElementLength(span[offset..]);
-            ends.Add(piece.Start + offset);
-        }
-
-        return ends;
-    }
-
     private void StripLeading(int start)
     {
         for (var k = start; k < _pieces.Count; k++)
         {
             var piece = _pieces[k];
             var s = piece.Start;
-            while (s < piece.End && char.IsWhiteSpace(Text[s]))
+            while (s < piece.End && TextBreaks.IsBreakSpace(Text[s]))
                 s++;
             if (s > piece.Start)
                 _pieces[k] = piece with { Start = s, TextWidth = WidthOf(s, piece.End) };
@@ -183,7 +106,7 @@ internal sealed class RowWrapper
     private int TrimmedEnd(WrapPiece piece)
     {
         var end = piece.End;
-        while (end > piece.Start && char.IsWhiteSpace(Text[end - 1]))
+        while (end > piece.Start && TextBreaks.IsBreakSpace(Text[end - 1]))
             end--;
         return end;
     }
