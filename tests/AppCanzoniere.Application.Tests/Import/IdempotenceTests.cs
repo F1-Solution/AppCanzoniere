@@ -30,6 +30,33 @@ public class IdempotenceTests
         Assert.Equal(first, ChordSheetConverter.Convert(first).ChordPro);
     }
 
+    private const int NoisyDocuments = 40000;
+    private const int ReportedFailures = 4;
+    private readonly Xunit.Abstractions.ITestOutputHelper _output;
+
+    public IdempotenceTests(Xunit.Abstractions.ITestOutputHelper output) => _output = output;
+
+    [Fact]
+    public void NoisyDocuments_AreStableWhenConvertedAgain()
+    {
+        var failures = new List<string>();
+        var unstable = 0;
+        foreach (var text in NoisySheets.Many(20260101, NoisyDocuments))
+        {
+            var first = ChordSheetConverter.Convert(text).ChordPro;
+            var second = ChordSheetConverter.Convert(first).ChordPro;
+            if (first == second)
+                continue;
+
+            unstable++;
+            if (failures.Count < ReportedFailures)
+                failures.Add($"INPUT:\n{text.Replace("\r", "\\r")}\nFIRST:\n{first}\nSECOND:\n{second}");
+        }
+
+        _output.WriteLine($"{unstable} of {NoisyDocuments} noisy documents changed on a second conversion.");
+        Assert.True(unstable == 0, $"{unstable} unstable.\n" + string.Join("\n=====\n", failures));
+    }
+
     [Fact]
     public void RandomDocuments_AreStableWhenConvertedAgain()
     {

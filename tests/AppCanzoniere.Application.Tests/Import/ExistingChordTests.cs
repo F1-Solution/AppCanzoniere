@@ -48,6 +48,24 @@ public class ExistingChordTests
         Assert.True(lines > 1000, $"Only {lines} chord lines were checked.");
     }
 
+    [Fact]
+    public void ChordLinesOfNoisyDocuments_KeepAllTheirChordsWhenConvertedAgainOnTheirOwn()
+    {
+        var lines = 0;
+        foreach (var text in NoisySheets.Many(4242, 20000))
+        {
+            var first = ChordSheetConverter.Convert(text);
+            foreach (var line in first.WasChordPro ? Enumerable.Empty<string>() : ChordLines(first.ChordPro))
+            {
+                lines++;
+                var again = ChordSheetConverter.Convert(line).ChordPro.TrimEnd('\n');
+                Assert.True(Chords(line).SequenceEqual(Chords(again)), $"Chords changed.\nBefore: {line}\nAfter:  {again}");
+            }
+        }
+
+        Assert.True(lines > 5000, $"Only {lines} chord lines were checked.");
+    }
+
     private static IEnumerable<string> ChordLines(string chordPro) =>
         chordPro.Split('\n').Where(l => !l.StartsWith('{') && Chords(l).Any());
 
