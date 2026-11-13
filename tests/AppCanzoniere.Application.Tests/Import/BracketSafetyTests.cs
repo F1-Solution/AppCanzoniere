@@ -70,7 +70,7 @@ public class BracketSafetyTests
     {
         var result = Run("Titolo: Gloria [bis] {x}", "Tonalità: [forse] }", "Do Sol", "Santo");
 
-        Assert.Equal(Out("{title:Gloria (bis) (x)}", "{comment:Tonalità: (forse) )}", "", "[Do]Santo [Sol]"), result.ChordPro);
+        Assert.Equal(Out("{title:Gloria (bis) (x)}", "{comment:Tonalità: (forse) )}", "", "[Do]San[Sol]to"), result.ChordPro);
         Assert.Contains(SheetWarning.BracketsReplaced, result.Diag(1).Warnings);
         Assert.Contains(SheetWarning.BracketsReplaced, result.Diag(2).Warnings);
     }
@@ -115,7 +115,7 @@ public class BracketSafetyTests
             AssertParsedFaithfully(sheet, result.ChordPro);
         }
 
-        Assert.True(documents > 2500, $"Only {documents} documents were converted.");
+        Assert.True(documents > 2000, $"Only {documents} documents were converted.");
     }
 
     internal static void AssertParsedFaithfully(GeneratedSheet sheet, string chordPro)

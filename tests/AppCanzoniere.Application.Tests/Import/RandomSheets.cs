@@ -54,6 +54,8 @@ internal static class RandomSheets
         var lines = new List<string>();
         var lyrics = new List<string>();
         var allowed = new HashSet<string>(chords.Concat(Neutrals).Concat(new[] { inlineChord }));
+        lines.Add(ChordLine(random, features, chords));
+        AddLyric(random, features, inlineChord, lines, lyrics);
         var blocks = random.Next(2, 9);
         for (var b = 0; b < blocks; b++)
             AddBlock(random, features, chords, inlineChord, lines, lyrics);

@@ -48,11 +48,11 @@ internal sealed class SheetWriter
         {
             var meta = line.Meta!;
             if (meta.Kind == MetaKind.Comment)
-                comments.Add(($"{{comment:{meta.Value}}}", line.Index));
+                comments.Add(($"{{comment:{Safe(meta.Value, line.Index)}}}", line.Index));
             else if (directives.ContainsKey(meta.Kind))
-                comments.Add(($"{{comment:{line.Source.Text.Trim()}}}", line.Index));
+                comments.Add(($"{{comment:{Safe(line.Source.Text.Trim(), line.Index)}}}", line.Index));
             else
-                directives[meta.Kind] = ($"{{{meta.Kind.ToString().ToLowerInvariant()}:{meta.Value}}}", line.Index);
+                directives[meta.Kind] = ($"{{{meta.Kind.ToString().ToLowerInvariant()}:{Safe(meta.Value, line.Index)}}}", line.Index);
         }
 
         foreach (var kind in HeaderOrder.Where(directives.ContainsKey))
@@ -62,6 +62,14 @@ internal sealed class SheetWriter
 
         if (directives.TryGetValue(MetaKind.Key, out var key) && directives.ContainsKey(MetaKind.Capo))
             _warnings[key.Index].Add(SheetWarning.KeyAndCapo);
+    }
+
+    private string Safe(string value, int line)
+    {
+        var safe = TextSafety.Replace(value);
+        if (safe != value)
+            _warnings[line].Add(SheetWarning.BracketsReplaced);
+        return safe;
     }
 
     private void AddHeader((string Text, int Index) entry)

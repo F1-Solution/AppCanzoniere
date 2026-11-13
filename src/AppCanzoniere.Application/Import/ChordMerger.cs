@@ -26,7 +26,7 @@ internal static class ChordMerger
                 continue;
             }
 
-            var offset = Snap(text, column, snapColumns, warnings);
+            var offset = BeforeBracket(text, Snap(text, column, snapColumns, warnings));
             if (offset > 0 && text[offset - 1] != ' ' && text[offset] != ' ')
                 warnings.Add(SheetWarning.ChordInsideWord);
             inline.Add((offset, token));
@@ -49,6 +49,16 @@ internal static class ChordMerger
         }
 
         return builder.ToString();
+    }
+
+    // A chord never goes inside an existing [chord]: it is placed right before its opening bracket.
+    private static int BeforeBracket(string text, int offset)
+    {
+        if (offset == 0)
+            return offset;
+
+        var open = text.LastIndexOf('[', offset - 1);
+        return open >= 0 && open > text.LastIndexOf(']', offset - 1) ? open : offset;
     }
 
     private static int Snap(string text, int column, int snapColumns, List<SheetWarning> warnings)
