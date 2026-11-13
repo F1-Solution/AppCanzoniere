@@ -1,6 +1,7 @@
 namespace AppCanzoniere.Application.Layout;
 
-/// <summary>One string to draw; X/Y is the top-left of its box and Text is drawn at (TextX, BaselineY); ChordIndex is a chord run's ordinal in its source line's chord list, else -1.</summary>
+/// <summary>One string to draw at (TextX, BaselineY) inside its box.</summary>
+/// <param name="ChordIndex">The chord run's ordinal in its source line's chords, else -1.</param>
 public sealed record LayoutRun(
     RunKind Kind, string Text, TextRole Role,
     double X, double Y, double Width, double Height,
@@ -9,7 +10,8 @@ public sealed record LayoutRun(
     bool HyphenAfter,
     int ChordIndex = -1);
 
-/// <summary>A visual row of one source line; Index 0 is the first row, above 0 are wrapped continuation rows; Overflow means it is wider than its width.</summary>
+/// <summary>A visual row of one source line.</summary>
+/// <param name="Overflow">True when the row is wider than the width.</param>
 public sealed record LayoutRow(int Index, double Y, double Height, IReadOnlyList<LayoutRun> Runs, bool HardBreakAfter, bool Overflow = false)
 {
     private readonly IReadOnlyList<LayoutRun> _runs = Frozen.Copy(Runs, nameof(Runs));
@@ -17,7 +19,10 @@ public sealed record LayoutRow(int Index, double Y, double Height, IReadOnlyList
     public IReadOnlyList<LayoutRun> Runs { get => _runs; init => _runs = Frozen.Copy(value, nameof(Runs)); }
 }
 
-/// <summary>A source line laid out in one or more rows; SourceLineIndex is its index in the parsed document's lines, titles included; Number is set only on the fragment holding row 0; IsComment marks a comment inside a section.</summary>
+/// <summary>A source line laid out in one or more rows.</summary>
+/// <param name="SourceLineIndex">The line's index in the parsed document, titles included.</param>
+/// <param name="Number">Set only on the fragment holding row 0.</param>
+/// <param name="IsComment">True for a comment inside a section.</param>
 public sealed record LayoutLine(int SourceLineIndex, int? Number, double Y, double Height, IReadOnlyList<LayoutRow> Rows, bool IsComment = false)
 {
     private readonly IReadOnlyList<LayoutRow> _rows = Frozen.Copy(Rows, nameof(Rows));
