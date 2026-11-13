@@ -6,6 +6,10 @@ namespace AppCanzoniere.Application.Tests.Import;
 // Form feed (pdftotext page breaks) and vertical tab are removed before columns are counted.
 public class ControlCharacterTests
 {
+    private readonly Xunit.Abstractions.ITestOutputHelper _output;
+
+    public ControlCharacterTests(Xunit.Abstractions.ITestOutputHelper output) => _output = output;
+
     [Fact]
     public void FormFeedInsideALyric_DoesNotShiftColumnsOrSurvive()
     {
@@ -29,19 +33,10 @@ public class ControlCharacterTests
     [Fact]
     public void RandomDocumentsWithControlCharacters_KeepTheirLyrics()
     {
-        var documents = 0;
-        foreach (var sheet in RandomSheets.Many(13, 3000, SheetFeatures.All))
+        DocumentProperties.CheckFaithful(RandomSheets.Many(13, 3000, SheetFeatures.All), _output, 1000, result =>
         {
-            var result = ChordSheetConverter.Convert(sheet.Text);
-            if (result.WasChordPro)
-                continue;
-
-            documents++;
-            BracketSafetyTests.AssertParsedFaithfully(sheet, result.ChordPro);
             Assert.DoesNotContain('\u000C', result.ChordPro);
             Assert.DoesNotContain('\u000B', result.ChordPro);
-        }
-
-        Assert.True(documents > 1000, $"Only {documents} documents were converted.");
+        });
     }
 }

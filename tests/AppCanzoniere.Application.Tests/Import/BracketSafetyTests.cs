@@ -10,6 +10,10 @@ namespace AppCanzoniere.Application.Tests.Import;
 // Lyric text with brackets or braces must reach the ChordPro parser unchanged in meaning.
 public class BracketSafetyTests
 {
+    private readonly Xunit.Abstractions.ITestOutputHelper _output;
+
+    public BracketSafetyTests(Xunit.Abstractions.ITestOutputHelper output) => _output = output;
+
     [Fact]
     public void BracketedWordInALyric_BecomesParentheses_AndChordsDoNotMove()
     {
@@ -104,18 +108,7 @@ public class BracketSafetyTests
     [Fact]
     public void RandomDocuments_KeepEveryLyricLine_AndNeverInventChords()
     {
-        var documents = 0;
-        foreach (var sheet in RandomSheets.Many(20240601, 3000, SheetFeatures.Brackets))
-        {
-            var result = ChordSheetConverter.Convert(sheet.Text);
-            if (result.WasChordPro)
-                continue;
-
-            documents++;
-            AssertParsedFaithfully(sheet, result.ChordPro);
-        }
-
-        Assert.True(documents > 2000, $"Only {documents} documents were converted.");
+        DocumentProperties.CheckFaithful(RandomSheets.Many(20240601, 3000, SheetFeatures.Brackets), _output, 2000);
     }
 
     internal static void AssertParsedFaithfully(GeneratedSheet sheet, string chordPro)

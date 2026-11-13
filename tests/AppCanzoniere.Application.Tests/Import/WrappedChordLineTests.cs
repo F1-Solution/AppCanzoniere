@@ -6,6 +6,10 @@ namespace AppCanzoniere.Application.Tests.Import;
 // Chord lines written with parentheses or brackets are still chord lines.
 public class WrappedChordLineTests
 {
+    private readonly Xunit.Abstractions.ITestOutputHelper _output;
+
+    public WrappedChordLineTests(Xunit.Abstractions.ITestOutputHelper output) => _output = output;
+
     [Fact]
     public void ParenthesisedAlternatives_AreMergedIntoTheLyricBelow()
     {
@@ -53,17 +57,6 @@ public class WrappedChordLineTests
     [Fact]
     public void RandomDocumentsWithWrappedChords_KeepTheirLyricsAndNeverInventChords()
     {
-        var documents = 0;
-        foreach (var sheet in RandomSheets.Many(7, 3000, SheetFeatures.Brackets | SheetFeatures.WrappedChords))
-        {
-            var result = ChordSheetConverter.Convert(sheet.Text);
-            if (result.WasChordPro)
-                continue;
-
-            documents++;
-            BracketSafetyTests.AssertParsedFaithfully(sheet, result.ChordPro);
-        }
-
-        Assert.True(documents > 1500, $"Only {documents} documents were converted.");
+        DocumentProperties.CheckFaithful(RandomSheets.Many(7, 3000, SheetFeatures.Brackets | SheetFeatures.WrappedChords), _output, 1500);
     }
 }

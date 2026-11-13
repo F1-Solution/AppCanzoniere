@@ -7,6 +7,10 @@ namespace AppCanzoniere.Application.Tests.Import;
 // Columns count text elements: a chord never lands inside a surrogate pair or before a combining accent.
 public class TextElementTests
 {
+    private readonly Xunit.Abstractions.ITestOutputHelper _output;
+
+    public TextElementTests(Xunit.Abstractions.ITestOutputHelper output) => _output = output;
+
     private const string Prayer = "🙏";
 
     [Fact]
@@ -42,17 +46,6 @@ public class TextElementTests
     public void RandomDocumentsWithEmojiAndCombiningMarks_KeepEveryCharacterIntact()
     {
         const SheetFeatures features = SheetFeatures.Brackets | SheetFeatures.WrappedChords | SheetFeatures.Emoji | SheetFeatures.Combining;
-        var documents = 0;
-        foreach (var sheet in RandomSheets.Many(11, 3000, features))
-        {
-            var result = ChordSheetConverter.Convert(sheet.Text);
-            if (result.WasChordPro)
-                continue;
-
-            documents++;
-            BracketSafetyTests.AssertParsedFaithfully(sheet, result.ChordPro);
-        }
-
-        Assert.True(documents > 1500, $"Only {documents} documents were converted.");
+        DocumentProperties.CheckFaithful(RandomSheets.Many(11, 3000, features), _output, 1500);
     }
 }

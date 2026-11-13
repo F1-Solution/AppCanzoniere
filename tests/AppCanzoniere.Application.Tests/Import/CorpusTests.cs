@@ -94,4 +94,23 @@ public class CorpusTests
             Assert.True(ChordSheetConverter.Convert(result.ChordPro).ChordPro == result.ChordPro, $"{name} is not stable");
         }
     }
+
+    [Fact]
+    public void NoCorpusFile_IsReportedAsChordPro_WithoutAWholeLineDirective()
+    {
+        var folder = FindTextFolder();
+        if (folder is null)
+        {
+            _output.WriteLine("corpus not found");
+            return;
+        }
+
+        var directive = new System.Text.RegularExpressions.Regex(@"^\s*\{.*\}\s*$", System.Text.RegularExpressions.RegexOptions.CultureInvariant);
+        foreach (var textFile in Directory.EnumerateFiles(folder, "*.txt"))
+        {
+            var text = File.ReadAllText(textFile);
+            var hasDirective = text.Split('\n').Any(l => directive.IsMatch(l.TrimEnd('\r')));
+            Assert.True(!ChordSheetConverter.Convert(text).WasChordPro || hasDirective, $"{Path.GetFileName(textFile)} is skipped as ChordPro");
+        }
+    }
 }
