@@ -10,6 +10,7 @@ public static class SongLayoutEngine
         ArgumentNullException.ThrowIfNull(options);
         ArgumentNullException.ThrowIfNull(measurer);
 
+        measurer = new ValidatingMeasurer(measurer);
         var plans = SectionPlanner.Plan(source, options.DisplayMode);
         var numbered = LineNumbering.Count(source, plans);
         var gutter = LineNumbering.GutterWidth(numbered, options, measurer);

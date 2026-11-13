@@ -159,11 +159,11 @@ public class WrappingTests
     }
 
     [Fact]
-    public void InstrumentalLines_AreNeverWrapped()
+    public void InstrumentalLines_WrapBetweenChords()
     {
         var line = LineOf("[Do] [Sol] [Do] [Sol] [Do]", Options(50));
 
-        Assert.Single(line.Rows);
+        Assert.Equal(new[] { 2, 1, 1, 1 }, line.Rows.Select(r => Of(r, RunKind.Chord).Count));
     }
 
     [Fact]

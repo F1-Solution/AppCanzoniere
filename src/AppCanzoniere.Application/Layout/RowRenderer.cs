@@ -14,11 +14,11 @@ internal static class RowRenderer
         var chordHeight = hasChords ? ctx.ChordRowHeight : 0;
         var lyricTop = top + (hasChords ? chordHeight + options.ChordLyricSpacing : 0);
         var height = model.Instrumental ? chordHeight : lyricTop - top + lyric.LineHeight;
-        var x = ctx.Gutter + (rowIndex > 0 ? options.ContinuationIndent : 0);
+        var x = ctx.Gutter + (rowIndex > 0 ? ctx.ContinuationIndent : 0);
 
         var runs = new List<LayoutRun>(segs.Count * 2 + 1);
         if (number is { } n && rowIndex == 0 && ctx.ShowNumbers)
-            runs.Add(NumberRun(n, lyricTop + lyric.Ascent, ctx));
+            runs.Add(NumberRun(n, top, lyricTop + lyric.Ascent, ctx));
 
         for (var i = 0; i < segs.Count; i++)
         {
@@ -29,7 +29,9 @@ internal static class RowRenderer
             x += advance;
         }
 
-        return new LayoutRow(rowIndex, top, height, Frozen.From(runs), spec.HardBreakAfter);
+        var right = runs.Where(r => r.Kind != RunKind.LineNumber).Select(r => r.X + r.Width).DefaultIfEmpty(0).Max();
+        var overflow = ctx.Exceeds(right);
+        return new LayoutRow(rowIndex, top, height, Frozen.From(runs), spec.HardBreakAfter, overflow);
     }
 
     private static void AddChord(List<LayoutRun> runs, in LineModel model, in Seg seg, double x, double top, FlowContext ctx)
@@ -46,7 +48,7 @@ internal static class RowRenderer
             role,
             x, top, seg.ChordWidth, ctx.ChordRowHeight,
             x + ctx.ChordPadX, top + ctx.ChordPadY + ctx.Metrics(role).Ascent,
-            chord.Position, false));
+            chord.Position, false, seg.ChordIndex));
     }
 
     private static void AddLyric(List<LayoutRun> runs, in LineModel model, in Seg seg, Seg? next, double advance, double x, double lyricTop, FlowContext ctx)
@@ -66,12 +68,14 @@ internal static class RowRenderer
             seg.Start, splitsAWord));
     }
 
-    private static LayoutRun NumberRun(int number, double baseline, FlowContext ctx)
+    /// <summary>The number shares the lyric baseline unless its box would then start above the row.</summary>
+    private static LayoutRun NumberRun(int number, double rowTop, double lyricBaseline, FlowContext ctx)
     {
         var text = number.ToString(CultureInfo.InvariantCulture);
         var metrics = ctx.Metrics(TextRole.LineNumber);
         var width = ctx.WidthOf(text, TextRole.LineNumber);
         var x = ctx.Gutter - ctx.Options.GutterGap - width;
-        return new LayoutRun(RunKind.LineNumber, text, TextRole.LineNumber, x, baseline - metrics.Ascent, width, metrics.LineHeight, x, baseline, -1, false);
+        var top = Math.Max(rowTop, lyricBaseline - metrics.Ascent);
+        return new LayoutRun(RunKind.LineNumber, text, TextRole.LineNumber, x, top, width, metrics.LineHeight, x, top + metrics.Ascent, -1, false);
     }
 }

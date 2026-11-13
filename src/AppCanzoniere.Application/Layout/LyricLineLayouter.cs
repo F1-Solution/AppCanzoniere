@@ -27,9 +27,10 @@ internal static class LyricLineLayouter
     private static List<RowSpec> SplitIntoRows(in LineModel model, List<Seg> segments, FlowContext ctx)
     {
         var fits = SegmentMath.RowWidth(segments, ctx.Options.MinChordGap) <= ctx.Available + SegmentMath.FitTolerance;
-        return model.Instrumental || fits
-            ? new List<RowSpec> { new(segments, false) }
-            : RowWrapper.Wrap(model, segments, ctx);
+        if (fits)
+            return new List<RowSpec> { new(segments, false) };
+
+        return model.Instrumental ? InstrumentalWrapper.Wrap(segments, ctx) : RowWrapper.Wrap(model, segments, ctx);
     }
 
     private static List<Seg> BuildSegments(in LineModel model, FlowContext ctx)

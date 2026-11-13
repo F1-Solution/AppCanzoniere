@@ -6,12 +6,17 @@ internal static class LayoutShift
     public static LayoutRun Run(LayoutRun run, double dy) =>
         run with { Y = run.Y + dy, BaselineY = run.BaselineY + dy };
 
+    public static IReadOnlyList<LayoutRun> Runs(IReadOnlyList<LayoutRun> runs, double dy)
+    {
+        var shifted = new LayoutRun[runs.Count];
+        for (var i = 0; i < shifted.Length; i++)
+            shifted[i] = Run(runs[i], dy);
+        return Frozen.From(shifted);
+    }
+
     public static LayoutRow Row(LayoutRow row, double dy)
     {
-        var runs = new LayoutRun[row.Runs.Count];
-        for (var i = 0; i < runs.Length; i++)
-            runs[i] = Run(row.Runs[i], dy);
-        return row with { Y = row.Y + dy, Runs = Frozen.From(runs) };
+        return row with { Y = row.Y + dy, Runs = Runs(row.Runs, dy) };
     }
 
     public static LayoutLine Line(LayoutLine line, double dy)
