@@ -11,22 +11,24 @@ internal static class ChordMerger
     public static MergeResult Merge(ContentUnit chords, ContentUnit lyric, int snapColumns)
     {
         var elements = TextElements.Split(lyric.Text[lyric.Start..]);
+        var openBrackets = OpenBrackets(elements);
         var warnings = new List<SheetWarning>();
         var inline = new List<(int Offset, SheetToken Token)>();
         var tail = new List<SheetToken>();
 
         // Chords after a section label are placed relative to the text that follows the label.
-        var chordOrigin = chords.Indented ? TextElements.ColumnOf(lyric.Text, lyric.Start) : TextElements.ColumnOf(chords.Text, chords.Start);
+        var chordColumns = TextElements.ColumnMap(chords.Text);
+        var chordOrigin = chords.Indented ? TextElements.ColumnMap(lyric.Text)[lyric.Start] : chordColumns[chords.Start];
         foreach (var token in chords.Class.Tokens)
         {
-            var column = Math.Max(0, TextElements.ColumnOf(chords.Text, token.Column) - chordOrigin);
+            var column = Math.Max(0, chordColumns[Math.Min(token.Column, chords.Text.Length)] - chordOrigin);
             if (column >= elements.Length)
             {
                 tail.Add(token);
                 continue;
             }
 
-            var offset = BeforeBracket(elements, Snap(elements, column, snapColumns, warnings));
+            var offset = BeforeBracket(openBrackets, Snap(elements, column, snapColumns, warnings));
             if (offset > 0 && elements[offset - 1] != " " && elements[offset] != " ")
                 warnings.Add(SheetWarning.ChordInsideWord);
             inline.Add((offset, token));
@@ -53,13 +55,24 @@ internal static class ChordMerger
     }
 
     // A chord never goes inside an existing [chord]: it is placed right before its opening bracket.
-    private static int BeforeBracket(string[] elements, int offset)
-    {
-        if (offset == 0)
-            return offset;
+    private static int BeforeBracket(int[] openBrackets, int offset) => openBrackets[offset] >= 0 ? openBrackets[offset] : offset;
 
-        var open = Array.LastIndexOf(elements, "[", offset - 1);
-        return open >= 0 && open > Array.LastIndexOf(elements, "]", offset - 1) ? open : offset;
+    // For each insertion offset, the index of the "[" it would fall inside, or -1.
+    private static int[] OpenBrackets(string[] elements)
+    {
+        var inside = new int[elements.Length + 1];
+        var open = -1;
+        for (var i = 0; i < elements.Length; i++)
+        {
+            inside[i] = i > 0 ? open : -1;
+            if (elements[i] == "[")
+                open = i;
+            else if (elements[i] == "]")
+                open = -1;
+        }
+
+        inside[elements.Length] = open;
+        return inside;
     }
 
     private static int Snap(string[] elements, int column, int snapColumns, List<SheetWarning> warnings)

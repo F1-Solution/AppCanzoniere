@@ -50,7 +50,7 @@ internal static class SheetTokenizer
     public static IReadOnlyList<SheetToken> Tokenize(string text, int start, Notation notation)
     {
         var tokens = new List<SheetToken>();
-        var marks = RepeatMarks.Matches(text);
+        var marks = RepeatMarks.Matches(text).ToDictionary(m => m.Index);
         var i = start;
         while (i < text.Length)
         {
@@ -60,8 +60,7 @@ internal static class SheetTokenizer
                 continue;
             }
 
-            var mark = marks.FirstOrDefault(m => m.Index == i);
-            if (mark is not null)
+            if (marks.TryGetValue(i, out var mark))
             {
                 tokens.Add(new SheetToken(mark.Value, i, TokenKind.Neutral));
                 i += mark.Length;
@@ -69,7 +68,7 @@ internal static class SheetTokenizer
             }
 
             var end = i;
-            while (end < text.Length && text[end] != ' ' && (end == i || marks.All(m => m.Index != end)))
+            while (end < text.Length && text[end] != ' ' && (end == i || !marks.ContainsKey(end)))
                 end++;
             tokens.AddRange(ClassifyRaw(text[i..end], i, notation));
             i = end;

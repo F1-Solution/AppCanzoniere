@@ -14,7 +14,19 @@ internal static class TextElements
         return elements.ToArray();
     }
 
-    /// <summary>Number of text elements before the UTF-16 index.</summary>
-    public static int ColumnOf(string text, int index) =>
-        index <= 0 ? 0 : new StringInfo(text[..Math.Min(index, text.Length)]).LengthInTextElements;
+    /// <summary>For every UTF-16 index (and the end), the number of text elements before it.</summary>
+    public static int[] ColumnMap(string text)
+    {
+        var map = new int[text.Length + 1];
+        var starts = StringInfo.ParseCombiningCharacters(text);
+        for (var element = 0; element < starts.Length; element++)
+        {
+            var end = element + 1 < starts.Length ? starts[element + 1] : text.Length;
+            for (var i = starts[element]; i < end; i++)
+                map[i] = element;
+            map[end] = element + 1;
+        }
+
+        return map;
+    }
 }
