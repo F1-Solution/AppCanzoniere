@@ -4,12 +4,36 @@ namespace AppCanzoniere.Application.Layout;
 public static class SongLayoutEngine
 {
     /// <summary>Lays out sections, lines, rows and runs for the given width; Y is relative to the flow top.</summary>
-    public static FlowLayout Flow(LayoutSource source, LayoutOptions options, ITextMeasurer measurer) =>
-        new(options.Width, 0, 0, 0, Frozen.From(new List<LayoutSection>()));
+    public static FlowLayout Flow(LayoutSource source, LayoutOptions options, ITextMeasurer measurer)
+    {
+        ArgumentNullException.ThrowIfNull(source);
+        ArgumentNullException.ThrowIfNull(options);
+        ArgumentNullException.ThrowIfNull(measurer);
+
+        var plans = SectionPlanner.Plan(source, options.DisplayMode);
+        var ctx = new FlowContext(options, measurer, 0, false);
+        var sections = new List<LayoutSection>(plans.Count);
+        var y = 0.0;
+        foreach (var plan in plans)
+        {
+            var top = sections.Count == 0 ? 0 : y + options.SectionSpacing;
+            var section = SectionLayouter.Layout(plan, source, top, ctx);
+            sections.Add(section);
+            y = section.Y + section.Height;
+        }
+
+        return new FlowLayout(options.Width, 0, y, 0, Frozen.From(sections));
+    }
 
     /// <summary>Splits a flow into pages of options.PageHeight; one page of the flow height when it is null.</summary>
-    public static SongLayout Paginate(FlowLayout flow, LayoutOptions options) =>
-        new(Frozen.From(new List<LayoutPage>()), flow.GutterWidth, flow.NumberedLineCount);
+    public static SongLayout Paginate(FlowLayout flow, LayoutOptions options)
+    {
+        ArgumentNullException.ThrowIfNull(flow);
+        ArgumentNullException.ThrowIfNull(options);
+
+        var page = new LayoutPage(0, flow.Height, false, flow.Sections);
+        return new SongLayout(Frozen.From(new[] { page }), flow.GutterWidth, flow.NumberedLineCount);
+    }
 
     /// <summary>Flow then Paginate.</summary>
     public static SongLayout Layout(LayoutSource source, LayoutOptions options, ITextMeasurer measurer) =>
