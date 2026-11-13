@@ -35,8 +35,12 @@ public class CorpusTests
             .ToHashSet();
 
     // Labelling convention (_etichette-note.md): a chord line, or a label followed by chords of its own; merged chords do not count.
-    private static HashSet<int> ChordLineNumbers(ChordSheetResult result) =>
-        result.Lines.Where(l => l.CarriesChords).Select(l => l.LineNumber).ToHashSet();
+    // Labels count newline-terminated lines, so lines split at U+2028 and friends map back to their physical line.
+    private static HashSet<int> ChordLineNumbers(ChordSheetResult result, string text)
+    {
+        var physical = CorpusFiles.PhysicalLines(text);
+        return result.Lines.Where(l => l.CarriesChords).Select(l => physical[l.LineNumber - 1]).ToHashSet();
+    }
 
     [Fact]
     public void LabelledChordLines_AreFoundWithRecallOfAtLeastNinetyFivePercent()
@@ -56,7 +60,8 @@ public class CorpusTests
                 continue;
 
             var truth = ReadLabels(labelFile);
-            var predicted = ChordLineNumbers(ChordSheetConverter.Convert(File.ReadAllText(textFile)));
+            var text = File.ReadAllText(textFile);
+            var predicted = ChordLineNumbers(ChordSheetConverter.Convert(text), text);
             labelled += truth.Count;
             classified += predicted.Count;
             found += truth.Count(predicted.Contains);

@@ -56,13 +56,11 @@ internal static class SheetAnalyzer
         var analyzed = new List<AnalyzedLine>(lines.Count);
         var inHeader = true;
         var lowerCaseStyle = HasLowerCaseStyle(lines, notation);
-        var seenContent = false;
         for (var i = 0; i < lines.Count; i++)
         {
-            var context = new LineContext(i + 1 < lines.Count ? lines[i + 1].Text : null, lowerCaseStyle, !seenContent);
+            var context = new LineContext(i + 1 < lines.Count ? lines[i + 1].Text : null, lowerCaseStyle);
             var line = AnalyzeLine(i, lines[i], notation, inHeader, context);
             analyzed.Add(line);
-            seenContent |= lines[i].Text.Length > 0;
             inHeader = inHeader && !EndsHeader(line);
         }
 
@@ -127,7 +125,7 @@ internal static class SheetAnalyzer
 
     // A song number before a title and a contents entry look like a numbered verse but are plain text.
     private static bool IsNotALabel(string text, LineContext context) =>
-        ContentsEntry.IsMatch(text) || (NumberedTitle.IsMatch(text) && IsAllCaps(text) && (context.FirstContent || IsBlankOrMetadata(context.Below)));
+        ContentsEntry.IsMatch(text) || (NumberedTitle.IsMatch(text) && IsAllCaps(text) && IsBlankOrMetadata(context.Below));
 
     private static bool IsAllCaps(string text) => !text.Any(char.IsLower) && text.Count(char.IsUpper) >= MinTitleCapitals;
 

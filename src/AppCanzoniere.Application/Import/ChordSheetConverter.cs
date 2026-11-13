@@ -11,6 +11,8 @@ public static class ChordSheetConverter
         RegexOptions.Compiled | RegexOptions.CultureInvariant | RegexOptions.IgnoreCase);
 
     private const int MinAttachedLines = 2;
+    private const int MinTabWidth = 1;
+    private const int MaxTabWidth = 16;
 
     /// <summary>Converts chords-above-lyrics text to ChordPro; ChordPro input is returned unchanged.</summary>
     public static ChordSheetResult Convert(string text, ChordSheetOptions? options = null)
@@ -44,6 +46,8 @@ public static class ChordSheetConverter
             throw new ArgumentOutOfRangeException(nameof(options), notation, "The notation is not defined.");
         if (!Enum.IsDefined(options.TieBreakNotation))
             throw new ArgumentOutOfRangeException(nameof(options), options.TieBreakNotation, "The tie-break notation is not defined.");
+        if (options.TabWidth is < MinTabWidth or > MaxTabWidth)
+            throw new ArgumentOutOfRangeException(nameof(options), options.TabWidth, "The tab width must be between 1 and 16.");
         if (options.SnapColumns < 0)
             throw new ArgumentOutOfRangeException(nameof(options), options.SnapColumns, "The snap width cannot be negative.");
     }
