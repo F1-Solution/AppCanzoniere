@@ -13,6 +13,12 @@ internal static class SectionLayouter
             y = labelRun.Y + labelRun.Height + ctx.Options.LabelSpacing;
         }
 
+        if (plan.Kind == SectionKind.Tab)
+        {
+            var block = TabLayouter.Layout(source, plan.LineIndexes, y, ctx);
+            return new LayoutSection(plan.Kind, plan.Label, labelRun, top, block.Bottom - top, block.Scale, block.Clipped, false, false, block.Lines);
+        }
+
         var lines = new List<LayoutLine>(plan.LineIndexes.Count);
         foreach (var index in plan.LineIndexes)
         {
@@ -32,7 +38,6 @@ internal static class SectionLayouter
         {
             SectionKind.Comment => CommentLine(index, line, y, ctx),
             SectionKind.Chorus => LyricLineLayouter.Layout(index, line, null, y, TextRole.ChorusLyric, ctx),
-            SectionKind.Tab => throw new NotImplementedException(),
             _ => LyricLineLayouter.Layout(index, line, null, y, TextRole.Lyric, ctx),
         };
 
