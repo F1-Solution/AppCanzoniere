@@ -17,7 +17,9 @@ internal sealed record SheetToken(
     TokenKind Kind,
     string Chord = "",
     bool Ambiguous = false,
-    bool Parenthesised = false);
+    bool Parenthesised = false,
+    bool LowerChord = false,
+    bool Foreign = false);
 
 /// <summary>Splits a line into neutral marks, words and chords (spec 3.2).</summary>
 internal static class SheetTokenizer
@@ -29,6 +31,7 @@ internal static class SheetTokenizer
     private static readonly Regex Bars = new(@"^[|:]*\|[|:]*$", RegexOptions.Compiled | RegexOptions.CultureInvariant);
     private static readonly Regex BarRuns = new(@"([|:]*\|[|:]*)", RegexOptions.Compiled | RegexOptions.CultureInvariant);
     private static readonly Regex RepeatCount = new(@"^(?:[xX×]\d{1,2}|\d{1,2}[xX×])$", RegexOptions.Compiled | RegexOptions.CultureInvariant);
+    private static readonly Regex ShortNumber = new(@"^\d{1,2}$", RegexOptions.Compiled | RegexOptions.CultureInvariant);
 
     private static readonly HashSet<string> NeutralWords = new(StringComparer.OrdinalIgnoreCase)
     {
@@ -108,7 +111,7 @@ internal static class SheetTokenizer
     }
 
     private static bool IsNeutral(string text) =>
-        NeutralWords.Contains(text) || Bars.IsMatch(text) || RepeatCount.IsMatch(text);
+        NeutralWords.Contains(text) || Bars.IsMatch(text) || RepeatCount.IsMatch(text) || ShortNumber.IsMatch(text);
 
     private static IEnumerable<SheetToken> ClassifyCore(string core, int column, Notation notation)
     {
@@ -127,7 +130,7 @@ internal static class SheetTokenizer
         if (TryChord(core, notation))
             return new[] { Chord(core, column, core, notation, false) };
 
-        return Sequence(core, column, notation) ?? new[] { Word(core, column) };
+        return Sequence(core, column, notation) ?? new[] { WordOrLooseChord(core, column, notation) };
     }
 
     private static IEnumerable<SheetToken>? Sequence(string core, int column, Notation notation)
@@ -147,6 +150,18 @@ internal static class SheetTokenizer
         }
 
         return tokens;
+    }
+
+    // Lower-case chords and chords of the other notation stay words unless the whole line turns out to be a chord line.
+    private static SheetToken WordOrLooseChord(string core, int column, Notation notation)
+    {
+        var other = notation == Notation.Italian ? Notation.English : Notation.Italian;
+        if (char.IsLower(core[0]) && ChordSymbolParser.TryParse(core, notation, out _))
+            return new SheetToken(core, column, TokenKind.Word, LowerChord: true);
+
+        return char.IsUpper(core[0]) && ChordSymbolParser.TryParse(core, other, out _)
+            ? new SheetToken(core, column, TokenKind.Word, Foreign: true)
+            : Word(core, column);
     }
 
     private static SheetToken Word(string text, int column) => new(text, column, TokenKind.Word);

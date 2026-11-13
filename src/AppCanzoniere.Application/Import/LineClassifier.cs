@@ -53,11 +53,25 @@ internal static class LineClassifier
             return new ContentUnit(UnitKind.Inline, converted, start, indented, inline);
         }
 
-        var classification = Classify(SheetTokenizer.Tokenize(text, start, notation));
+        var classification = Classify(SheetTokenizer.Tokenize(text, start, notation), notation);
         return new ContentUnit(classification.IsChord ? UnitKind.Chord : UnitKind.Lyric, text, start, indented, classification);
     }
 
-    public static LineClassification Classify(IReadOnlyList<SheetToken> tokens)
+    public static LineClassification Classify(IReadOnlyList<SheetToken> tokens, Notation notation)
+    {
+        if (LooseChords.Promote(tokens, notation) is { } promoted && ClassifyTokens(promoted) is { IsChord: true } chordLine)
+        {
+            return chordLine with
+            {
+                Confidence = Math.Min(chordLine.Confidence, LikelyChord),
+                Warnings = chordLine.Warnings.Append(SheetWarning.AmbiguousNoteWords).Distinct().ToList()
+            };
+        }
+
+        return ClassifyTokens(tokens);
+    }
+
+    private static LineClassification ClassifyTokens(IReadOnlyList<SheetToken> tokens)
     {
         var u = tokens.Count(t => t.Kind == TokenKind.Chord && !t.Ambiguous);
         var a = tokens.Count(t => t.Kind == TokenKind.Chord && t.Ambiguous);

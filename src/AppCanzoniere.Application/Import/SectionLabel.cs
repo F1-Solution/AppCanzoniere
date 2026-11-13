@@ -19,7 +19,7 @@ internal static class SectionLabelParser
     private const RegexOptions Options = RegexOptions.Compiled | RegexOptions.CultureInvariant | RegexOptions.IgnoreCase;
 
     private static readonly Regex Keyword = new(
-        @"^(?<kw>ritornello|rit|chorus|refrain|strofa|str|verse|stanza|bridge|ponte|special|introduzione|intro|interludio|strumentale|finale|coda|outro|fine)(?!\p{L})",
+        @"^(?<kw>ritornello|rit|coro|chorus|refrain|strofa|str|verse|stanza|bridge|ponte|special|introduzione|intro|interludio|strumentale|finale|coda|outro|fine)(?!\p{L})",
         Options);
 
     private static readonly Regex NumberOnly = new(@"^\d{1,2}[.)](?=\s|$)", Options);
@@ -75,7 +75,7 @@ internal static class SectionLabelParser
 
     private static SectionKind KindOf(string keyword) => keyword.ToLowerInvariant() switch
     {
-        "rit" or "ritornello" or "chorus" or "refrain" => SectionKind.Chorus,
+        "rit" or "ritornello" or "coro" or "chorus" or "refrain" => SectionKind.Chorus,
         "strofa" or "str" or "verse" or "stanza" => SectionKind.Verse,
         "bridge" or "ponte" or "special" => SectionKind.Bridge,
         _ => SectionKind.CommentOnly
