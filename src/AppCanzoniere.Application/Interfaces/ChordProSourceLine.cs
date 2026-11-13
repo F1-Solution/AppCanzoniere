@@ -1,7 +1,7 @@
 namespace AppCanzoniere.Application.Interfaces;
 
 /// <summary>How a source line is treated when a document is rendered.</summary>
-public enum ChordProSourceKind
+internal enum ChordProSourceKind
 {
     /// <summary>Written back exactly as read.</summary>
     Verbatim,
@@ -20,4 +20,4 @@ public enum ChordProSourceKind
 }
 
 /// <summary>One line of the parsed file, exactly as written but for its line ending.</summary>
-public sealed record ChordProSourceLine(ChordProSourceKind Kind, string Raw);
+internal sealed record ChordProSourceLine(ChordProSourceKind Kind, string Raw);

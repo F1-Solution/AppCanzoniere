@@ -6,7 +6,7 @@ namespace AppCanzoniere.Application.Music;
 /// <summary>Reads chords in one notation and writes them in another.</summary>
 public static class ChordNotation
 {
-    private static readonly Regex AlteredTensionStart = new("^[#b][0-9]+", RegexOptions.Compiled | RegexOptions.CultureInvariant);
+    private static readonly Regex AlteredTensionStart = new("^[#b♯♭][0-9]+", RegexOptions.Compiled | RegexOptions.CultureInvariant);
 
     /// <summary>Converts a chord symbol between notations; text that is not a chord is returned unchanged.</summary>
     public static string Convert(string chord, NotationOptions from, NotationOptions to) =>
