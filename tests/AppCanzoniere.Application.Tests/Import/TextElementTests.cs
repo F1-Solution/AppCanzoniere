@@ -7,13 +7,15 @@ namespace AppCanzoniere.Application.Tests.Import;
 // Columns count text elements: a chord never lands inside a surrogate pair or before a combining accent.
 public class TextElementTests
 {
+    private const string Prayer = "🙏";
+
     [Fact]
     public void Emoji_IsOneColumn_AndNeverSplit()
     {
-        var result = Run("Do Sol", "Ti🙏amo");
+        var result = Run("Do Sol", "Ti" + Prayer + "amo");
 
-        Assert.Equal(Out("[Do]Ti🙏[Sol]amo"), result.ChordPro);
-        Assert.Equal("[Do]Ti🙏[Sol]amo\n", Encoding.UTF8.GetString(Encoding.UTF8.GetBytes(result.ChordPro)));
+        Assert.Equal(Out("[Do]Ti" + Prayer + "[Sol]amo"), result.ChordPro);
+        Assert.Equal("[Do]Ti" + Prayer + "[Sol]amo\n", Encoding.UTF8.GetString(Encoding.UTF8.GetBytes(result.ChordPro)));
     }
 
     [Fact]
@@ -29,11 +31,11 @@ public class TextElementTests
     }
 
     [Fact]
-    public void ChordLineAfterEmojiLabelText_UsesTextElementColumns()
+    public void EmojiBeforeTheChord_CountsAsOneColumnEach()
     {
-        var result = Run("Do   Sol", "Ca🙏🙏 mío");
+        var result = Run("Do   Sol", "Ca" + Prayer + Prayer + " mío");
 
-        Assert.Equal(Out("[Do]Ca🙏🙏 [Sol]mío"), result.ChordPro);
+        Assert.Equal(Out("[Do]Ca" + Prayer + Prayer + " [Sol]mío"), result.ChordPro);
     }
 
     [Fact]
