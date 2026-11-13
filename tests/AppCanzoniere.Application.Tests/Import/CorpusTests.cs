@@ -1,12 +1,13 @@
+using System.Globalization;
 using AppCanzoniere.Application.Import;
 using Xunit.Abstractions;
 
 namespace AppCanzoniere.Application.Tests.Import;
 
-// Spec 8: recall of hand-labelled chord lines on the local, git-ignored corpus; passes silently when it is missing.
+// Spec 8: recall of hand-labelled chord lines on the local, git-ignored corpus; passes with a message when it is missing.
 public class CorpusTests
 {
-    private const double MinimumRecall = 0.90;
+    private const double MinimumRecall = 0.95;
     private const string CorpusFolderName = "corpus-locale";
     private readonly ITestOutputHelper _output;
 
@@ -33,23 +34,19 @@ public class CorpusTests
             .Where(n => n > 0)
             .ToHashSet();
 
-    // A label line such as "Intro: Do Sol" counts as a chord line when its text carries chords.
-    private static HashSet<int> ChordLineNumbers(ChordSheetResult result)
-    {
-        var output = result.ChordPro.Split('\n');
-        return result.Lines
-            .Where(l => l.Kind == SheetLineKind.ChordLine ||
-                        (l.Kind == SheetLineKind.SectionLabel && l.OutputLine < output.Length && output[l.OutputLine].Contains('[')))
-            .Select(l => l.LineNumber)
-            .ToHashSet();
-    }
+    // Labelling convention (_etichette-note.md): a chord line, or a label followed by chords of its own; merged chords do not count.
+    private static HashSet<int> ChordLineNumbers(ChordSheetResult result) =>
+        result.Lines.Where(l => l.CarriesChords).Select(l => l.LineNumber).ToHashSet();
 
     [Fact]
-    public void LabelledChordLines_AreFoundWithRecallOfAtLeastNinetyPercent()
+    public void LabelledChordLines_AreFoundWithRecallOfAtLeastNinetyFivePercent()
     {
         var folder = FindTextFolder();
         if (folder is null)
+        {
+            _output.WriteLine("corpus not found");
             return;
+        }
 
         int labelled = 0, found = 0, classified = 0;
         foreach (var textFile in Directory.EnumerateFiles(folder, "*.txt"))
@@ -66,11 +63,15 @@ public class CorpusTests
         }
 
         if (labelled == 0)
+        {
+            _output.WriteLine("corpus not found");
             return;
+        }
 
         var recall = (double)found / labelled;
-        _output.WriteLine($"Recall {recall:P1} ({found}/{labelled}); precision {(classified == 0 ? 0 : (double)found / classified):P1}");
-        Assert.True(recall >= MinimumRecall, $"Recall {recall:P1} is below {MinimumRecall:P0}.");
+        var precision = classified == 0 ? 0 : (double)found / classified;
+        _output.WriteLine(string.Create(CultureInfo.InvariantCulture, $"Recall {recall:P1} ({found}/{labelled}); precision {precision:P1}"));
+        Assert.True(recall >= MinimumRecall, string.Create(CultureInfo.InvariantCulture, $"Recall {recall:P1} is below {MinimumRecall:P0}."));
     }
 
     [Fact]
@@ -78,7 +79,10 @@ public class CorpusTests
     {
         var folder = FindTextFolder();
         if (folder is null)
+        {
+            _output.WriteLine("corpus not found");
             return;
+        }
 
         foreach (var textFile in Directory.EnumerateFiles(folder, "*.txt"))
         {
