@@ -33,9 +33,7 @@ public static class SongLayoutEngine
     {
         ArgumentNullException.ThrowIfNull(flow);
         ArgumentNullException.ThrowIfNull(options);
-
-        var page = new LayoutPage(0, flow.Height, false, flow.Sections);
-        return new SongLayout(Frozen.From(new[] { page }), flow.GutterWidth, flow.NumberedLineCount);
+        return Paginator.Paginate(flow, options);
     }
 
     /// <summary>Flow then Paginate.</summary>

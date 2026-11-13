@@ -131,7 +131,7 @@ public class PaginationTests
         var onPage0 = tall.Pages[0].Sections[1];
         Assert.Equal("Strofa", onPage0.Label);
         Assert.Equal(40, onPage0.Y);
-        Assert.Equal(1, onPage0.Lines.Count);
+        Assert.Single(onPage0.Lines);
     }
 
     [Fact]
