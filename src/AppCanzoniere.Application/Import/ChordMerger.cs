@@ -35,16 +35,17 @@ internal static class ChordMerger
         return new MergeResult(Build(elements, inline, tail), warnings.Distinct().ToList());
     }
 
-    /// <summary>The chord line alone: chords in brackets, other tokens as written, whitespace collapsed.</summary>
+    /// <summary>The chord line alone: chords in brackets, other tokens as written (annotations when no chord is present), whitespace collapsed.</summary>
     public static string Instrumental(ContentUnit chords)
     {
         var builder = new StringBuilder();
         var previousEnd = -1;
+        var annotate = chords.Class.Tokens.All(t => t.Kind != TokenKind.Chord);
         foreach (var token in chords.Class.Tokens)
         {
             if (previousEnd >= 0 && token.Column > previousEnd)
                 builder.Append(' ');
-            builder.Append(token.Kind == TokenKind.Chord ? $"[{token.Chord}]" : token.Text);
+            builder.Append(token.Kind == TokenKind.Chord ? $"[{token.Chord}]" : annotate ? Render(token) : token.Text);
             previousEnd = token.Column + token.Text.Length;
         }
 
