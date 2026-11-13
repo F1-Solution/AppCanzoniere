@@ -57,9 +57,6 @@ internal static class WrapPieces
         var next = 0;
         foreach (var seg in segments)
         {
-            while (next < candidates.Count && candidates[next] < seg.Start)
-                next++;
-
             var flagged = next < candidates.Count && candidates[next] == seg.Start && seg.Start > 0;
             if (flagged)
                 next++;

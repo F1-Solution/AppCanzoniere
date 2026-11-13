@@ -285,4 +285,14 @@ public class PaginationTests
         Assert.Equal(6, layout.NumberedLineCount);
         Assert.Equal(new int?[] { 5, 6 }, layout.Pages[1].Sections[0].Lines.Select(l => l.Number));
     }
+
+    [Fact]
+    public void AWidowOnANonEmptyPage_SendsTheSectionToANewPage()
+    {
+        var options = Options() with { SectionSpacing = 0 };
+
+        var layout = Paged(Lines("Uno", "", Plain(3)), 78, options);
+
+        Assert.Equal(new[] { 1, 1, 2 }, layout.Pages.Select(p => p.Sections.Sum(s => s.Lines.Count)));
+    }
 }

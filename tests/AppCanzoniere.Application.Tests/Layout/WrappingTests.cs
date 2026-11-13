@@ -165,4 +165,42 @@ public class WrappingTests
 
         Assert.Single(line.Rows);
     }
+
+    [Fact]
+    public void ALeadingSpace_IsKeptOnTheFirstRow()
+    {
+        var line = LineOf(" Signore pietà", Options(100));
+
+        Assert.Equal(new[] { " Signore", "pietà" }, line.Rows.Select(r => Single(r, RunKind.Lyric).Text));
+    }
+
+    [Fact]
+    public void AChordThatFollowsATextOnlyHardBreak_IsNeverLost()
+    {
+        var line = LineOf("Amen[Sol]", Options(30));
+
+        Assert.Equal("Amen", string.Concat(line.Rows.SelectMany(r => Of(r, RunKind.Lyric)).Select(l => l.Text)));
+        Assert.Equal("Sol", Single(line.Rows[^1], RunKind.Chord).Text);
+        Assert.True(line.Rows.Count >= 3);
+    }
+
+    [Fact]
+    public void AHardBreakBeforeAChord_CutsAtTheChordBoundary()
+    {
+        var line = LineOf("Al[Sol]leluia", Options(40));
+
+        Assert.Equal("Al", Single(line.Rows[0], RunKind.Lyric).Text);
+        Assert.Empty(Of(line.Rows[0], RunKind.Chord));
+        Assert.True(line.Rows[0].HardBreakAfter);
+        Assert.Equal("Sol", Single(line.Rows[1], RunKind.Chord).Text);
+    }
+
+    [Fact]
+    public void AChordInTrailingWhitespace_StillAppears()
+    {
+        var line = LineOf("Signore [Sol] ", Options(70));
+
+        Assert.Contains(line.Rows.SelectMany(r => r.Runs), r => r.Kind == RunKind.Chord && r.Text == "Sol");
+        Assert.Equal("Signore", string.Concat(line.Rows.SelectMany(r => Of(r, RunKind.Lyric)).Select(l => l.Text)).TrimEnd());
+    }
 }

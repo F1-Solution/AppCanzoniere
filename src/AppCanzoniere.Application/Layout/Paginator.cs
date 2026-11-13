@@ -140,9 +140,6 @@ internal static class Paginator
 
         public void NewPage()
         {
-            if (Empty)
-                return;
-
             _pages.Add(new LayoutPage(_pages.Count, Y, _overflow, Frozen.From(_sections)));
             _sections = new List<LayoutSection>();
             Y = 0;
