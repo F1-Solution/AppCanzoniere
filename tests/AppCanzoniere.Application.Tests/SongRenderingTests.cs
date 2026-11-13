@@ -158,7 +158,7 @@ public class SongRenderingTests
 
         var result = Render("{key:C}\n[C]Line [F]two [G7]three", options);
 
-        Assert.Equal("{key:F}\n\n[F]Line [Bb]two [C7]three\n", result);
+        Assert.Equal("{key:F}\n[F]Line [Bb]two [C7]three\n", result);
     }
 
     [Fact]

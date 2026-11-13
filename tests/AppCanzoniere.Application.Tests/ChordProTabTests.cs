@@ -74,15 +74,15 @@ public class ChordProTabTests
     }
 
     [Theory]
-    [InlineData("{ start_of_tab }", "{start_of_tab}\n")]
-    [InlineData("{sot:}", "{start_of_tab}\n")]
-    [InlineData("{ SOT : Riff }", "{start_of_tab:Riff}\n")]
+    [InlineData("{ start_of_tab }", "{ start_of_tab }\n")]
+    [InlineData("{sot:}", "{sot:}\n")]
+    [InlineData("{ SOT : Riff }", "{ SOT : Riff }\n")]
     public void Render_TabDirectiveWithSpaces_KeepsTheBlockUntransposed(string start, string opening)
     {
         var rendered = _parser.Render(_parser.Parse($"[C]Verse\n{start}\nE|--[G]--\n{{ eot }}"), 2);
 
         Assert.Contains("[D]Verse\n", rendered);
-        Assert.Contains(opening + "E|--[G]--\n{end_of_tab}\n", rendered);
+        Assert.Contains(opening + "E|--[G]--\n{ eot }\n", rendered);
     }
 
     [Fact]
@@ -147,7 +147,7 @@ public class ChordProTabTests
 
         Assert.Contains("{key:D}\n", rendered);
         Assert.Contains("[D]Verse [Bm]line\n", rendered);
-        Assert.Contains("{start_of_tab}\nE|---\nA|---\nC|--0--\n  D|--[G]--\n{end_of_tab}\n", rendered);
+        Assert.Contains("{sot}\nE|---\nA|---\nC|--0--\n  D|--[G]--\n{eot}\n", rendered);
     }
 
     [Fact]

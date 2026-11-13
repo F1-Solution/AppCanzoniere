@@ -186,14 +186,14 @@ public class ChordProParser : IChordProParser
         ArgumentNullException.ThrowIfNull(document);
         ArgumentNullException.ThrowIfNull(options);
 
-        if (document.SourceLines is { } source && IsUntransformed(options))
-            return ChordProSourceRenderer.Render(source);
-
-        var sb = new StringBuilder();
         var chords = document.Lines
             .Where(l => l.Type != ChordProLineType.Tab)
             .SelectMany(l => (l.Chords ?? new List<ChordPosition>()).OrderBy(c => c.Position).Select(c => c.Chord));
         var transformer = new ChordTransformer(options, document.Key, document.CapoFret ?? 0, chords);
+        if (document.SourceLines is { } source)
+            return ChordProSourceRenderer.Render(source, transformer, options.Capo);
+
+        var sb = new StringBuilder();
 
         var hasMetadata = AppendMetadata(sb, document, transformer, options);
         var body = document.Lines.Where(l => l.Type != ChordProLineType.Title).ToList();
@@ -211,10 +211,6 @@ public class ChordProParser : IChordProParser
         AppendSectionEnd(sb, previousType);
         return sb.ToString();
     }
-
-    private static bool IsUntransformed(ChordProRenderOptions options) =>
-        options.TransposeSteps == 0 && options.Accidentals is null && options.Capo is null &&
-        options.InputNotation == options.OutputNotation;
 
     private static bool AppendMetadata(StringBuilder sb, ChordProDocument document, ChordTransformer transformer, ChordProRenderOptions options)
     {
