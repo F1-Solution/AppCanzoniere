@@ -35,7 +35,7 @@ internal static class SheetTokenizer
 
     private static readonly HashSet<string> NeutralWords = new(StringComparer.OrdinalIgnoreCase)
     {
-        "/", "%", "-", "–", "—", "*", "...", "bis", "ter", "N.C.", "N.C", "NC"
+        "/", "%", "-", "–", "—", "*", "...", "bis", "ter", "N.C.", "N.C", "NC", "(", ")", "→", "->"
     };
 
     private static readonly HashSet<string> ItalianBareNames = new(StringComparer.OrdinalIgnoreCase)
@@ -111,7 +111,12 @@ internal static class SheetTokenizer
     }
 
     private static bool IsNeutral(string text) =>
-        NeutralWords.Contains(text) || Bars.IsMatch(text) || RepeatCount.IsMatch(text) || ShortNumber.IsMatch(text);
+        NeutralWords.Contains(text) || Bars.IsMatch(text) || RepeatCount.IsMatch(text) || ShortNumber.IsMatch(text) || IsBassOnly(text);
+
+    // A bare bass note such as "/do" annotates the previous chord.
+    private static bool IsBassOnly(string text) =>
+        text.Length > 1 && text[0] == '/' &&
+        (ChordSymbolParser.TryParseNote(text[1..], Notation.Italian, out _) || ChordSymbolParser.TryParseNote(text[1..], Notation.English, out _));
 
     private static IEnumerable<SheetToken> ClassifyCore(string core, int column, Notation notation)
     {
