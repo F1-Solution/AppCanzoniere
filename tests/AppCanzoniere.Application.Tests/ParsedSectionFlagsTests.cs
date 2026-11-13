@@ -22,8 +22,8 @@ public class ParsedSectionFlagsTests
     {
         var source = LayoutSource.From(_parser.Parse("{soc}\n[C]uno\n{c: x}\n{eoc}"));
 
-        Assert.Equal(new[] { true, false, false }, source.Lines.Select(l => l.StartsSection));
-        Assert.Equal(new[] { false, false, true }, source.Lines.Select(l => l.InOpenSection));
+        Assert.Equal(new[] { true, false }, source.Lines.Select(l => l.StartsSection));
+        Assert.Equal(new[] { false, true }, source.Lines.Select(l => l.InOpenSection));
     }
 
     [Fact]

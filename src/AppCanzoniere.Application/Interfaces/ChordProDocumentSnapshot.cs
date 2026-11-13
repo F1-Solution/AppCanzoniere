@@ -35,15 +35,15 @@ internal sealed class ChordProDocumentSnapshot
 
     private static string?[] Fields(ChordProDocument d) => new[] { d.Title, d.Artist, d.Key, d.Capo, d.Tempo, d.Time };
 
-    private sealed record LineCopy(ChordProLineType Type, string? Text, bool StartsTabBlock, string? TabLabel, (string? Chord, int Position)[] Chords)
+    private sealed record LineCopy(ChordProLineType Type, string? Text, bool StartsTabBlock, string? TabLabel, bool StartsSection, bool InOpenSection, (string? Chord, int Position)[] Chords)
     {
         public static LineCopy Of(ChordProLine line) =>
-            new(line.Type, line.Text, line.StartsTabBlock, line.TabLabel, (line.Chords ?? new List<ChordPosition>()).Select(c => ((string?)c.Chord, c.Position)).ToArray());
+            new(line.Type, line.Text, line.StartsTabBlock, line.TabLabel, line.StartsSection, line.InOpenSection, (line.Chords ?? new List<ChordPosition>()).Select(c => ((string?)c.Chord, c.Position)).ToArray());
 
         public bool Matches(ChordProLine line)
         {
             var chords = line.Chords ?? new List<ChordPosition>();
-            if (line.Type != Type || line.Text != Text || line.StartsTabBlock != StartsTabBlock || line.TabLabel != TabLabel || chords.Count != Chords.Length)
+            if (line.Type != Type || line.Text != Text || line.StartsTabBlock != StartsTabBlock || line.TabLabel != TabLabel || line.StartsSection != StartsSection || line.InOpenSection != InOpenSection || chords.Count != Chords.Length)
                 return false;
 
             for (var i = 0; i < Chords.Length; i++)

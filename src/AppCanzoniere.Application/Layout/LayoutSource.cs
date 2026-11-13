@@ -8,7 +8,7 @@ public readonly record struct LayoutChord(string Text, int Position);
 /// <summary>One immutable source line as the layout reads it; chords are copied, sorted by position and clamped to the text.</summary>
 public sealed record LayoutSourceLine
 {
-    public LayoutSourceLine(ChordProLineType type, string text, IReadOnlyList<LayoutChord> chords, bool startsTabBlock, string tabLabel, int documentIndex = -1)
+    public LayoutSourceLine(ChordProLineType type, string text, IReadOnlyList<LayoutChord> chords, bool startsTabBlock, string tabLabel, int documentIndex = -1, bool startsSection = false, bool inOpenSection = false)
     {
         ArgumentNullException.ThrowIfNull(text);
         ArgumentNullException.ThrowIfNull(chords);
@@ -19,6 +19,8 @@ public sealed record LayoutSourceLine
         StartsTabBlock = startsTabBlock;
         TabLabel = tabLabel;
         DocumentIndex = documentIndex;
+        StartsSection = startsSection;
+        InOpenSection = inOpenSection;
     }
 
     public ChordProLineType Type { get; }
@@ -34,7 +36,13 @@ public sealed record LayoutSourceLine
     /// <summary>Index of the line in the parsed document's lines, titles included; the position in the source when hand-built.</summary>
     public int DocumentIndex { get; }
 
-    internal LayoutSourceLine WithDocumentIndex(int index) => new(Type, Text, Chords, StartsTabBlock, TabLabel, index);
+    /// <summary>True on the first line of an explicit chorus or bridge; a comment before it labels it instead of joining the previous section.</summary>
+    public bool StartsSection { get; }
+
+    /// <summary>True on a comment written inside an open chorus or bridge, even as its last line.</summary>
+    public bool InOpenSection { get; }
+
+    internal LayoutSourceLine WithDocumentIndex(int index) => new(Type, Text, Chords, StartsTabBlock, TabLabel, index, StartsSection, InOpenSection);
 
     private static LayoutChord[] Normalise(IReadOnlyList<LayoutChord> chords, int textLength)
     {
@@ -86,6 +94,6 @@ public sealed record LayoutSource
         var chords = (line.Chords ?? new List<ChordPosition>())
             .Select(c => new LayoutChord(c.Chord ?? string.Empty, c.Position))
             .ToArray();
-        return new LayoutSourceLine(line.Type, line.Text ?? string.Empty, chords, line.StartsTabBlock, line.TabLabel ?? string.Empty, documentIndex);
+        return new LayoutSourceLine(line.Type, line.Text ?? string.Empty, chords, line.StartsTabBlock, line.TabLabel ?? string.Empty, documentIndex, line.StartsSection, line.InOpenSection);
     }
 }

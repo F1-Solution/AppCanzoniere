@@ -61,7 +61,9 @@ public class ChordProParser : IChordProParser
         if (DirectiveRegex.Match(trimmed) is { Success: true } directive)
             return ApplyDirective(directive, document, state);
 
-        document.Lines.Add(ParseChordLine(line, state.Section));
+        var chordLine = ParseChordLine(line, state.Section);
+        chordLine.StartsSection = state.TakeSectionStart();
+        document.Lines.Add(chordLine);
         return ChordProSourceKind.Lyrics;
     }
 
@@ -98,7 +100,13 @@ public class ChordProParser : IChordProParser
                 document.Lines.Add(new ChordProLine { Type = ChordProLineType.Title, Text = value });
                 break;
             case "comment" or "c":
-                document.Lines.Add(new ChordProLine { Type = ChordProLineType.Comment, Text = value });
+                document.Lines.Add(new ChordProLine
+                {
+                    Type = ChordProLineType.Comment,
+                    Text = value,
+                    StartsSection = state.TakeSectionStart(),
+                    InOpenSection = state.Section != ChordProLineType.Verse
+                });
                 break;
             case "start_of_tab" or "sot":
                 state.StartTab(value.Trim());
@@ -136,13 +144,13 @@ public class ChordProParser : IChordProParser
                 document.Time = value;
                 break;
             case "start_of_chorus" or "soc":
-                state.Section = ChordProLineType.Chorus;
+                state.OpenSection(ChordProLineType.Chorus);
                 break;
             case "start_of_bridge" or "sob":
-                state.Section = ChordProLineType.Bridge;
+                state.OpenSection(ChordProLineType.Bridge);
                 break;
             case "end_of_chorus" or "eoc" or "end_of_bridge" or "eob":
-                state.Section = ChordProLineType.Verse;
+                state.OpenSection(ChordProLineType.Verse);
                 break;
         }
     }
@@ -166,6 +174,22 @@ public class ChordProParser : IChordProParser
         public ChordProLineType Section { get; set; } = ChordProLineType.Verse;
 
         public bool InTab { get; set; }
+
+        private bool _sectionStartPending;
+
+        public void OpenSection(ChordProLineType section)
+        {
+            Section = section;
+            _sectionStartPending = section != ChordProLineType.Verse;
+        }
+
+        /// <summary>True once for the first line after an explicit section opens.</summary>
+        public bool TakeSectionStart()
+        {
+            var pending = _sectionStartPending;
+            _sectionStartPending = false;
+            return pending;
+        }
 
         public bool TabStart { get; set; }
 

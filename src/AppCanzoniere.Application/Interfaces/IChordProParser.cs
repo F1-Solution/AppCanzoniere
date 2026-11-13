@@ -50,6 +50,12 @@ public class ChordProLine
 
     /// <summary>Optional label of the tab block, set on its first line.</summary>
     public string TabLabel { get; set; } = string.Empty;
+
+    /// <summary>True on the first line of an explicit chorus or bridge section.</summary>
+    public bool StartsSection { get; set; }
+
+    /// <summary>True on a comment written inside an open chorus or bridge.</summary>
+    public bool InOpenSection { get; set; }
 }
 
 public class ChordPosition

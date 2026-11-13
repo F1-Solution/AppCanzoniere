@@ -99,14 +99,22 @@ internal static class SectionPlanner
             }
         }
 
-        /// <summary>A comment between two lines of the same open chorus or bridge belongs to that section.</summary>
+        /// <summary>A comment written inside an open chorus or bridge, or between two lines of one, belongs to that section.</summary>
         private bool IsInsideExplicitSection(int index)
         {
-            if (_current is not { Kind: SectionKind.Chorus or SectionKind.Bridge } || index == 0 || index + 1 >= _lines.Count)
+            if (_current is not { Kind: SectionKind.Chorus or SectionKind.Bridge })
                 return false;
 
+            var line = _lines[index];
+            var next = index + 1 < _lines.Count ? _lines[index + 1] : null;
+            if (line.StartsSection || next is { StartsSection: true })
+                return false;
+
+            if (line.InOpenSection)
+                return true;
+
             var type = _current.Kind == SectionKind.Chorus ? ChordProLineType.Chorus : ChordProLineType.Bridge;
-            return _lines[index - 1].Type == type && _lines[index + 1].Type == type;
+            return index > 0 && next is not null && _lines[index - 1].Type == type && next.Type == type;
         }
 
         private void AddStandaloneComment(int index)
@@ -149,7 +157,7 @@ internal static class SectionPlanner
             var label = PendingLabel;
             _pendingIndex = -1;
             _pendingKind = null;
-            if (_current is null || _current.Kind != kind || line.StartsTabBlock)
+            if (_current is null || _current.Kind != kind || line.StartsTabBlock || line.StartsSection)
             {
                 var tabLabel = kind == SectionKind.Tab && line.TabLabel.Trim().Length > 0 ? line.TabLabel.Trim() : null;
                 _current = new SectionPlan(kind, label ?? tabLabel);
