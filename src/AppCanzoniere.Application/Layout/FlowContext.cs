@@ -3,9 +3,10 @@ namespace AppCanzoniere.Application.Layout;
 /// <summary>Per-flow constants and measurement helpers shared by the line layouters.</summary>
 internal sealed class FlowContext
 {
-    private const int RoleCount = 8;
+    /// <summary>Narrowest column a row keeps when the width is too small for the gutter or the indent.</summary>
+    private const double MinColumn = 1;
 
-    private readonly TextMetrics[] _metrics = new TextMetrics[RoleCount];
+    private readonly TextMetrics[] _metrics = new TextMetrics[(int)Enum.GetValues<TextRole>().Max() + 1];
 
     public FlowContext(LayoutOptions options, ITextMeasurer measurer, double gutter, bool showNumbers)
     {
@@ -13,8 +14,8 @@ internal sealed class FlowContext
         Measurer = measurer;
         Gutter = gutter;
         ShowNumbers = showNumbers;
-        for (var role = 0; role < RoleCount; role++)
-            _metrics[role] = measurer.Measure(string.Empty, (TextRole)role);
+        foreach (var role in Enum.GetValues<TextRole>())
+            _metrics[(int)role] = measurer.Measure(string.Empty, role);
     }
 
     public LayoutOptions Options { get; }
@@ -26,8 +27,11 @@ internal sealed class FlowContext
 
     public bool ShowNumbers { get; }
 
-    /// <summary>Width of one page minus the gutter.</summary>
-    public double Available => Options.Width - Gutter;
+    /// <summary>Width of one page minus the gutter, at least one unit.</summary>
+    public double Available => Math.Max(Options.Width - Gutter, MinColumn);
+
+    /// <summary>The continuation indent, kept below the available width so a row always has a column.</summary>
+    public double ContinuationIndent => Math.Min(Options.ContinuationIndent, Math.Max(0, Available - MinColumn));
 
     /// <summary>True when a right edge lies beyond the page width.</summary>
     public bool Exceeds(double right) => right > Options.Width + SegmentMath.FitTolerance;

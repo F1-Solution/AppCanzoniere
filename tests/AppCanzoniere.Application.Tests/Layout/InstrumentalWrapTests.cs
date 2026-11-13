@@ -54,7 +54,7 @@ public class InstrumentalWrapTests
         Assert.Equal(2, rows.Count);
         Assert.Equal(new[] { true, true }, rows.Select(r => r.Overflow));
         Assert.Equal("Em7", Single(rows[0], RunKind.Chord).Text);
-        Assert.Equal(20, Single(rows[1], RunKind.Chord).X);
+        Assert.Equal(19, Single(rows[1], RunKind.Chord).X);
     }
 
     [Fact]

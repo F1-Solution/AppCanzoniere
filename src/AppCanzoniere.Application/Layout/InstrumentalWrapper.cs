@@ -10,7 +10,7 @@ internal static class InstrumentalWrapper
         var start = 0;
         while (start < atoms.Count)
         {
-            var available = rows.Count == 0 ? ctx.Available : ctx.Available - ctx.Options.ContinuationIndent;
+            var available = rows.Count == 0 ? ctx.Available : ctx.Available - ctx.ContinuationIndent;
             var end = RowEnd(atoms, start, available, ctx.Options.MinChordGap);
             var row = atoms.GetRange(start, end - start);
             row[^1] = row[^1] with { LyricWidth = 0 };

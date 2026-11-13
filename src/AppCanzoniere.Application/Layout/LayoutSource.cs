@@ -8,7 +8,7 @@ public readonly record struct LayoutChord(string Text, int Position);
 /// <summary>One immutable source line as the layout reads it; chords are copied, sorted by position and clamped to the text.</summary>
 public sealed record LayoutSourceLine
 {
-    public LayoutSourceLine(ChordProLineType type, string text, IReadOnlyList<LayoutChord> chords, bool startsTabBlock, string tabLabel)
+    public LayoutSourceLine(ChordProLineType type, string text, IReadOnlyList<LayoutChord> chords, bool startsTabBlock, string tabLabel, int documentIndex = -1)
     {
         ArgumentNullException.ThrowIfNull(text);
         ArgumentNullException.ThrowIfNull(chords);
@@ -18,6 +18,7 @@ public sealed record LayoutSourceLine
         Chords = Frozen.From(Normalise(chords, text.Length));
         StartsTabBlock = startsTabBlock;
         TabLabel = tabLabel;
+        DocumentIndex = documentIndex;
     }
 
     public ChordProLineType Type { get; }
@@ -29,6 +30,11 @@ public sealed record LayoutSourceLine
     public bool StartsTabBlock { get; }
 
     public string TabLabel { get; }
+
+    /// <summary>Index of the line in the parsed document's lines, titles included; the position in the source when hand-built.</summary>
+    public int DocumentIndex { get; }
+
+    internal LayoutSourceLine WithDocumentIndex(int index) => new(Type, Text, Chords, StartsTabBlock, TabLabel, index);
 
     private static LayoutChord[] Normalise(IReadOnlyList<LayoutChord> chords, int textLength)
     {
@@ -51,7 +57,12 @@ public sealed record LayoutSource
 {
     public LayoutSource(IReadOnlyList<LayoutSourceLine> lines)
     {
-        Lines = Frozen.Copy(lines, nameof(lines));
+        var copy = Frozen.Copy(lines, nameof(lines));
+        var indexed = new LayoutSourceLine[copy.Count];
+        for (var i = 0; i < indexed.Length; i++)
+            indexed[i] = copy[i].DocumentIndex >= 0 ? copy[i] : copy[i].WithDocumentIndex(i);
+
+        Lines = Frozen.From(indexed);
     }
 
     public IReadOnlyList<LayoutSourceLine> Lines { get; }
@@ -61,20 +72,20 @@ public sealed record LayoutSource
     {
         ArgumentNullException.ThrowIfNull(document);
         var lines = new List<LayoutSourceLine>(document.Lines.Count);
-        foreach (var line in document.Lines)
+        for (var i = 0; i < document.Lines.Count; i++)
         {
-            if (line.Type != ChordProLineType.Title)
-                lines.Add(Copy(line));
+            if (document.Lines[i].Type != ChordProLineType.Title)
+                lines.Add(Copy(document.Lines[i], i));
         }
 
         return new LayoutSource(lines);
     }
 
-    private static LayoutSourceLine Copy(ChordProLine line)
+    private static LayoutSourceLine Copy(ChordProLine line, int documentIndex)
     {
         var chords = (line.Chords ?? new List<ChordPosition>())
             .Select(c => new LayoutChord(c.Chord ?? string.Empty, c.Position))
             .ToArray();
-        return new LayoutSourceLine(line.Type, line.Text ?? string.Empty, chords, line.StartsTabBlock, line.TabLabel ?? string.Empty);
+        return new LayoutSourceLine(line.Type, line.Text ?? string.Empty, chords, line.StartsTabBlock, line.TabLabel ?? string.Empty, documentIndex);
     }
 }

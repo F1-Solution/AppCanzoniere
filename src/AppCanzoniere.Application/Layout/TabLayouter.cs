@@ -28,7 +28,7 @@ internal static class TabLayouter
                 ctx.Gutter, y, widths[i] * scale, height,
                 ctx.Gutter, y + metrics.Ascent * scale, 0, false);
             var row = new LayoutRow(0, y, height, Frozen.From(new[] { run }), false);
-            lines.Add(new LayoutLine(indexes[i], null, y, height, Frozen.From(new[] { row })));
+            lines.Add(new LayoutLine(source.Lines[indexes[i]].DocumentIndex, null, y, height, Frozen.From(new[] { row })));
             y += height;
         }
 

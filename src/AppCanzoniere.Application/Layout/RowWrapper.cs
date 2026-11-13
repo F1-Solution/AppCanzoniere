@@ -32,7 +32,7 @@ internal sealed partial class RowWrapper
         var strip = false;
         while (start < _pieces.Count)
         {
-            var available = rows.Count == 0 ? _ctx.Available : _ctx.Available - _ctx.Options.ContinuationIndent;
+            var available = rows.Count == 0 ? _ctx.Available : _ctx.Available - _ctx.ContinuationIndent;
             if (strip)
                 StripLeading(start);
 

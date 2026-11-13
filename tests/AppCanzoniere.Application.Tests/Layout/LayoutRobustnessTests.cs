@@ -100,10 +100,10 @@ public class LayoutRobustnessTests
     [Fact]
     public void ALineSourceIndex_IsItsIndexInTheParsedDocument_EvenWhenTitleLinesAreDropped()
     {
-        var flow = Flow(Lines("{title: Santo}", "Signore", "", "{c: Nota}", "{title: Altro}", "Pietà"));
+        var flow = Flow(Lines("{title: Santo}", "Signore", "", "{c: Nota}", "", "{title: Altro}", "Pietà"));
 
         var indexes = flow.Sections.SelectMany(s => s.Lines).Select(l => l.SourceLineIndex);
-        Assert.Equal(new[] { 1, 3, 5 }, indexes);
+        Assert.Equal(new[] { 1, 3, 6 }, indexes);
     }
 
     [Fact]

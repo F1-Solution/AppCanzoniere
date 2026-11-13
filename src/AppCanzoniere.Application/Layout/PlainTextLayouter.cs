@@ -19,7 +19,7 @@ internal static class PlainTextLayouter
         for (var i = 0; i < specs.Count; i++)
         {
             var seg = specs[i].Segments[0];
-            var x = ctx.Gutter + (i > 0 ? ctx.Options.ContinuationIndent : 0);
+            var x = ctx.Gutter + (i > 0 ? ctx.ContinuationIndent : 0);
             var run = new LayoutRun(
                 kind, text.Substring(seg.Start, seg.End - seg.Start), role,
                 x, y, seg.LyricWidth, metrics.LineHeight,

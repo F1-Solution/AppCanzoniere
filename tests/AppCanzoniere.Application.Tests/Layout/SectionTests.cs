@@ -87,7 +87,7 @@ public class SectionTests
 
         var line = Assert.Single(section.Lines);
         Assert.Equal(0, line.Y);
-        Assert.Equal(0, line.SourceLineIndex);
+        Assert.Equal(1, line.SourceLineIndex);
     }
 
     [Fact]

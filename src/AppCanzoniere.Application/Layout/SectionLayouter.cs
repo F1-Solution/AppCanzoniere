@@ -37,17 +37,17 @@ internal static class SectionLayouter
     private static LayoutLine LayoutOne(SectionKind kind, int index, LayoutSourceLine line, double y, FlowContext ctx, ref int lastNumber)
     {
         if (line.Type == Interfaces.ChordProLineType.Comment)
-            return CommentLine(index, line, y, ctx);
+            return CommentLine(line, y, ctx);
 
         int? number = LineNumbering.IsNumbered(line) ? ++lastNumber : null;
         var role = kind == SectionKind.Chorus ? TextRole.ChorusLyric : TextRole.Lyric;
-        return LyricLineLayouter.Layout(index, line, number, y, role, ctx);
+        return LyricLineLayouter.Layout(line.DocumentIndex, line, number, y, role, ctx);
     }
 
-    private static LayoutLine CommentLine(int index, LayoutSourceLine line, double y, FlowContext ctx)
+    private static LayoutLine CommentLine(LayoutSourceLine line, double y, FlowContext ctx)
     {
         var rows = PlainTextLayouter.Rows(line.Text.Trim(), TextRole.Comment, RunKind.Comment, true, y, ctx);
         var height = rows[^1].Y + rows[^1].Height - y;
-        return new LayoutLine(index, null, y, height, Frozen.From(rows.ToArray()), true);
+        return new LayoutLine(line.DocumentIndex, null, y, height, Frozen.From(rows.ToArray()), true);
     }
 }
