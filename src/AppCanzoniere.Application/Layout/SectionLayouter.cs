@@ -9,9 +9,9 @@ internal static class SectionLayouter
         IReadOnlyList<LayoutRun> labelRuns = Frozen.From(Array.Empty<LayoutRun>());
         if (plan.Label is { } label)
         {
-            var labelRun = LabelRun(label, y, ctx);
-            labelRuns = Frozen.From(new[] { labelRun });
-            y = labelRun.Y + labelRun.Height + ctx.Options.LabelSpacing;
+            var rows = PlainTextLayouter.Rows(label, TextRole.SectionLabel, RunKind.SectionLabel, false, y, ctx);
+            labelRuns = Frozen.From(rows.Select(r => r.Runs[0]).ToArray());
+            y = rows[^1].Y + rows[^1].Height + ctx.Options.LabelSpacing;
         }
 
         if (plan.Kind == SectionKind.Tab)
@@ -44,24 +44,10 @@ internal static class SectionLayouter
         return LyricLineLayouter.Layout(index, line, number, y, role, ctx);
     }
 
-    private static LayoutRun LabelRun(string label, double y, FlowContext ctx)
-    {
-        var metrics = ctx.Metrics(TextRole.SectionLabel);
-        return new LayoutRun(
-            RunKind.SectionLabel, label, TextRole.SectionLabel,
-            ctx.Gutter, y, ctx.WidthOf(label, TextRole.SectionLabel), metrics.LineHeight,
-            ctx.Gutter, y + metrics.Ascent, -1, false);
-    }
-
     private static LayoutLine CommentLine(int index, LayoutSourceLine line, double y, FlowContext ctx)
     {
-        var text = line.Text.Trim();
-        var metrics = ctx.Metrics(TextRole.Comment);
-        var run = new LayoutRun(
-            RunKind.Comment, text, TextRole.Comment,
-            ctx.Gutter, y, ctx.WidthOf(text, TextRole.Comment), metrics.LineHeight,
-            ctx.Gutter, y + metrics.Ascent, 0, false);
-        var row = new LayoutRow(0, y, metrics.LineHeight, Frozen.From(new[] { run }), false);
-        return new LayoutLine(index, null, y, metrics.LineHeight, Frozen.From(new[] { row }));
+        var rows = PlainTextLayouter.Rows(line.Text.Trim(), TextRole.Comment, RunKind.Comment, true, y, ctx);
+        var height = rows[^1].Y + rows[^1].Height - y;
+        return new LayoutLine(index, null, y, height, Frozen.From(rows.ToArray()), true);
     }
 }

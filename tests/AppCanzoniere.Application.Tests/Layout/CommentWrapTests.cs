@@ -29,7 +29,7 @@ public class CommentWrapTests
         Assert.Equal(new[] { 0d, 20, 20, 20, 20 }, line.Rows.Select(r => Single(r, RunKind.Comment).X));
         Assert.All(line.Rows, r => Assert.Equal(TextRole.Comment, Single(r, RunKind.Comment).Role));
         AssertBox(Single(line.Rows[1], RunKind.Comment), 20, 171, 26, 22, 43);
-        Assert.Equal(110, line.Height);
+        Assert.Equal(126, line.Height);
         Assert.All(line.Rows, r => Assert.False(r.Overflow));
     }
 
@@ -38,8 +38,8 @@ public class CommentWrapTests
     {
         var flow = Flow($"{{c: {TwentyWords}}}\n\nSanto", Options(200));
 
-        Assert.Equal(110, flow.Sections[0].Height);
-        Assert.Equal(126, flow.Sections[1].Y);
+        Assert.Equal(126, flow.Sections[0].Height);
+        Assert.Equal(142, flow.Sections[1].Y);
     }
 
     [Fact]

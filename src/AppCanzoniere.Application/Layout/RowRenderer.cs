@@ -30,7 +30,7 @@ internal static class RowRenderer
         }
 
         var right = runs.Where(r => r.Kind != RunKind.LineNumber).Select(r => r.X + r.Width).DefaultIfEmpty(0).Max();
-        var overflow = right > ctx.Gutter + ctx.Available + SegmentMath.FitTolerance;
+        var overflow = ctx.Exceeds(right);
         return new LayoutRow(rowIndex, top, height, Frozen.From(runs), spec.HardBreakAfter, overflow);
     }
 
