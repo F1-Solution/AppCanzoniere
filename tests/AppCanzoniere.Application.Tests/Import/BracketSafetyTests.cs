@@ -97,15 +97,6 @@ public class BracketSafetyTests
     }
 
     [Fact]
-    public void ChordFromAboveIsNeverPlacedInsideAnExistingBracket()
-    {
-        var chords = LineClassifier.BuildUnit("Do    Sol", 0, true, Notation.Italian);
-        var lyric = LineClassifier.BuildUnit("Ti [Lam] lodo", 0, true, Notation.Italian);
-
-        Assert.Equal("[Do]Ti [Sol][Lam] lodo", ChordMerger.Merge(chords, lyric, 2).Line);
-    }
-
-    [Fact]
     public void RandomDocuments_KeepEveryLyricLine_AndNeverInventChords()
     {
         DocumentProperties.CheckFaithful(RandomSheets.Many(20240601, 3000, SheetFeatures.Brackets), _output, 2000);

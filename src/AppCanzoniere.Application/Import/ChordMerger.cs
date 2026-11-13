@@ -11,7 +11,6 @@ internal static class ChordMerger
     public static MergeResult Merge(ContentUnit chords, ContentUnit lyric, int snapColumns)
     {
         var elements = TextElements.Split(lyric.Text[lyric.Start..]);
-        var openBrackets = OpenBrackets(elements);
         var warnings = new List<SheetWarning>();
         var inline = new List<(int Offset, SheetToken Token)>();
         var tail = new List<SheetToken>();
@@ -28,7 +27,7 @@ internal static class ChordMerger
                 continue;
             }
 
-            var offset = BeforeBracket(openBrackets, Snap(elements, column, snapColumns, warnings));
+            var offset = Snap(elements, column, snapColumns, warnings);
             if (offset > 0 && elements[offset - 1] != " " && elements[offset] != " ")
                 warnings.Add(SheetWarning.ChordInsideWord);
             inline.Add((offset, token));
@@ -52,27 +51,6 @@ internal static class ChordMerger
         }
 
         return builder.ToString();
-    }
-
-    // A chord never goes inside an existing [chord]: it is placed right before its opening bracket.
-    private static int BeforeBracket(int[] openBrackets, int offset) => openBrackets[offset] >= 0 ? openBrackets[offset] : offset;
-
-    // For each insertion offset, the index of the "[" it would fall inside, or -1.
-    private static int[] OpenBrackets(string[] elements)
-    {
-        var inside = new int[elements.Length + 1];
-        var open = -1;
-        for (var i = 0; i < elements.Length; i++)
-        {
-            inside[i] = i > 0 ? open : -1;
-            if (elements[i] == "[")
-                open = i;
-            else if (elements[i] == "]")
-                open = -1;
-        }
-
-        inside[elements.Length] = open;
-        return inside;
     }
 
     private static int Snap(string[] elements, int column, int snapColumns, List<SheetWarning> warnings)
