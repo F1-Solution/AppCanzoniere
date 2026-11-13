@@ -3,10 +3,10 @@ namespace AppCanzoniere.Application.Music;
 /// <summary>Immutable settings for rendering a ChordPro document: transposition, spelling, notation and capo.</summary>
 public sealed record ChordProRenderOptions
 {
-    /// <summary>Semitones to transpose the sounding song.</summary>
+    /// <summary>Semitones to transpose the sounding song; the written key and chords shift by this plus the capo change.</summary>
     public int TransposeSteps { get; init; }
 
-    /// <summary>Spelling of altered notes; null keeps them as written unless the song is shifted, then sharps.</summary>
+    /// <summary>Spelling of altered notes at capo 0 and of the sounding key; with a capo the shapes are always spelled by their own key. Null keeps notes as written unless shifted, then sharps.</summary>
     public AccidentalPreference? Accidentals { get; init; }
 
     /// <summary>Notation the document's chords and key are written in.</summary>

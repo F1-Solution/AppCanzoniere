@@ -70,7 +70,7 @@ public class ChordProLosslessTransformTests
     {
         var options = new ChordProRenderOptions { Capo = 4 };
 
-        Assert.Equal("{title: T}\n{ capo : 4 }\n{key:G}\n[F]x\n",Render("{title: T}\n{ capo : 2 }\n{key:A}\n[G]x", options));
+        Assert.Equal("{title: T}\n{ capo : 4 }\n{key:G}\n[F]x\n", Render("{title: T}\n{ capo : 2 }\n{key:A}\n[G]x", options));
     }
 
     [Fact]

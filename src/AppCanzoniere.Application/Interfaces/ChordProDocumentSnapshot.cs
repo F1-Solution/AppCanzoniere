@@ -38,7 +38,7 @@ internal sealed class ChordProDocumentSnapshot
     private sealed record LineCopy(ChordProLineType Type, string? Text, bool StartsTabBlock, string? TabLabel, (string? Chord, int Position)[] Chords)
     {
         public static LineCopy Of(ChordProLine line) =>
-            new(line.Type, line.Text, line.StartsTabBlock, line.TabLabel, (line.Chords ?? new List<ChordPosition>()).Select(c => (c.Chord, c.Position)).ToArray());
+            new(line.Type, line.Text, line.StartsTabBlock, line.TabLabel, (line.Chords ?? new List<ChordPosition>()).Select(c => ((string?)c.Chord, c.Position)).ToArray());
 
         public bool Matches(ChordProLine line)
         {

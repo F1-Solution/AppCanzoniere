@@ -48,7 +48,7 @@ public class KeyMatrixTests
 
     public static IEnumerable<object[]> KeyAndShape => Pick(Key, ShapeEnglish);
 
-    public static IEnumerable<object[]> KeyItalianAndShapeItalian => Pick(Key, Italian, ShapeItalian);
+    public static IEnumerable<object[]> KeyAndShapeItalian => Pick(Key, ShapeItalian);
 
     private static IEnumerable<object[]> Pick(params int[] columns) =>
         Rows.Select(row => columns.Select(c => (object)row[c]).ToArray());
@@ -82,8 +82,8 @@ public class KeyMatrixTests
     }
 
     [Theory]
-    [MemberData(nameof(KeyItalianAndShapeItalian))]
-    public void Italian_CapoTwo_ShowsTheShapesAndTheKeyOfTheShapes(string key, string italian, string shapeItalian)
+    [MemberData(nameof(KeyAndShapeItalian))]
+    public void Italian_CapoTwo_ShowsTheShapesAndTheKeyOfTheShapes(string key, string shapeItalian)
     {
         var options = new ChordProRenderOptions { Capo = 2, OutputNotation = NotationOptions.Italian };
 
