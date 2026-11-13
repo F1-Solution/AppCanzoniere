@@ -126,7 +126,7 @@ internal static class SheetTokenizer
         if (",;:!?.".Contains(core[^1]) || core.Contains('\'') || core.Contains('’'))
             return new[] { Word(core, column) };
 
-        if (core.Length > 2 && core[0] == '(' && core[^1] == ')')
+        if (core.Length > 2 && ((core[0] == '(' && core[^1] == ')') || (core[0] == '[' && core[^1] == ']')))
         {
             var inner = core[1..^1];
             return new[] { ParenthesisedToken(core, column, inner, notation) };

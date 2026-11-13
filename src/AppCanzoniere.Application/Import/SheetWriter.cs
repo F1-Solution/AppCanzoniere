@@ -174,7 +174,10 @@ internal sealed class SheetWriter
         i + 1 < _lines.Count && _lines[i + 1].Kind is not (SheetLineKind.Blank or SheetLineKind.SectionLabel or SheetLineKind.Tab);
 
     private bool NextIsLyric(int i) =>
-        i + 1 < _lines.Count && _lines[i + 1].Content is { Kind: UnitKind.Lyric or UnitKind.Inline };
+        i + 1 < _lines.Count && _lines[i + 1].Content is { Kind: UnitKind.Lyric };
+
+    private bool NextIsInline(int i) =>
+        i + 1 < _lines.Count && _lines[i + 1].Content is { Kind: UnitKind.Inline };
 
     private void EmitContent(int i)
     {
@@ -190,6 +193,8 @@ internal sealed class SheetWriter
         else
         {
             NoteParentheses(i, unit);
+            if (NextIsInline(i))
+                _warnings[i].Add(SheetWarning.ChordLineKeptAlone);
             AddBody(i, ChordMerger.Instrumental(unit));
         }
     }

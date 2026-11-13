@@ -47,16 +47,16 @@ internal static class LineClassifier
 
     public static ContentUnit BuildUnit(string text, int start, bool indented, Notation notation)
     {
+        var classification = Classify(SheetTokenizer.Tokenize(text, start, notation), notation);
+        if (classification.IsChord)
+            return new ContentUnit(UnitKind.Chord, text, start, indented, SafeTokens(classification));
+
         if (InlineChords.TryConvert(text, start, notation, out var converted, out var unambiguous, out var ambiguous))
         {
             var safe = TextSafety.ReplaceKeepingChords(converted, notation);
             var inline = new LineClassification(false, false, CertainLyric, Replaced(safe != converted), Array.Empty<SheetToken>(), unambiguous, ambiguous, 0);
             return new ContentUnit(UnitKind.Inline, safe, start, indented, inline);
         }
-
-        var classification = Classify(SheetTokenizer.Tokenize(text, start, notation), notation);
-        if (classification.IsChord)
-            return new ContentUnit(UnitKind.Chord, text, start, indented, SafeTokens(classification));
 
         var lyric = TextSafety.Replace(text);
         var warned = classification with { Warnings = classification.Warnings.Concat(Replaced(lyric != text)).ToList() };

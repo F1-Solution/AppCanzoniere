@@ -109,10 +109,10 @@ internal static class RandomSheets
 
     private static string Wrap(Random r, SheetFeatures f, string token)
     {
-        if (!f.HasFlag(SheetFeatures.WrappedChords) || !char.IsUpper(token[0]) || r.Next(4) != 0)
+        if (!f.HasFlag(SheetFeatures.WrappedChords) || Neutrals.Contains(token) || r.Next(4) != 0)
             return token;
 
-        return r.Next(2) == 0 ? $"({token})" : $"[{token}]";
+        return r.Next(5) != 0 ? $"({token})" : $"[{token}]";
     }
 
     private static void AddLyric(Random r, SheetFeatures f, string inlineChord, List<string> lines, List<string> lyrics)
