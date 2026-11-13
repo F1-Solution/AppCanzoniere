@@ -1,9 +1,66 @@
+using System.Text.RegularExpressions;
+using AppCanzoniere.Application.Music;
+
 namespace AppCanzoniere.Application.Import;
 
 /// <summary>Converts chords-above-lyrics text, as pasted from booklets and websites, to ChordPro.</summary>
 public static class ChordSheetConverter
 {
+    private static readonly Regex Directive = new(
+        @"^\s*\{\s*(title|t|subtitle|st|artist|composer|lyricist|key|capo|tempo|time|comment|c|ci|cb|chorus|start_of_\w+|end_of_\w+|so[cbtv]|eo[cbtv]|define|new_song|ns|meta)\b[^}]*\}\s*$",
+        RegexOptions.Compiled | RegexOptions.CultureInvariant | RegexOptions.IgnoreCase);
+
+    private static readonly Regex BracketedChord = new(@"\[([^\[\]]+)\](?=\p{L})", RegexOptions.Compiled | RegexOptions.CultureInvariant);
+
+    private const int MinBracketedLines = 2;
+
     /// <summary>Converts chords-above-lyrics text to ChordPro; ChordPro input is returned unchanged.</summary>
-    public static ChordSheetResult Convert(string text, ChordSheetOptions? options = null) =>
-        new(string.Empty, false, null, Array.Empty<SheetLineDiagnostic>(), 0, 0);
+    public static ChordSheetResult Convert(string text, ChordSheetOptions? options = null)
+    {
+        ArgumentNullException.ThrowIfNull(text);
+        options ??= new ChordSheetOptions();
+        if (text.Length == 0)
+            return new ChordSheetResult(string.Empty, false, null, Array.Empty<SheetLineDiagnostic>(), 0, 0);
+
+        var lines = SheetNormalizer.Normalize(text, options.TabWidth);
+        if (IsChordPro(lines))
+            return ChordProResult(text, lines);
+
+        var analysis = Analyze(lines, options);
+        var written = SheetWriter.Write(analysis.Lines, options.SnapColumns);
+        var diagnostics = analysis.Lines
+            .Select(l => new SheetLineDiagnostic(l.Index + 1, l.Source.Raw, l.Kind, l.Confidence, written.Warnings[l.Index], written.OutputLines[l.Index]))
+            .ToList();
+        var chordLines = analysis.Lines.Count(l => l.Kind == SheetLineKind.ChordLine);
+        var notation = analysis.HasChords ? analysis.Notation : (Notation?)null;
+        return new ChordSheetResult(written.ChordPro, false, notation, diagnostics, chordLines, written.MergedCount);
+    }
+
+    private static DocumentAnalysis Analyze(IReadOnlyList<NormalizedLine> lines, ChordSheetOptions options)
+    {
+        if (options.Notation is { } forced)
+            return SheetAnalyzer.Analyze(lines, forced);
+
+        var italian = SheetAnalyzer.Analyze(lines, Notation.Italian);
+        var english = SheetAnalyzer.Analyze(lines, Notation.English);
+        var (chosen, other) = italian.DetectionCount == english.DetectionCount
+            ? (options.TieBreakNotation == Notation.Italian ? italian : english, options.TieBreakNotation == Notation.Italian ? english : italian)
+            : italian.DetectionCount > english.DetectionCount ? (italian, english) : (english, italian);
+        return SheetAnalyzer.FlagOtherNotation(chosen, other);
+    }
+
+    private static ChordSheetResult ChordProResult(string text, IReadOnlyList<NormalizedLine> lines)
+    {
+        var diagnostics = lines
+            .Select((l, i) => new SheetLineDiagnostic(i + 1, l.Raw, SheetLineKind.ChordPro, 1.0, Array.Empty<SheetWarning>(), i))
+            .ToList();
+        return new ChordSheetResult(text, true, null, diagnostics, 0, 0);
+    }
+
+    private static bool IsChordPro(IReadOnlyList<NormalizedLine> lines) =>
+        lines.Any(l => Directive.IsMatch(l.Text)) ||
+        lines.Count(l => BracketedChord.Matches(l.Text).Any(m => IsChord(m.Groups[1].Value))) >= MinBracketedLines;
+
+    private static bool IsChord(string text) =>
+        ChordSymbolParser.TryParse(text, Notation.Italian, out _) || ChordSymbolParser.TryParse(text, Notation.English, out _);
 }
