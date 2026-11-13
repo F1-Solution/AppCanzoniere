@@ -78,6 +78,7 @@ internal static class Html
         SheetWarning.UnreadableMetadata => "metadato illeggibile",
         SheetWarning.EscapedLyric => "riga di testo con cancelletto",
         SheetWarning.BracketsReplaced => "parentesi quadre o graffe sostituite",
+        SheetWarning.ChordLineKeptAlone => "accordi lasciati soli sopra un testo con accordi",
         _ => warning.ToString()
     };
 
