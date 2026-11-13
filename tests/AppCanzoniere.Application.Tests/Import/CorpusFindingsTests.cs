@@ -17,8 +17,8 @@ public class CorpusFindingsTests
     }
 
     [Fact]
-    public void LowerCaseBareNamesWithWideGaps_AreAChordLine() =>
-        Assert.Equal(Out("[re] [do] [sol]"), Run("re    do    sol").ChordPro);
+    public void LowerCaseBareNamesWithWideGaps_AreAChordLineOnlyAboveAlignedLyrics() =>
+        Assert.Equal(Out("[re]Santo [sol]Signore [do]dei tanti"), Run("re    sol     do", "Santo Signore dei tanti").ChordPro);
 
     [Theory]
     [InlineData("mi fa sol")]
@@ -50,8 +50,8 @@ public class CorpusFindingsTests
         Assert.Equal(Out("{start_of_chorus}", "Santo", "{end_of_chorus}"), Run("CORO:", "Santo").ChordPro);
 
     [Fact]
-    public void IndentedLowerCaseBareNames_AreAChordLine() =>
-        Assert.Equal(Out("[do] [sol] [re] [sol]"), Run("        do sol re sol").ChordPro);
+    public void IndentedLowerCaseBareNames_AreLyric() =>
+        Assert.Equal(Out("        do sol re sol"), Run("        do sol re sol").ChordPro);
 
     [Fact]
     public void ParenthesisedLowerCaseKeyAndSongNumber_BeforeChords() =>
