@@ -173,7 +173,7 @@ public class ChordProHandBuiltTests
     {
         var document = new ChordProDocument { Capo = "2", Lines = { Line(ChordProLineType.Verse, "Hello", ("G", 0)) } };
 
-        Assert.Equal("\n[A]Hello\n", Render(document, new ChordProRenderOptions { Capo = 0 }));
+        Assert.Equal("[A]Hello\n", Render(document, new ChordProRenderOptions { Capo = 0 }));
     }
 
     [Fact]

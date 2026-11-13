@@ -28,7 +28,8 @@ public class ChordProParser : IChordProParser
             source.Add(new ChordProSourceLine(kind, lines[i]));
         }
 
-        document.SourceLines = source;
+        document.SourceLines = source.AsReadOnly();
+        document.Snapshot = ChordProDocumentSnapshot.Of(document);
         return document;
     }
 
@@ -190,7 +191,7 @@ public class ChordProParser : IChordProParser
             .Where(l => l.Type != ChordProLineType.Tab)
             .SelectMany(l => (l.Chords ?? new List<ChordPosition>()).OrderBy(c => c.Position).Select(c => c.Chord));
         var transformer = new ChordTransformer(options, document.Key, document.CapoFret ?? 0, chords);
-        if (document.SourceLines is { } source)
+        if (document.SourceLines is { } source && document.Snapshot?.Matches(document) == true)
             return ChordProSourceRenderer.Render(source, transformer, options.Capo);
 
         var sb = new StringBuilder();
@@ -225,6 +226,10 @@ public class ChordProParser : IChordProParser
         var capo = options.Capo is { } fret ? (fret > 0 ? fret.ToString() : string.Empty) : document.Capo;
         if (!string.IsNullOrEmpty(capo))
             sb.Append($"{{capo:{capo}}}\n");
+        if (!string.IsNullOrEmpty(document.Tempo))
+            sb.Append($"{{tempo:{document.Tempo}}}\n");
+        if (!string.IsNullOrEmpty(document.Time))
+            sb.Append($"{{time:{document.Time}}}\n");
         return sb.Length > start;
     }
 

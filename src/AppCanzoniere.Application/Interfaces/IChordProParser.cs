@@ -32,8 +32,11 @@ public class ChordProDocument
     public string Time { get; set; } = string.Empty;
     public List<ChordProLine> Lines { get; set; } = new();
 
-    /// <summary>Every line of the parsed file as written; when set, rendering starts from it. Null for a document built by hand.</summary>
-    public IReadOnlyList<ChordProSourceLine>? SourceLines { get; internal set; }
+    /// <summary>Lines of the parsed file as written; null for a hand-built document.</summary>
+    internal IReadOnlyList<ChordProSourceLine>? SourceLines { get; set; }
+
+    /// <summary>Typed content as parsed; the source lines are used only while it still matches.</summary>
+    internal ChordProDocumentSnapshot? Snapshot { get; set; }
 }
 
 public class ChordProLine
