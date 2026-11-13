@@ -13,14 +13,18 @@ public class ChordProEditedDocumentTests
 
     private readonly ChordProParser _parser = new();
 
+    private static readonly string[] HeaderCases = { "title", "artist", "key", "capo", "tempo", "time" };
+
+    public static IEnumerable<object[]> BodyEdits() => Edits().Where(e => !HeaderCases.Contains((string)e[0]));
+
     public static IEnumerable<object[]> Edits() => new[]
     {
-        Case("title", d => d.Title = "New", "{title:New}\n{artist:A}\n{key:C}\n{capo:1}\n{tempo:90}\n{time:3/4}\n\n[C]Line\n"),
-        Case("artist", d => d.Artist = "B", "{title:T}\n{artist:B}\n{key:C}\n{capo:1}\n{tempo:90}\n{time:3/4}\n\n[C]Line\n"),
-        Case("key", d => d.Key = "G", "{title:T}\n{artist:A}\n{key:G}\n{capo:1}\n{tempo:90}\n{time:3/4}\n\n[C]Line\n"),
-        Case("capo", d => d.Capo = "2", "{title:T}\n{artist:A}\n{key:C}\n{capo:2}\n{tempo:90}\n{time:3/4}\n\n[C]Line\n"),
-        Case("tempo", d => d.Tempo = "100", "{title:T}\n{artist:A}\n{key:C}\n{capo:1}\n{tempo:100}\n{time:3/4}\n\n[C]Line\n"),
-        Case("time", d => d.Time = "4/4", "{title:T}\n{artist:A}\n{key:C}\n{capo:1}\n{tempo:90}\n{time:4/4}\n\n[C]Line\n"),
+        Case("title", d => d.Title = "New", "{title:New}\n{artist:A}\n{key:C}\n{capo:1}\n{tempo:90}\n{time:3/4}\n[C]Line\n"),
+        Case("artist", d => d.Artist = "B", "{title:T}\n{artist:B}\n{key:C}\n{capo:1}\n{tempo:90}\n{time:3/4}\n[C]Line\n"),
+        Case("key", d => d.Key = "G", "{title:T}\n{artist:A}\n{key:G}\n{capo:1}\n{tempo:90}\n{time:3/4}\n[C]Line\n"),
+        Case("capo", d => d.Capo = "2", "{title:T}\n{artist:A}\n{key:C}\n{capo:2}\n{tempo:90}\n{time:3/4}\n[C]Line\n"),
+        Case("tempo", d => d.Tempo = "100", "{title:T}\n{artist:A}\n{key:C}\n{capo:1}\n{tempo:100}\n{time:3/4}\n[C]Line\n"),
+        Case("time", d => d.Time = "4/4", "{title:T}\n{artist:A}\n{key:C}\n{capo:1}\n{tempo:90}\n{time:4/4}\n[C]Line\n"),
         Case("line text", d => d.Lines[1].Text = "Other", Head + "\n[C]Other\n"),
         Case("line type", d => d.Lines[1].Type = ChordProLineType.Chorus, Head + "\n{start_of_chorus}\n[C]Line\n{end_of_chorus}\n"),
         Case("chord name", d => d.Lines[1].Chords[0].Chord = "G", Head + "\n[G]Line\n"),
@@ -47,7 +51,7 @@ public class ChordProEditedDocumentTests
     }
 
     [Theory]
-    [MemberData(nameof(Edits))]
+    [MemberData(nameof(BodyEdits))]
     public void EditedDocument_RendersLikeAHandBuiltOne(string name, Action<ChordProDocument> edit, string expected)
     {
         var document = _parser.Parse(Song);
@@ -77,7 +81,7 @@ public class ChordProEditedDocumentTests
 
         var result = _parser.Render(document, new ChordProRenderOptions { TransposeSteps = 2 });
 
-        Assert.Equal("{title:New}\n{artist:A}\n{key:D}\n{capo:1}\n{tempo:90}\n{time:3/4}\n\n[D]Line\n", result);
+        Assert.Equal("{title:New}\n{artist:A}\n{key:D}\n{capo:1}\n{tempo:90}\n{time:3/4}\n[D]Line\n", result);
     }
 
     [Fact]

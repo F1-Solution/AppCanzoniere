@@ -15,7 +15,7 @@ public class ChordProParsedDocumentTests
 
         Assert.False(assembly.GetType("AppCanzoniere.Application.Interfaces.ChordProSourceLine")!.IsPublic);
         Assert.False(assembly.GetType("AppCanzoniere.Application.Interfaces.ChordProSourceKind")!.IsPublic);
-        Assert.DoesNotContain(typeof(ChordProDocument).GetProperties(), p => p.Name.Contains("Source", StringComparison.Ordinal));
+        Assert.DoesNotContain(typeof(ChordProDocument).GetProperties(), p => p.Name.Contains("Source", StringComparison.Ordinal) && p.Name != "KeepsSourceText");
         Assert.DoesNotContain(typeof(ChordProDocument).GetProperties(), p => p.Name.Contains("Snapshot", StringComparison.Ordinal));
     }
 

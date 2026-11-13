@@ -212,8 +212,12 @@ public class ChordProParser : IChordProParser
         ArgumentNullException.ThrowIfNull(options);
 
         var transformer = new ChordTransformer(options, document.Key, document.CapoFret ?? 0, ChordProKeys.ChordsOf(document));
-        if (document.SourceLines is { } source && document.Snapshot?.Matches(document) == true)
-            return ChordProSourceRenderer.Render(source, transformer, options.Capo);
+        if (document.KeepsSourceText)
+        {
+            var edits = document.Snapshot!.HeaderEdits(document);
+            var lines = edits.Count == 0 ? document.SourceLines! : ChordProHeaderEditor.Apply(document.SourceLines!, edits);
+            return ChordProSourceRenderer.Render(lines, transformer, options.Capo);
+        }
 
         var sb = new StringBuilder();
 

@@ -16,12 +16,27 @@ internal sealed class ChordProDocumentSnapshot
         new(Fields(document), (document.Lines ?? new List<ChordProLine>()).Select(LineCopy.Of).ToArray());
 
     /// <summary>True when the document still holds exactly the copied content.</summary>
-    public bool Matches(ChordProDocument document)
+    public bool Matches(ChordProDocument document) =>
+        LinesMatch(document) && Fields(document).AsSpan().SequenceEqual(_fields);
+
+    /// <summary>The header values that differ from the copy, in field order.</summary>
+    public IReadOnlyList<HeaderEdit> HeaderEdits(ChordProDocument document)
+    {
+        var now = Fields(document);
+        var edits = new List<HeaderEdit>();
+        for (var i = 0; i < now.Length; i++)
+        {
+            if (now[i] != _fields[i])
+                edits.Add(new HeaderEdit((HeaderField)i, now[i] ?? string.Empty));
+        }
+
+        return edits;
+    }
+
+    /// <summary>True when every line of the document is as copied, whatever the header values.</summary>
+    public bool LinesMatch(ChordProDocument document)
     {
         if (document.Lines is not { } lines || lines.Count != _lines.Length)
-            return false;
-
-        if (!Fields(document).AsSpan().SequenceEqual(_fields))
             return false;
 
         for (var i = 0; i < _lines.Length; i++)
@@ -56,3 +71,17 @@ internal sealed class ChordProDocumentSnapshot
         }
     }
 }
+
+/// <summary>A typed header value of a document, in the order the snapshot copies them.</summary>
+internal enum HeaderField
+{
+    Title,
+    Artist,
+    Key,
+    Capo,
+    Tempo,
+    Time
+}
+
+/// <summary>A header value changed since the document was parsed.</summary>
+internal sealed record HeaderEdit(HeaderField Field, string Value);
