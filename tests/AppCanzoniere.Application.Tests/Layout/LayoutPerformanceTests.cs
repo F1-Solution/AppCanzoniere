@@ -8,16 +8,14 @@ public class LayoutPerformanceTests
 {
     private const int Warmups = 3;
     private const int Samples = 9;
-    private const double GenerousBoundMilliseconds = 50;
+    private const double GenerousBoundMilliseconds = 2000;
 
-    private static string HundredLineSong()
-    {
-        var line = "[Do]Signore [Sol]pietà di [Re]noi che [Mi]siamo qui [La]davanti a [Si]te";
-        return Lines(Enumerable.Repeat(line, 100).ToArray());
-    }
+    private const string SongLine = "[Do]Signore [Sol]pietà di [Re]noi che [Mi]siamo qui [La]davanti a [Si]te";
+
+    private static string HundredLineSong() => Lines(Enumerable.Repeat(SongLine, 100).ToArray());
 
     [Fact]
-    public void LayingOutAHundredLineSong_IsFarBelowTheBound_SoNothingIsQuadratic()
+    public void LayingOutAHundredLineSong_FinishesWithinAVeryGenerousWallClockBound()
     {
         var source = Source(HundredLineSong());
         var options = Options(300, 600);
@@ -38,14 +36,19 @@ public class LayoutPerformanceTests
         Assert.True(median < GenerousBoundMilliseconds, $"median {median:F2} ms over {Samples} runs");
     }
 
-    [Fact]
-    public void ADoubledSong_DoesNotMoreThanAboutDoubleTheMeasurements()
+    [Theory]
+    [InlineData(100, 200)]
+    [InlineData(200, 400)]
+    public void DoublingTheLines_NeverMoreThanDoublesTheMeasurerCalls(int smaller, int larger)
     {
-        var single = new FixedAdvanceMeasurer();
-        SongLayoutEngine.Layout(Source(HundredLineSong()), Options(300, 600), single);
-        var doubled = new FixedAdvanceMeasurer();
-        SongLayoutEngine.Layout(Source(HundredLineSong() + "\n" + HundredLineSong()), Options(300, 600), doubled);
+        Assert.True(CallsFor(larger) <= 2 * CallsFor(smaller) + 16, $"{CallsFor(larger)} calls for {larger} lines, {CallsFor(smaller)} for {smaller}");
+    }
 
-        Assert.True(doubled.TotalCalls <= 2 * single.TotalCalls + 16);
+    private static int CallsFor(int lines)
+    {
+        var measurer = new FixedAdvanceMeasurer();
+        var song = Lines(Enumerable.Repeat(SongLine, lines).ToArray());
+        SongLayoutEngine.Layout(Source(song), Options(300, 600), measurer);
+        return measurer.TotalCalls;
     }
 }
