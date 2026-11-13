@@ -95,3 +95,6 @@ nCrunchTemp_*
 *.bak
 *.orig
 *~
+
+# Local corpus of real songs (third-party content, never committed)
+corpus-locale/
