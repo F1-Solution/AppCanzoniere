@@ -3,7 +3,7 @@ using AppCanzoniere.Application.Music;
 namespace AppCanzoniere.Application.Import;
 
 /// <summary>What the rest of the document says about a line: the lyric below it and whether the document writes chords in lower case.</summary>
-internal readonly record struct LineContext(string? Below, bool LowerCaseStyle);
+internal readonly record struct LineContext(string? Below, bool LowerCaseStyle, bool FirstContent = false);
 
 /// <summary>Promotes lower-case and other-notation chord words when the rest of the line is made of chords.</summary>
 internal static class LooseChords

@@ -21,6 +21,7 @@ public static class ChordSheetConverter
     {
         ArgumentNullException.ThrowIfNull(text);
         options ??= new ChordSheetOptions();
+        Validate(options);
         if (text.Length == 0)
             return new ChordSheetResult(string.Empty, false, null, Array.Empty<SheetLineDiagnostic>(), 0, 0);
 
@@ -36,6 +37,16 @@ public static class ChordSheetConverter
         var chordLines = analysis.Lines.Count(l => l.Kind == SheetLineKind.ChordLine);
         var notation = analysis.HasChords ? analysis.Notation : (Notation?)null;
         return new ChordSheetResult(written.ChordPro, false, notation, diagnostics, chordLines, written.MergedCount);
+    }
+
+    private static void Validate(ChordSheetOptions options)
+    {
+        if (options.Notation is { } notation && !Enum.IsDefined(notation))
+            throw new ArgumentOutOfRangeException(nameof(options), notation, "The notation is not defined.");
+        if (!Enum.IsDefined(options.TieBreakNotation))
+            throw new ArgumentOutOfRangeException(nameof(options), options.TieBreakNotation, "The tie-break notation is not defined.");
+        if (options.SnapColumns < 0)
+            throw new ArgumentOutOfRangeException(nameof(options), options.SnapColumns, "The snap width cannot be negative.");
     }
 
     private static DocumentAnalysis Analyze(IReadOnlyList<NormalizedLine> lines, ChordSheetOptions options)

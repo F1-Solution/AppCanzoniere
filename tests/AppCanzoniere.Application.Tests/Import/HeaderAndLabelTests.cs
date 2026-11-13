@@ -110,5 +110,5 @@ public class HeaderAndLabelTests
 
     [Fact]
     public void ZeroSnapWidth_IsAllowed() =>
-        Assert.Equal(Out("[Do]Santo"), ChordSheetConverter.Convert("Do\nSanto", new ChordSheetOptions { SnapColumns = 0 }).ChordPro);
+        Assert.Equal(Out("[Do]San[Sol]to"), ChordSheetConverter.Convert("Do Sol\nSanto", new ChordSheetOptions { SnapColumns = 0 }).ChordPro);
 }

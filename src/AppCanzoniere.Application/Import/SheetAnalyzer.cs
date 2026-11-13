@@ -41,6 +41,13 @@ internal static class SheetAnalyzer
     private const double OtherNotationConfidence = 0.6;
     private const int MaxTitleLength = 60;
     private const int MinTabDashes = 4;
+    private const int MinTitleCapitals = 2;
+
+    private static readonly Regex ContentsEntry = new(
+        @"(?:\bpag(?:ina|\.)?\s*\d+|\bp\.\s*\d+|\.{3,}\s*\d+)\s*$",
+        RegexOptions.Compiled | RegexOptions.CultureInvariant | RegexOptions.IgnoreCase);
+
+    private static readonly Regex NumberedTitle = new(@"^\s*\d{1,3}[.)]\s+\S", RegexOptions.Compiled | RegexOptions.CultureInvariant);
 
     private static readonly Regex TabStart = new(@"^\s*[A-Ga-g][#b]?\s?[|:]", RegexOptions.Compiled | RegexOptions.CultureInvariant);
 
@@ -49,15 +56,17 @@ internal static class SheetAnalyzer
         var analyzed = new List<AnalyzedLine>(lines.Count);
         var inHeader = true;
         var lowerCaseStyle = HasLowerCaseStyle(lines, notation);
+        var seenContent = false;
         for (var i = 0; i < lines.Count; i++)
         {
-            var context = new LineContext(i + 1 < lines.Count ? lines[i + 1].Text : null, lowerCaseStyle);
+            var context = new LineContext(i + 1 < lines.Count ? lines[i + 1].Text : null, lowerCaseStyle, !seenContent);
             var line = AnalyzeLine(i, lines[i], notation, inHeader, context);
             analyzed.Add(line);
+            seenContent |= lines[i].Text.Length > 0;
             inHeader = inHeader && !EndsHeader(line);
         }
 
-        return new DocumentAnalysis(notation, GuessTitle(ResolvePending(analyzed)));
+        return new DocumentAnalysis(notation, GuessTitle(ResolvePending(analyzed), notation));
     }
 
     /// <summary>Marks plain lyric lines that would be chord lines in the other notation.</summary>
@@ -102,7 +111,7 @@ internal static class SheetAnalyzer
                 unreadable ? warnings.Append(SheetWarning.UnreadableMetadata).ToList() : warnings, Meta: meta);
         }
 
-        if (SectionLabelParser.TryParse(text) is { } label)
+        if (!IsNotALabel(text, context) && SectionLabelParser.TryParse(text) is { } label)
             return AnalyzeLabel(index, line, label, notation, warnings, context);
 
         var start = text.Length - text.TrimStart().Length;
@@ -115,6 +124,15 @@ internal static class SheetAnalyzer
         };
         return new AnalyzedLine(index, line, kind, unit.Class.Confidence, warnings.Concat(unit.Class.Warnings).ToList(), unit);
     }
+
+    // A song number before a title and a contents entry look like a numbered verse but are plain text.
+    private static bool IsNotALabel(string text, LineContext context) =>
+        ContentsEntry.IsMatch(text) || (NumberedTitle.IsMatch(text) && IsAllCaps(text) && (context.FirstContent || IsBlankOrMetadata(context.Below)));
+
+    private static bool IsAllCaps(string text) => !text.Any(char.IsLower) && text.Count(char.IsUpper) >= MinTitleCapitals;
+
+    private static bool IsBlankOrMetadata(string? below) =>
+        below is not null && (below.Length == 0 || MetadataParser.TryParse(below.Trim()) is not null);
 
     private static AnalyzedLine AnalyzeLabel(int index, NormalizedLine line, SectionLabel label, Notation notation, IReadOnlyList<SheetWarning> warnings, LineContext context)
     {
@@ -149,13 +167,23 @@ internal static class SheetAnalyzer
             : l).ToList();
     }
 
-    private static IReadOnlyList<AnalyzedLine> GuessTitle(IReadOnlyList<AnalyzedLine> lines)
+    private static bool IsChordLineOfOtherNotation(string text, Notation notation)
+    {
+        var other = notation == Notation.Italian ? Notation.English : Notation.Italian;
+        var classification = LineClassifier.Classify(SheetTokenizer.Tokenize(text, 0, other), other);
+        return classification.IsChord || classification.Pending;
+    }
+
+    private static IReadOnlyList<AnalyzedLine> GuessTitle(IReadOnlyList<AnalyzedLine> lines, Notation notation)
     {
         if (lines.Any(l => l.Meta?.Kind == MetaKind.Title))
             return lines;
 
         var first = lines.FirstOrDefault(l => l.Kind != SheetLineKind.Blank);
         if (first is not { Kind: SheetLineKind.Lyric, Content: { } content } || content.Class.ChordCount > 1)
+            return lines;
+
+        if (!lines.Skip(first.Index + 1).Any(l => l.Kind != SheetLineKind.Blank) || IsChordLineOfOtherNotation(first.Source.Text, notation))
             return lines;
 
         var title = first.Source.Text.Trim();

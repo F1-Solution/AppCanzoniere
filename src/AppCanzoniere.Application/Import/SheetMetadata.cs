@@ -35,6 +35,7 @@ internal static class MetadataParser
         (MetaKind.Composer, new Regex(@"^(?:musica|music)\s*:\s*(?<v>.+)$", Options))
     };
 
+    private static readonly Regex ValidRoman = new(@"^(?:XII|XI|X|IX|VIII|VII|VI|V|IV|III|II|I)$", Options);
     private static readonly Regex KeyLine = new(@"^(?:tonalit[àa]|tono|key)(?![\p{L}])\s*(?<colon>:)?\s*(?<v>.+)$", Options);
     private static readonly Regex KeyMode = new(@"^(?<x>\S+)\s+(?:(?<major>maggiore|major)|(?<minor>minore|minor))$", Options);
     private static readonly Regex CapoLine = new(@"^(?:capotasto|capo)\s*(?:al\s*)?:?\s*(?<v>\d{1,2}|[ivx]{1,4})\s*[°º]?\s*(?:tasto)?\s*\.?$", Options);
@@ -88,7 +89,11 @@ internal static class MetadataParser
             return null;
 
         var value = match.Groups["v"].Value;
-        var fret = char.IsDigit(value[0]) ? int.Parse(value, CultureInfo.InvariantCulture) : FromRoman(value);
+        var isRoman = !char.IsDigit(value[0]);
+        if (isRoman && !ValidRoman.IsMatch(value))
+            return Unreadable(trimmed);
+
+        var fret = isRoman ? FromRoman(value) : int.Parse(value, CultureInfo.InvariantCulture);
         return fret is >= 1 and <= MaxCapo
             ? new MetadataItem(MetaKind.Capo, fret.ToString(CultureInfo.InvariantCulture), false)
             : Unreadable(trimmed);

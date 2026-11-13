@@ -53,8 +53,7 @@ internal static class SectionLabelParser
 
     private static int ReadSuffix(string trimmed, int position, ref bool bare)
     {
-        if (position < trimmed.Length && IsPunctuation(trimmed[position]))
-            position++;
+        position = SkipPunctuation(trimmed, position);
 
         var number = Number.Match(trimmed, position);
         if (!number.Success)
@@ -62,7 +61,14 @@ internal static class SectionLabelParser
 
         bare = false;
         position = number.Index + number.Length;
-        return position < trimmed.Length && IsPunctuation(trimmed[position]) ? position + 1 : position;
+        return SkipPunctuation(trimmed, position);
+    }
+
+    private static int SkipPunctuation(string text, int position)
+    {
+        while (position < text.Length && IsPunctuation(text[position]))
+            position++;
+        return position;
     }
 
     private static SectionLabel Create(SectionKind kind, string label, bool bare, int restStart)
