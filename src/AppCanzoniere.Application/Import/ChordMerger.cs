@@ -15,9 +15,11 @@ internal static class ChordMerger
         var inline = new List<(int Offset, SheetToken Token)>();
         var tail = new List<SheetToken>();
 
+        // Chords after a section label are placed relative to the text that follows the label.
+        var chordOrigin = chords.Indented ? lyric.Start : chords.Start;
         foreach (var token in chords.Class.Tokens)
         {
-            var column = Math.Max(0, token.Column - lyric.Start);
+            var column = Math.Max(0, token.Column - chordOrigin);
             if (column >= text.Length)
             {
                 tail.Add(token);
