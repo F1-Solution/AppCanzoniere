@@ -45,9 +45,13 @@ public static class ChordSheetConverter
 
         var italian = SheetAnalyzer.Analyze(lines, Notation.Italian);
         var english = SheetAnalyzer.Analyze(lines, Notation.English);
-        var (chosen, other) = italian.DetectionCount == english.DetectionCount
+        var singlesOnly = italian.DetectionCount + english.DetectionCount == 0;
+        var (italianVotes, englishVotes) = singlesOnly
+            ? (italian.DetectionCountWithSingles, english.DetectionCountWithSingles)
+            : (italian.DetectionCount, english.DetectionCount);
+        var (chosen, other) = italianVotes == englishVotes
             ? (options.TieBreakNotation == Notation.Italian ? italian : english, options.TieBreakNotation == Notation.Italian ? english : italian)
-            : italian.DetectionCount > english.DetectionCount ? (italian, english) : (english, italian);
+            : italianVotes > englishVotes ? (italian, english) : (english, italian);
         return SheetAnalyzer.FlagOtherNotation(chosen, other);
     }
 

@@ -17,9 +17,17 @@ internal sealed record AnalyzedLine(
 /// <summary>Result of reading the whole document with one notation.</summary>
 internal sealed record DocumentAnalysis(Notation Notation, IReadOnlyList<AnalyzedLine> Lines)
 {
-    /// <summary>Lines that explain the notation: definite chord lines and inline chord lines.</summary>
-    public int DetectionCount => Lines.Count(l => l.Content is { } c &&
-        (c.Kind == UnitKind.Chord ? c.Class.CountsForDetection : c.Kind == UnitKind.Inline && (c.Class.Unambiguous >= 1 || c.Class.ChordCount >= 2)));
+    /// <summary>Lines that explain the notation: definite chord lines and inline chord lines, single bare notes left out.</summary>
+    public int DetectionCount => Lines.Count(l => l.Content is { } c && VotesForNotation(c) && !IsSingleNote(c));
+
+    /// <summary>Like <see cref="DetectionCount"/> but single bare-note lines vote too; used when they are the only evidence.</summary>
+    public int DetectionCountWithSingles => Lines.Count(l => l.Content is { } c && VotesForNotation(c));
+
+    private bool VotesForNotation(ContentUnit c) =>
+        c.Kind == UnitKind.Chord ? c.Class.CountsForDetection : c.Kind == UnitKind.Inline && (c.Class.Unambiguous >= 1 || c.Class.ChordCount >= 2);
+
+    private bool IsSingleNote(ContentUnit c) =>
+        c.Kind == UnitKind.Chord && c.Class.Tokens is [{ Kind: TokenKind.Chord } only] && ChordSymbolParser.TryParseNote(only.Chord, Notation, out _);
 
     public bool HasChords => Lines.Any(l => l.Content is { } c &&
         (c.Kind == UnitKind.Inline ? c.Class.ChordCount > 0 : c.Kind == UnitKind.Chord && c.Class.Tokens.Any(t => t.Kind == TokenKind.Chord)));
@@ -67,7 +75,10 @@ internal static class SheetAnalyzer
 
     private static bool IsOtherNotation(AnalyzedLine line, AnalyzedLine other) =>
         line.Kind == SheetLineKind.Lyric && other.Kind == SheetLineKind.ChordLine &&
-        other.Content is { Class: { Pending: false, Unambiguous: >= 1, Words: 0 } };
+        other.Content is { Class: { Words: 0, ChordCount: >= 1 } c } && (c.Unambiguous >= 1 || IsBareNoteLine(c));
+
+    // A lone ambiguous note such as "A" or "Mi" is flagged too, never silently left as a lyric.
+    private static bool IsBareNoteLine(LineClassification c) => c.Tokens.All(t => t.Kind == TokenKind.Chord);
 
     // A document with several lower-case chord lines writes all its chords in lower case.
     private static bool HasLowerCaseStyle(IReadOnlyList<NormalizedLine> lines, Notation notation) =>
