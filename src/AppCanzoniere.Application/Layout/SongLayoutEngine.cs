@@ -11,18 +11,21 @@ public static class SongLayoutEngine
         ArgumentNullException.ThrowIfNull(measurer);
 
         var plans = SectionPlanner.Plan(source, options.DisplayMode);
-        var ctx = new FlowContext(options, measurer, 0, false);
+        var numbered = LineNumbering.Count(source, plans);
+        var gutter = LineNumbering.GutterWidth(numbered, options, measurer);
+        var ctx = new FlowContext(options, measurer, gutter, gutter > 0);
         var sections = new List<LayoutSection>(plans.Count);
         var y = 0.0;
+        var lastNumber = 0;
         foreach (var plan in plans)
         {
             var top = sections.Count == 0 ? 0 : y + options.SectionSpacing;
-            var section = SectionLayouter.Layout(plan, source, top, ctx);
+            var section = SectionLayouter.Layout(plan, source, top, ctx, ref lastNumber);
             sections.Add(section);
             y = section.Y + section.Height;
         }
 
-        return new FlowLayout(options.Width, 0, y, 0, Frozen.From(sections));
+        return new FlowLayout(options.Width, gutter, y, numbered, Frozen.From(sections));
     }
 
     /// <summary>Splits a flow into pages of options.PageHeight; one page of the flow height when it is null.</summary>

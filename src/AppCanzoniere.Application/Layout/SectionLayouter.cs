@@ -3,7 +3,7 @@ namespace AppCanzoniere.Application.Layout;
 /// <summary>Lays out one planned section: optional label, then its lines stacked from the section top.</summary>
 internal static class SectionLayouter
 {
-    public static LayoutSection Layout(SectionPlan plan, LayoutSource source, double top, FlowContext ctx)
+    public static LayoutSection Layout(SectionPlan plan, LayoutSource source, double top, FlowContext ctx, ref int lastNumber)
     {
         var y = top;
         LayoutRun? labelRun = null;
@@ -25,7 +25,7 @@ internal static class SectionLayouter
             if (lines.Count > 0)
                 y += ctx.Options.LineSpacing;
 
-            var line = LayoutOne(plan.Kind, index, source.Lines[index], y, ctx);
+            var line = LayoutOne(plan.Kind, index, source.Lines[index], y, ctx, ref lastNumber);
             lines.Add(line);
             y = line.Y + line.Height;
         }
@@ -33,13 +33,15 @@ internal static class SectionLayouter
         return new LayoutSection(plan.Kind, plan.Label, labelRun, top, y - top, 1, false, false, false, Frozen.From(lines));
     }
 
-    private static LayoutLine LayoutOne(SectionKind kind, int index, LayoutSourceLine line, double y, FlowContext ctx) =>
-        kind switch
-        {
-            SectionKind.Comment => CommentLine(index, line, y, ctx),
-            SectionKind.Chorus => LyricLineLayouter.Layout(index, line, null, y, TextRole.ChorusLyric, ctx),
-            _ => LyricLineLayouter.Layout(index, line, null, y, TextRole.Lyric, ctx),
-        };
+    private static LayoutLine LayoutOne(SectionKind kind, int index, LayoutSourceLine line, double y, FlowContext ctx, ref int lastNumber)
+    {
+        if (kind == SectionKind.Comment)
+            return CommentLine(index, line, y, ctx);
+
+        int? number = LineNumbering.IsNumbered(line) ? ++lastNumber : null;
+        var role = kind == SectionKind.Chorus ? TextRole.ChorusLyric : TextRole.Lyric;
+        return LyricLineLayouter.Layout(index, line, number, y, role, ctx);
+    }
 
     private static LayoutRun LabelRun(string label, double y, FlowContext ctx)
     {
