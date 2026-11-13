@@ -8,19 +8,23 @@ public sealed record LayoutRun(
     int SourceOffset,
     bool HyphenAfter);
 
-/// <summary>A visual row of one source line; Index 0 is the first row, above 0 are wrapped continuation rows.</summary>
-public sealed record LayoutRow(int Index, double Y, double Height, IReadOnlyList<LayoutRun> Runs, bool HardBreakAfter);
+/// <summary>A visual row of one source line; Index 0 is the first row, above 0 are wrapped continuation rows; Overflow means it is wider than its width.</summary>
+public sealed record LayoutRow(int Index, double Y, double Height, IReadOnlyList<LayoutRun> Runs, bool HardBreakAfter, bool Overflow = false);
 
-/// <summary>A source line laid out in one or more rows; Number is set only on the fragment holding row 0.</summary>
-public sealed record LayoutLine(int SourceLineIndex, int? Number, double Y, double Height, IReadOnlyList<LayoutRow> Rows);
+/// <summary>A source line laid out in one or more rows; Number is set only on the fragment holding row 0; IsComment marks a comment inside a section.</summary>
+public sealed record LayoutLine(int SourceLineIndex, int? Number, double Y, double Height, IReadOnlyList<LayoutRow> Rows, bool IsComment = false);
 
-/// <summary>A section or the part of it that falls on one page.</summary>
+/// <summary>A section or the part of it that falls on one page; LabelRuns holds one run per row of a wrapped label.</summary>
 public sealed record LayoutSection(
-    SectionKind Kind, string? Label, LayoutRun? LabelRun,
+    SectionKind Kind, string? Label, IReadOnlyList<LayoutRun> LabelRuns,
     double Y, double Height,
     double TabScale, bool TabClipped,
     bool ContinuedFromPrevious, bool ContinuesOnNext,
-    IReadOnlyList<LayoutLine> Lines);
+    IReadOnlyList<LayoutLine> Lines)
+{
+    /// <summary>The first row of the label, or null when the section has none.</summary>
+    public LayoutRun? LabelRun => LabelRuns.Count > 0 ? LabelRuns[0] : null;
+}
 
 /// <summary>Result of the flow phase: every section stacked from Y 0, independent of page height.</summary>
 public sealed record FlowLayout(double Width, double GutterWidth, double Height, int NumberedLineCount, IReadOnlyList<LayoutSection> Sections);

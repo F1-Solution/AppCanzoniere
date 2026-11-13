@@ -164,7 +164,7 @@ internal sealed class SectionCursor
     {
         Template = section;
         Lines = new List<LayoutLine>(section.Lines);
-        Labeled = section.LabelRun is not null;
+        Labeled = section.LabelRuns.Count > 0;
     }
 
     public LayoutSection Template { get; }
@@ -199,7 +199,7 @@ internal sealed class SectionCursor
         return Template with
         {
             Label = Labeled ? Template.Label : null,
-            LabelRun = Labeled ? LayoutShift.Run(Template.LabelRun!, dy) : null,
+            LabelRuns = Labeled ? LayoutShift.Runs(Template.LabelRuns, dy) : Frozen.From(Array.Empty<LayoutRun>()),
             Y = pageY,
             Height = HeightOf(count),
             ContinuedFromPrevious = Continued,

@@ -6,17 +6,18 @@ internal static class SectionLayouter
     public static LayoutSection Layout(SectionPlan plan, LayoutSource source, double top, FlowContext ctx, ref int lastNumber)
     {
         var y = top;
-        LayoutRun? labelRun = null;
+        IReadOnlyList<LayoutRun> labelRuns = Frozen.From(Array.Empty<LayoutRun>());
         if (plan.Label is { } label)
         {
-            labelRun = LabelRun(label, y, ctx);
+            var labelRun = LabelRun(label, y, ctx);
+            labelRuns = Frozen.From(new[] { labelRun });
             y = labelRun.Y + labelRun.Height + ctx.Options.LabelSpacing;
         }
 
         if (plan.Kind == SectionKind.Tab)
         {
             var block = TabLayouter.Layout(source, plan.LineIndexes, y, ctx);
-            return new LayoutSection(plan.Kind, plan.Label, labelRun, top, block.Bottom - top, block.Scale, block.Clipped, false, false, block.Lines);
+            return new LayoutSection(plan.Kind, plan.Label, labelRuns, top, block.Bottom - top, block.Scale, block.Clipped, false, false, block.Lines);
         }
 
         var lines = new List<LayoutLine>(plan.LineIndexes.Count);
@@ -30,7 +31,7 @@ internal static class SectionLayouter
             y = line.Y + line.Height;
         }
 
-        return new LayoutSection(plan.Kind, plan.Label, labelRun, top, y - top, 1, false, false, false, Frozen.From(lines));
+        return new LayoutSection(plan.Kind, plan.Label, labelRuns, top, y - top, 1, false, false, false, Frozen.From(lines));
     }
 
     private static LayoutLine LayoutOne(SectionKind kind, int index, LayoutSourceLine line, double y, FlowContext ctx, ref int lastNumber)
