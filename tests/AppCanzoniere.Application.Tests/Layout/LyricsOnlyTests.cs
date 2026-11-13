@@ -42,13 +42,13 @@ public class LyricsOnlyTests
     }
 
     [Fact]
-    public void ASectionOfOnlyInstrumentalLines_DisappearsWithItsLabel()
+    public void ASectionOfOnlyInstrumentalLines_DisappearsButItsLabelIsKeptAsAComment()
     {
         var flow = Flow(Lines("Signore", "", "{c: Intro}", "[Do] [Sol]", "", "Pietà"), LyricsOnly());
 
-        Assert.Equal(2, flow.Sections.Count);
+        Assert.Equal(new[] { SectionKind.Verse, SectionKind.Comment, SectionKind.Verse }, flow.Sections.Select(s => s.Kind));
         Assert.All(flow.Sections, s => Assert.Null(s.Label));
-        Assert.Equal(40, flow.Sections[1].Y);
+        Assert.Equal(new[] { 0d, 40, 78 }, flow.Sections.Select(s => s.Y));
     }
 
     [Fact]

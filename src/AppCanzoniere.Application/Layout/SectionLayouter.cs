@@ -36,7 +36,7 @@ internal static class SectionLayouter
 
     private static LayoutLine LayoutOne(SectionKind kind, int index, LayoutSourceLine line, double y, FlowContext ctx, ref int lastNumber)
     {
-        if (kind == SectionKind.Comment)
+        if (line.Type == Interfaces.ChordProLineType.Comment)
             return CommentLine(index, line, y, ctx);
 
         int? number = LineNumbering.IsNumbered(line) ? ++lastNumber : null;

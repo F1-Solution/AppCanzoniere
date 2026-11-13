@@ -19,7 +19,7 @@ internal static class LineNumbering
 
             foreach (var index in plan.LineIndexes)
             {
-                if (!LineModel.IsBlank(source.Lines[index].Text))
+                if (IsNumbered(source.Lines[index]))
                     count++;
             }
         }
