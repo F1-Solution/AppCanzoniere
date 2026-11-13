@@ -1,12 +1,13 @@
 namespace AppCanzoniere.Application.Layout;
 
-/// <summary>One string to draw. X/Y is the top-left of its box; the painter draws Text at (TextX, BaselineY).</summary>
+/// <summary>One string to draw; X/Y is the top-left of its box and Text is drawn at (TextX, BaselineY); ChordIndex is a chord run's ordinal in its source line's chord list, else -1.</summary>
 public sealed record LayoutRun(
     RunKind Kind, string Text, TextRole Role,
     double X, double Y, double Width, double Height,
     double TextX, double BaselineY,
     int SourceOffset,
-    bool HyphenAfter);
+    bool HyphenAfter,
+    int ChordIndex = -1);
 
 /// <summary>A visual row of one source line; Index 0 is the first row, above 0 are wrapped continuation rows; Overflow means it is wider than its width.</summary>
 public sealed record LayoutRow(int Index, double Y, double Height, IReadOnlyList<LayoutRun> Runs, bool HardBreakAfter, bool Overflow = false)
@@ -16,7 +17,7 @@ public sealed record LayoutRow(int Index, double Y, double Height, IReadOnlyList
     public IReadOnlyList<LayoutRun> Runs { get => _runs; init => _runs = Frozen.Copy(value, nameof(Runs)); }
 }
 
-/// <summary>A source line laid out in one or more rows; Number is set only on the fragment holding row 0; IsComment marks a comment inside a section.</summary>
+/// <summary>A source line laid out in one or more rows; SourceLineIndex is its index in the parsed document's lines, titles included; Number is set only on the fragment holding row 0; IsComment marks a comment inside a section.</summary>
 public sealed record LayoutLine(int SourceLineIndex, int? Number, double Y, double Height, IReadOnlyList<LayoutRow> Rows, bool IsComment = false)
 {
     private readonly IReadOnlyList<LayoutRow> _rows = Frozen.Copy(Rows, nameof(Rows));
