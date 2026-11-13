@@ -11,8 +11,8 @@ public class LowFindingsTests
     private readonly ChordProParser _parser = new();
 
     [Theory]
-    [InlineData("Bbb5", AccidentalPreference.Flats, "Cb5")]
-    [InlineData("Bbb9", AccidentalPreference.Flats, "Cb9")]
+    [InlineData("Bbb5", AccidentalPreference.Flats, "C(b5)")]
+    [InlineData("Bbb9", AccidentalPreference.Flats, "C(b9)")]
     [InlineData("Abb5", AccidentalPreference.Flats, "Bbb5")]
     [InlineData("Cbb5", AccidentalPreference.Flats, "Dbb5")]
     [InlineData("F##5", AccidentalPreference.Sharps, "G##5")]
