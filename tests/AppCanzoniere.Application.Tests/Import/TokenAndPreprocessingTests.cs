@@ -54,13 +54,13 @@ public class TokenAndPreprocessingTests
 
     [Fact]
     public void Case24_NonBreakingSpace_CountsAsASpace() =>
-        Assert.Equal(Out("[Do]Ti [Sol]lodiamo"), Run("Do Sol", "Ti lodiamo").ChordPro);
+        Assert.Equal(Out("[Do]Ti [Sol]lodiamo"), Run("Do\u00A0Sol", "Ti lodiamo").ChordPro);
 
     [Theory]
-    [InlineData("Do Sol")]
-    [InlineData("Do Sol")]
-    [InlineData("Do​ Sol")]
-    [InlineData("﻿Do Sol")]
+    [InlineData("Do\u202FSol")]
+    [InlineData("Do\u2003Sol")]
+    [InlineData("Do\u200B Sol")]
+    [InlineData("\uFEFFDo Sol")]
     public void Case24_OtherInvisibleSpaces_AreNormalised(string chordLine) =>
         Assert.Equal(Out("[Do]Ti [Sol]lodiamo"), Run(chordLine, "Ti lodiamo").ChordPro);
 

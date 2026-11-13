@@ -24,12 +24,12 @@ public class TextElementTests
 
     [Fact]
     public void CombiningAccentWithoutPrecomposedForm_StaysWithItsLetter() =>
-        Assert.Equal(Out("[Do]q́ui[Sol]et"), Run("Do Sol", "q́uiet").ChordPro);
+        Assert.Equal(Out("[Do]q\u0301ui[Sol]et"), Run("Do Sol", "q\u0301uiet").ChordPro);
 
     [Fact]
     public void DecomposedAccents_AreComposedAndDoNotShiftColumns()
     {
-        var result = Run("Do      Sol", "Perché siamo");
+        var result = Run("Do      Sol", "Perche\u0301 siamo");
 
         Assert.Equal(Out("[Do]Perché s[Sol]iamo"), result.ChordPro);
     }
@@ -37,7 +37,7 @@ public class TextElementTests
     [Fact]
     public void EmojiBeforeTheChord_CountsAsOneColumnEach()
     {
-        var result = Run("Do   Sol", "Ca" + Prayer + Prayer + " mío");
+        var result = Run("Do   Sol", "Ca" + Prayer + Prayer + " mi\u0301o");
 
         Assert.Equal(Out("[Do]Ca" + Prayer + Prayer + " [Sol]mío"), result.ChordPro);
     }

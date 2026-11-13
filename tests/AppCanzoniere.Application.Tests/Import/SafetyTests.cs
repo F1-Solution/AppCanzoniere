@@ -109,7 +109,7 @@ public class SafetyTests
             new[] { "| Do | Sol | Lam | Fa |" }, new[] { "Do       Sol       x2", "Signore, ascolta" }, new[] { "Do  Sol  (2 v.)" },
             new[] { "Re  La  %" }, new[] { "N.C.  Do", "Taci, poi canta" }, new[] { "N.C.", "Taci" },
             new[] { "Do     (Lam)", "Vieni, Signore" }, new[] { "Do - Lam - Fa - Sol" }, new[] { "Do-Lam-Fa-Sol" },
-            new[] { "La-    Re", "Vieni, Signore" }, new[] { "Do\tSol", "Ti lodo e canto" }, new[] { "Do Sol", "Ti lodiamo" },
+            new[] { "La-    Re", "Vieni, Signore" }, new[] { "Do\tSol", "Ti lodo e canto" }, new[] { "Do\u00A0Sol", "Ti lodiamo" },
             new[] { "Do      Sol", "Gloria a te" }, new[] { "Do    Sol", "Amen,     amen" }, new[] { "     Re   Sol", "     Il Signore" },
             new[] { "Rit.", "Do Sol", "Ti lodiamo", "Signore" }, new[] { "Rit. 2", "Santo" },
             new[] { "Rit.", "Santo", "", "Strofa 2", "Benedetto", "", "Rit." }, new[] { "Benedetto", "il Signore", "", "Rit." },
@@ -168,5 +168,5 @@ public class SafetyTests
     }
 
     private static string Normalise(string line) =>
-        line.Replace("\t", "        ").Replace(' ', ' ').TrimEnd();
+        line.Replace("\t", "        ").Replace('\u00A0', ' ').TrimEnd();
 }

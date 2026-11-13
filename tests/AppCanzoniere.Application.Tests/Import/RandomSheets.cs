@@ -23,6 +23,25 @@ internal sealed record GeneratedSheet(string Text, IReadOnlyList<string> Lyrics,
 /// <summary>Seeded generator of chords-above-lyrics documents with hostile lyric text (invented words only).</summary>
 internal static class RandomSheets
 {
+    // The generator keeps its own character lists, so it stays an independent check of the converter's tables.
+    private const string FormFeed = "\u000C";
+    private const string VerticalTab = "\u000B";
+    private static readonly string ZeroWidthSpace = ((char)0x200B).ToString();
+    private static readonly string ByteOrderMark = ((char)0xFEFF).ToString();
+    private static readonly string NoBreakSpace = ((char)0x00A0).ToString();
+    private static readonly string CombiningAcute = ((char)0x0301).ToString();
+    private static readonly string CombiningGrave = ((char)0x0300).ToString();
+    private static readonly string CombiningDiaeresis = ((char)0x0308).ToString();
+    private static readonly string CombiningTilde = ((char)0x0303).ToString();
+    private const string FoldedHands = "\U0001F64F";
+    private const string MusicalNotes = "\U0001F3B6";
+    private const string MediumSkinTone = "\U0001F3FD";
+
+    private static readonly char[] RemovedChars = { (char)0x000C, (char)0x000B, (char)0x200B, (char)0xFEFF };
+    private static readonly char[] SpaceLikeChars = { (char)0x00A0, (char)0x2007, (char)0x202F };
+    private const char FirstSpaceInRange = (char)0x2000;
+    private const char LastSpaceInRange = (char)0x200A;
+
     private static readonly string[] Words =
     {
         "Signore", "canta", "forte", "gloria", "pace", "terra", "cielo", "mondo", "fratelli", "luce", "alleluia", "vieni",
@@ -34,10 +53,14 @@ internal static class RandomSheets
     private static readonly string[] Neutrals = { "x2", "|", "N.C.", "%" };
 
     private static readonly string[] BracketNoise = { "[forte]", "[Rit.]", "[1.]", "[ 3 x ]", "{x2}", "{", "}", "[", "]", "[bis]", "{", "]" };
-    private static readonly string[] PlainNoise = { "(bis)", "(2 v.)", "(forte)", "(", ")", " ", "\t" };
-    private static readonly string[] EmojiNoise = { "🙏", "🎶", "🙏🏽" };
-    private static readonly string[] CombiningNoise = { "é", "ò", "ä́", "ñ" };
-    private static readonly string[] ControlNoise = { "\u000C", "\u000B", "​", "﻿" };
+    private static readonly string[] PlainNoise = { "(bis)", "(2 v.)", "(forte)", "(", ")", NoBreakSpace, "\t" };
+    private static readonly string[] EmojiNoise = { FoldedHands, MusicalNotes, FoldedHands + MediumSkinTone };
+    private static readonly string[] CombiningNoise =
+    {
+        "e" + CombiningAcute, "o" + CombiningGrave, "a" + CombiningDiaeresis + CombiningAcute, "n" + CombiningTilde
+    };
+
+    private static readonly string[] ControlNoise = { FormFeed, VerticalTab, ZeroWidthSpace, ByteOrderMark };
 
     public static IEnumerable<GeneratedSheet> Many(int seed, int count, SheetFeatures features)
     {
@@ -95,7 +118,9 @@ internal static class RandomSheets
 
     private static string BlankLine(Random r, SheetFeatures f)
     {
-        var options = f.HasFlag(SheetFeatures.ControlChars) ? new[] { "", "   ", " ", "\u000C", "\u000B " } : new[] { "", "   ", " " };
+        var options = f.HasFlag(SheetFeatures.ControlChars)
+            ? new[] { "", "   ", NoBreakSpace, FormFeed, VerticalTab + " " }
+            : new[] { "", "   ", NoBreakSpace };
         return options[r.Next(options.Length)];
     }
 
@@ -183,10 +208,13 @@ internal static class RandomSheets
         {
             if (c == '\t')
                 builder.Append(' ', 8 - new StringInfo(builder.ToString()).LengthInTextElements % 8);
-            else if (c is not ('\u000C' or '\u000B' or '​' or '﻿'))
-                builder.Append(c is ' ' or ' ' or ' ' or (>= ' ' and <= ' ') ? ' ' : c);
+            else if (!RemovedChars.Contains(c))
+                builder.Append(IsSpaceLike(c) ? ' ' : c);
         }
 
         return builder.ToString().TrimEnd();
     }
+
+    private static bool IsSpaceLike(char c) =>
+        c == ' ' || SpaceLikeChars.Contains(c) || (c >= FirstSpaceInRange && c <= LastSpaceInRange);
 }

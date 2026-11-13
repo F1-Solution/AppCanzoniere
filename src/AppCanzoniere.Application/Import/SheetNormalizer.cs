@@ -9,10 +9,16 @@ internal sealed record NormalizedLine(string Raw, string Text, bool TabExpanded)
 /// <summary>Splits pasted text into lines and normalises Unicode form, tabs, invisible characters and trailing spaces.</summary>
 internal static class SheetNormalizer
 {
-    private const char ByteOrderMark = '﻿';
-    private const char FormFeed = '';
-    private const char VerticalTab = '';
-    private const char ZeroWidthSpace = '​';
+    // Code points are written as numbers, so no invisible character appears literally in the source.
+    private const char ByteOrderMark = (char)0xFEFF;
+    private const char FormFeed = (char)0x000C;
+    private const char VerticalTab = (char)0x000B;
+    private const char ZeroWidthSpace = (char)0x200B;
+    private const char NoBreakSpace = (char)0x00A0;
+    private const char EnSpace = (char)0x2000;
+    private const char HairSpace = (char)0x200A;
+    private const char FigureSpace = (char)0x2007;
+    private const char NarrowNoBreakSpace = (char)0x202F;
 
     public static IReadOnlyList<string> SplitLines(string text)
     {
@@ -80,5 +86,5 @@ internal static class SheetNormalizer
     }
 
     private static bool IsSpaceLike(char c) =>
-        c is ' ' or ' ' or ' ' or (>= ' ' and <= ' ');
+        c is NoBreakSpace or FigureSpace or NarrowNoBreakSpace or (>= EnSpace and <= HairSpace);
 }
