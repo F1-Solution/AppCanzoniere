@@ -90,25 +90,25 @@ public class NotationDetectionTests
     [Fact]
     public void Tie_UsesItalianByDefault()
     {
-        var result = Run("Lam  Rem", "", "Am  Dm");
+        var result = Run("Lam Rem", "Amen amen", "Am  Dm", "Amen amen");
 
-        Assert.Equal(Out("[Lam] [Rem]", "", "Am  Dm"), result.ChordPro);
+        Assert.Equal(Out("[Lam]Amen [Rem]amen", "Am  Dm", "Amen amen"), result.ChordPro);
         Assert.Equal(Notation.Italian, result.DetectedNotation);
     }
 
     [Fact]
     public void Tie_UsesTheTieBreakNotation()
     {
-        var result = RunWith(new ChordSheetOptions { TieBreakNotation = Notation.English }, "Lam  Rem", "", "Am  Dm");
+        var result = RunWith(new ChordSheetOptions { TieBreakNotation = Notation.English }, "Lam Rem", "Amen amen", "Am  Dm", "Amen amen");
 
-        Assert.Equal(Out("Lam  Rem", "", "[Am] [Dm]"), result.ChordPro);
+        Assert.Equal(Out("Lam Rem", "Amen amen", "[Am]Amen [Dm]amen"), result.ChordPro);
         Assert.Equal(Notation.English, result.DetectedNotation);
     }
 
     [Fact]
     public void OnlyAmbiguousChordLines_AreReadInTheTieBreakNotation()
     {
-        var result = Run("Do   Sol", "Ti lodiamo");
+        var result = Run("Do Sol", "Ti lodiamo");
 
         Assert.Equal(Out("[Do]Ti [Sol]lodiamo"), result.ChordPro);
         Assert.Equal(Notation.Italian, result.DetectedNotation);

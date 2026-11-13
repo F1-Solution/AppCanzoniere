@@ -135,7 +135,8 @@ public class SafetyTests
         var result = ChordSheetConverter.Convert(input);
         var outputLineCount = result.ChordPro.Split('\n').Length - 1;
 
-        Assert.Equal(input.Split('\n').Length, result.Lines.Count);
+        var expectedLines = input.Split('\n').Length - (input.EndsWith('\n') ? 1 : 0);
+        Assert.Equal(expectedLines, result.Lines.Count);
         Assert.All(result.Lines, l => Assert.InRange(l.OutputLine, 0, Math.Max(outputLineCount - 1, 0)));
     }
 
