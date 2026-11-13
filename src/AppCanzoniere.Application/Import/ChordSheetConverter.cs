@@ -32,7 +32,10 @@ public static class ChordSheetConverter
         var analysis = Analyze(lines, options);
         var written = SheetWriter.Write(analysis.Lines, options.SnapColumns);
         var diagnostics = analysis.Lines
-            .Select(l => new SheetLineDiagnostic(l.Index + 1, l.Source.Raw, l.Kind, l.Confidence, written.Warnings[l.Index], written.OutputLines[l.Index]))
+            .Select(l => new SheetLineDiagnostic(l.Index + 1, l.Source.Raw, l.Kind, l.Confidence, written.Warnings[l.Index], written.OutputLines[l.Index])
+            {
+                CarriesChords = l.Kind == SheetLineKind.ChordLine || (l.Kind == SheetLineKind.SectionLabel && l.Content is { Kind: UnitKind.Chord })
+            })
             .ToList();
         var chordLines = analysis.Lines.Count(l => l.Kind == SheetLineKind.ChordLine);
         var notation = analysis.HasChords ? analysis.Notation : (Notation?)null;
