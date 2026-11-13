@@ -29,7 +29,9 @@ internal static class RowRenderer
             x += advance;
         }
 
-        return new LayoutRow(rowIndex, top, height, Frozen.From(runs), spec.HardBreakAfter);
+        var right = runs.Where(r => r.Kind != RunKind.LineNumber).Select(r => r.X + r.Width).DefaultIfEmpty(0).Max();
+        var overflow = right > ctx.Gutter + ctx.Available + SegmentMath.FitTolerance;
+        return new LayoutRow(rowIndex, top, height, Frozen.From(runs), spec.HardBreakAfter, overflow);
     }
 
     private static void AddChord(List<LayoutRun> runs, in LineModel model, in Seg seg, double x, double top, FlowContext ctx)
