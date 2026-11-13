@@ -70,13 +70,13 @@ public class ChordProLosslessTransformTests
     {
         var options = new ChordProRenderOptions { Capo = 4 };
 
-        Assert.Equal("{title: T}\n{ capo : 4 }\n{key:A}\n[F]x\n", Render("{title: T}\n{ capo : 2 }\n{key:A}\n[G]x", options));
+        Assert.Equal("{title: T}\n{ capo : 4 }\n{key:G}\n[F]x\n",Render("{title: T}\n{ capo : 2 }\n{key:A}\n[G]x", options));
     }
 
     [Fact]
     public void Capo_Zero_RemovesTheCapoLine()
     {
-        Assert.Equal("{key:A}\n[A]x\n", Render("{key:A}\n{capo:2}\n[G]x", new ChordProRenderOptions { Capo = 0 }));
+        Assert.Equal("{key:B}\n[A]x\n", Render("{key:A}\n{capo:2}\n[G]x", new ChordProRenderOptions { Capo = 0 }));
     }
 
     [Fact]
@@ -86,7 +86,7 @@ public class ChordProLosslessTransformTests
     }
 
     [Theory]
-    [InlineData("{key:A}\n[A]x", "{key:A}\n{capo:2}\n")]
+    [InlineData("{key:A}\n[A]x", "{key:G}\n{capo:2}\n")]
     [InlineData("{title:T}\n[A]x", "{title:T}\n{capo:2}\n")]
     [InlineData("[A]x", "{capo:2}\n")]
     public void Capo_AddedWhenMissing_GoesAfterTheKeyOrTitleOtherwiseFirst(string song, string expectedStart)
