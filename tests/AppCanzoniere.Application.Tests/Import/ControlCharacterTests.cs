@@ -9,7 +9,7 @@ public class ControlCharacterTests
     [Fact]
     public void FormFeedInsideALyric_DoesNotShiftColumnsOrSurvive()
     {
-        var result = Run("Do Sol", "\u000CTi lodo");
+        var result = Run("Do Sol", "Ti\u000C lodo");
 
         Assert.Equal(Out("[Do]Ti [Sol]lodo"), result.ChordPro);
     }
@@ -20,7 +20,7 @@ public class ControlCharacterTests
 
     [Fact]
     public void FormFeedAloneOnALine_IsABlankLine() =>
-        Assert.Equal(Out("Santo", "", "Dio"), Run("Santo", "\u000C", "Dio").ChordPro);
+        Assert.Equal(Out("Santo", "Dio", "", "Pace"), Run("Santo", "Dio", "\u000C", "Pace").ChordPro);
 
     [Fact]
     public void FormFeedInAChordLine_DoesNotShiftTheChords() =>

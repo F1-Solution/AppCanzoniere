@@ -10,6 +10,8 @@ internal sealed record NormalizedLine(string Raw, string Text, bool TabExpanded)
 internal static class SheetNormalizer
 {
     private const char ByteOrderMark = '﻿';
+    private const char FormFeed = '';
+    private const char VerticalTab = '';
     private const char ZeroWidthSpace = '​';
 
     public static IReadOnlyList<string> SplitLines(string text)
@@ -44,7 +46,7 @@ internal static class SheetNormalizer
         var cleaned = new StringBuilder(raw.Length);
         foreach (var c in raw)
         {
-            if (c is not (ZeroWidthSpace or ByteOrderMark))
+            if (c is not (ZeroWidthSpace or ByteOrderMark or FormFeed or VerticalTab))
                 cleaned.Append(IsSpaceLike(c) ? ' ' : c);
         }
 
