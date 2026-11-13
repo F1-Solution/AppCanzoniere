@@ -108,7 +108,7 @@ public class DiminishedSpellingTests
         foreach (var (shift, key, expected) in steps)
         {
             var result = _parser.Render(_parser.Parse(song), new ChordProRenderOptions { TransposeSteps = shift, Accidentals = AccidentalPreference.Auto });
-            Assert.Equal($"{{key:{key}}}\n\n{expected}\n", result);
+            Assert.Equal($"{{key:{key}}}\n{expected}\n", result);
         }
     }
 

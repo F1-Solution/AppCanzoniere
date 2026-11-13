@@ -47,7 +47,7 @@ public class KeyProgressionTests
     private static string Song(string key, string progression) => $"{{key:{key}}}\n{Chords(progression)}";
 
     private static string Expected(string key, string capo, string progression) =>
-        $"{{key:{key}}}\n{capo}\n\n{Chords(progression)}\n";
+        $"{{key:{key}}}\n{capo}\n{Chords(progression)}\n";
 
     // Test-local solfege writer so the Italian expectations do not depend on the code under test.
     private static string Solfege(string text) =>
@@ -71,7 +71,7 @@ public class KeyProgressionTests
     [MemberData(nameof(Sounding))]
     public void NoCapo_LeavesTheProgressionAsWritten(string key, string progression)
     {
-        var expected = $"{{key:{key}}}\n\n{Chords(progression)}\n";
+        var expected = $"{{key:{key}}}\n{Chords(progression)}\n";
 
         Assert.Equal(expected, Render(Song(key, progression), new ChordProRenderOptions()));
     }

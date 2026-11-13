@@ -79,7 +79,7 @@ public class AutoSpellingTests
     {
         var result = Render("{key:C}\n[C]a [Ab]b [Bb]c [C]d", new ChordProRenderOptions { TransposeSteps = 7 });
 
-        Assert.Equal("{key:G}\n\n[G]a [Eb]b [F]c [G]d\n", result);
+        Assert.Equal("{key:G}\n[G]a [Eb]b [F]c [G]d\n", result);
     }
 
     [Fact]
@@ -87,7 +87,7 @@ public class AutoSpellingTests
     {
         var result = Render("{key:F}\n[D/F#]a [A7/C#]b", new ChordProRenderOptions { TransposeSteps = 2 });
 
-        Assert.Equal("{key:G}\n\n[E/G#]a [B7/D#]b\n", result);
+        Assert.Equal("{key:G}\n[E/G#]a [B7/D#]b\n", result);
     }
 
     [Fact]
@@ -95,7 +95,7 @@ public class AutoSpellingTests
     {
         var result = Render("{key:Am}\n[Am]a [E7/G#]b [F]c", new ChordProRenderOptions { TransposeSteps = 5 });
 
-        Assert.Equal("{key:Dm}\n\n[Dm]a [A7/C#]b [Bb]c\n", result);
+        Assert.Equal("{key:Dm}\n[Dm]a [A7/C#]b [Bb]c\n", result);
     }
 
     [Theory]
@@ -116,7 +116,7 @@ public class AutoSpellingTests
     {
         var result = Render("[G]a [C]b [D]c", new ChordProRenderOptions { Capo = 2 });
 
-        Assert.Equal("{capo:2}\n\n[F]a [Bb]b [C]c\n", result);
+        Assert.Equal("{capo:2}\n[F]a [Bb]b [C]c\n", result);
     }
 
     [Fact]
@@ -124,7 +124,7 @@ public class AutoSpellingTests
     {
         var result = Render("{sot}\ne|-[F#]-\n{eot}\n[C]a [F]b", new ChordProRenderOptions { TransposeSteps = 1 });
 
-        Assert.Equal("{start_of_tab}\ne|-[F#]-\n{end_of_tab}\n[Db]a [Gb]b\n", result);
+        Assert.Equal("{sot}\ne|-[F#]-\n{eot}\n[Db]a [Gb]b\n", result);
     }
 
     [Fact]
@@ -139,7 +139,7 @@ public class AutoSpellingTests
     {
         var result = Render("{key:Gb}\n[Gb]a [Cb]b [Db]c [Ebm]d", new ChordProRenderOptions());
 
-        Assert.Equal("{key:Gb}\n\n[Gb]a [Cb]b [Db]c [Ebm]d\n", result);
+        Assert.Equal("{key:Gb}\n[Gb]a [Cb]b [Db]c [Ebm]d\n", result);
     }
 
     [Fact]
@@ -147,7 +147,7 @@ public class AutoSpellingTests
     {
         var result = Render("{key:Gb}\n[Gb]a [Db]b", new ChordProRenderOptions { OutputNotation = NotationOptions.Italian });
 
-        Assert.Equal("{key:Solb}\n\n[Solb]a [Reb]b\n", result);
+        Assert.Equal("{key:Solb}\n[Solb]a [Reb]b\n", result);
     }
 
     [Theory]
@@ -157,6 +157,6 @@ public class AutoSpellingTests
     {
         var result = Render($"{{key:{key}}}\n[{key}]a", new ChordProRenderOptions { TransposeSteps = 6 });
 
-        Assert.Equal($"{{key:{expected}}}\n\n[{expected}]a\n", result);
+        Assert.Equal($"{{key:{expected}}}\n[{expected}]a\n", result);
     }
 }

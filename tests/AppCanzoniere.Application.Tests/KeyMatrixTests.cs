@@ -60,7 +60,7 @@ public class KeyMatrixTests
     [MemberData(nameof(KeyOnly))]
     public void English_NoCapo_KeepsTheKey(string key)
     {
-        Assert.Equal($"{{key:{key}}}\n\n[{key}]x\n", Render(key, new ChordProRenderOptions()));
+        Assert.Equal($"{{key:{key}}}\n[{key}]x\n", Render(key, new ChordProRenderOptions()));
     }
 
     [Theory]
@@ -69,7 +69,7 @@ public class KeyMatrixTests
     {
         var options = new ChordProRenderOptions { OutputNotation = NotationOptions.Italian };
 
-        Assert.Equal($"{{key:{italian}}}\n\n[{italian}]x\n", Render(key, options));
+        Assert.Equal($"{{key:{italian}}}\n[{italian}]x\n", Render(key, options));
     }
 
     [Theory]
@@ -78,7 +78,7 @@ public class KeyMatrixTests
     {
         var options = new ChordProRenderOptions { Capo = 2 };
 
-        Assert.Equal($"{{key:{key}}}\n{{capo:2}}\n\n[{shape}]x\n", Render(key, options));
+        Assert.Equal($"{{key:{key}}}\n{{capo:2}}\n[{shape}]x\n", Render(key, options));
     }
 
     [Theory]
@@ -87,7 +87,7 @@ public class KeyMatrixTests
     {
         var options = new ChordProRenderOptions { Capo = 2, OutputNotation = NotationOptions.Italian };
 
-        Assert.Equal($"{{key:{italian}}}\n{{capo:2}}\n\n[{shapeItalian}]x\n", Render(key, options));
+        Assert.Equal($"{{key:{italian}}}\n{{capo:2}}\n[{shapeItalian}]x\n", Render(key, options));
     }
 
     [Theory]
