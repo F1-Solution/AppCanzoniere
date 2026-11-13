@@ -6,10 +6,11 @@ namespace AppCanzoniere.Application.Import;
 /// <summary>Tokens read from a bracketed group such as <c>[Do]</c> or <c>[*N.C.]</c>, and the text length they cover.</summary>
 internal sealed record TokenGroup(int Length, IReadOnlyList<SheetToken> Tokens);
 
-/// <summary>Finds bracketed groups that are chords or annotations on a line, so they never read as words.</summary>
+/// <summary>Finds bracketed or parenthesised groups that are chords or annotations on a line, so they never read as words.</summary>
 internal static class TokenGroups
 {
-    private static readonly Regex Candidates = new(@"\[[^\[\]]*\]", RegexOptions.Compiled | RegexOptions.CultureInvariant);
+    private static readonly Regex Candidates = new(@"\[[^\[\]]*\]|\([^()\[\]]*\)", RegexOptions.Compiled | RegexOptions.CultureInvariant);
+    private static readonly Regex Parts = new(@"\S+", RegexOptions.Compiled | RegexOptions.CultureInvariant);
 
     public static Dictionary<int, TokenGroup> Find(string text, IReadOnlyDictionary<int, Match> marks, Notation notation)
     {
@@ -30,7 +31,24 @@ internal static class TokenGroups
         return end >= text.Length || text[end] is ' ' or '-' or '–';
     }
 
-    private static IReadOnlyList<SheetToken>? Read(Match m, Notation notation)
+    private static IReadOnlyList<SheetToken>? Read(Match m, Notation notation) =>
+        m.Value[0] == '(' ? ReadParenthesised(m, notation) : ReadBracketed(m, notation);
+
+    // A single unspaced "(Do)" stays with the plain token path; spaced or multi-chord groups are split here.
+    private static IReadOnlyList<SheetToken>? ReadParenthesised(Match m, Notation notation)
+    {
+        var inner = m.Value[1..^1];
+        if (!inner.Any(char.IsWhiteSpace))
+            return null;
+
+        var parts = Parts.Matches(inner);
+        if (parts.Count == 0 || parts.Any(p => !SheetTokenizer.TryChord(p.Value, notation)))
+            return null;
+
+        return parts.Select(p => SheetTokenizer.Chord(p.Value, m.Index + 1 + p.Index, p.Value, notation, true)).ToList();
+    }
+
+    private static IReadOnlyList<SheetToken>? ReadBracketed(Match m, Notation notation)
     {
         var inner = m.Value[1..^1];
         if (BracketedText.IsAnnotation(inner))

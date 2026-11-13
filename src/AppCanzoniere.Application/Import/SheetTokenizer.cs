@@ -145,10 +145,22 @@ internal static class SheetTokenizer
             return new[] { ParenthesisedToken(core, column, inner, notation) };
         }
 
+        if (StrayParenthesis(core, notation) is { } stray)
+            return new[] { Chord(core, column, stray, notation, true) };
+
         if (TryChord(core, notation))
             return new[] { Chord(core, column, core, notation, false) };
 
         return Sequence(core, column, notation) ?? new[] { WordOrLooseChord(core, column, notation) };
+    }
+
+    // A chord with one unmatched parenthesis ("(Lam", "Re)") is the chord; the stray parenthesis is dropped.
+    private static string? StrayParenthesis(string core, Notation notation)
+    {
+        var chord = core.Length > 1 && core[0] == '(' && !core.Contains(')') ? core[1..]
+            : core.Length > 1 && core[^1] == ')' && !core.Contains('(') ? core[..^1]
+            : null;
+        return chord is not null && TryChord(chord, notation) ? chord : null;
     }
 
     private static IEnumerable<SheetToken>? Sequence(string core, int column, Notation notation)

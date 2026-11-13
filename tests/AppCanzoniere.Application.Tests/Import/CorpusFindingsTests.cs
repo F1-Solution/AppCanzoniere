@@ -58,8 +58,8 @@ public class CorpusFindingsTests
         Assert.Equal(Out("134 [do] [fa] [do] [mi] [la-]"), Run("134 (do) fa    do    mi   la-").ChordPro);
 
     [Fact]
-    public void LoneParenthesesAroundAChord_AreNeutral() =>
-        Assert.Equal(Out("[Am] [F7+] [C] ( [F7+] )"), Run("Am   F7+   C ( F7+ )").ChordPro);
+    public void SpacedParenthesesAroundAChord_AreAParenthesisedChord() =>
+        Assert.Equal(Out("[Am] [F7+] [C] [F7+]"), Run("Am   F7+   C ( F7+ )").ChordPro);
 
     [Fact]
     public void BassOnlyChordAndArrow_AreNeutral() =>
