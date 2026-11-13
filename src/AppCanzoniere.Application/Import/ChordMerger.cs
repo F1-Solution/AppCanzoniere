@@ -112,6 +112,7 @@ internal static class ChordMerger
     private static string Render(SheetToken token) => token.Kind switch
     {
         TokenKind.Chord => $"[{token.Chord}]",
+        _ when token.Text.StartsWith("[*", StringComparison.Ordinal) => token.Text,
         _ => $"[*{token.Text}]"
     };
 }

@@ -20,7 +20,8 @@ internal sealed record SheetToken(
     bool Parenthesised = false,
     bool LowerChord = false,
     bool Foreign = false,
-    bool Doubtful = false);
+    bool Doubtful = false,
+    bool HasInlineChord = false);
 
 /// <summary>Splits a line into neutral marks, words and chords (spec 3.2).</summary>
 internal static class SheetTokenizer
@@ -51,6 +52,7 @@ internal static class SheetTokenizer
     {
         var tokens = new List<SheetToken>();
         var marks = RepeatMarks.Matches(text).ToDictionary(m => m.Index);
+        var groups = TokenGroups.Find(text, marks, notation);
         var i = start;
         while (i < text.Length)
         {
@@ -67,15 +69,26 @@ internal static class SheetTokenizer
                 continue;
             }
 
+            if (groups.TryGetValue(i, out var group))
+            {
+                tokens.AddRange(group.Tokens);
+                i += group.Length;
+                continue;
+            }
+
             var end = i;
-            while (end < text.Length && text[end] != ' ' && (end == i || !marks.ContainsKey(end)))
+            while (end < text.Length && text[end] != ' ' && (end == i || !EndsRun(text, end, marks, groups)))
                 end++;
             tokens.AddRange(ClassifyRaw(text[i..end], i, notation));
             i = end;
         }
 
-        return tokens;
+        return tokens.Select(t => t.Kind == TokenKind.Word && BracketedText.ContainsInlineChord(t.Text) ? t with { HasInlineChord = true } : t).ToList();
     }
+
+    // A run also ends before a chord group that follows a dash, as in "[Re]-[Sol]".
+    private static bool EndsRun(string text, int end, Dictionary<int, Match> marks, Dictionary<int, TokenGroup> groups) =>
+        marks.ContainsKey(end) || (groups.ContainsKey(end) && text[end - 1] is '-' or '–');
 
     public static bool IsNoChord(SheetToken token) =>
         token.Kind == TokenKind.Neutral &&
@@ -189,6 +202,6 @@ internal static class SheetTokenizer
 
     private static SheetToken Word(string text, int column) => new(text, column, TokenKind.Word);
 
-    private static SheetToken Chord(string text, int column, string chord, Notation notation, bool parenthesised) =>
+    internal static SheetToken Chord(string text, int column, string chord, Notation notation, bool parenthesised) =>
         new(text, column, TokenKind.Chord, chord, IsAmbiguous(chord, notation), parenthesised);
 }

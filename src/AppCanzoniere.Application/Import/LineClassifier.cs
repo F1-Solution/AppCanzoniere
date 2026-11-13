@@ -106,7 +106,7 @@ internal static class LineClassifier
         if (w == 0)
             return ClassifyChordsOnly(tokens, u, a, w);
 
-        if (w == 1 && u + a >= StrayWordMinChords)
+        if (w == 1 && u + a >= StrayWordMinChords && !tokens.Any(t => t.HasInlineChord))
             return Make(true, LikelyChord, SheetWarning.StrayWordOnChordLine);
 
         var ratio = (double)(u + a) / (u + a + w);
