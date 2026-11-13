@@ -9,7 +9,7 @@ internal static class LyricLineLayouter
         var instrumental = chords.Count > 0 && LineModel.IsBlank(line.Text);
         var model = new LineModel(line.Text, chords, lyricRole, instrumental);
         var segments = BuildSegments(model, ctx);
-        var specs = SplitIntoRows(model, segments);
+        var specs = SplitIntoRows(model, segments, ctx);
 
         var rows = new List<LayoutRow>(specs.Count);
         var y = top;
@@ -24,8 +24,13 @@ internal static class LyricLineLayouter
         return new LayoutLine(sourceIndex, number, top, last.Y + last.Height - top, Frozen.From(rows));
     }
 
-    private static List<RowSpec> SplitIntoRows(in LineModel model, List<Seg> segments) =>
-        new() { new RowSpec(segments, false) };
+    private static List<RowSpec> SplitIntoRows(in LineModel model, List<Seg> segments, FlowContext ctx)
+    {
+        var fits = SegmentMath.RowWidth(segments, ctx.Options.MinChordGap) <= ctx.Available + SegmentMath.FitTolerance;
+        return model.Instrumental || fits
+            ? new List<RowSpec> { new(segments, false) }
+            : RowWrapper.Wrap(model, segments, ctx);
+    }
 
     private static List<Seg> BuildSegments(in LineModel model, FlowContext ctx)
     {
