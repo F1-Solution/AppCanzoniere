@@ -77,7 +77,7 @@ internal static class SheetAnalyzer
         if (IsTabLine(text))
             return new AnalyzedLine(index, line, SheetLineKind.Tab, 1.0, warnings);
 
-        if (inHeader && MetadataParser.TryParse(text.Trim(), notation) is { } meta)
+        if (inHeader && MetadataParser.TryParse(text.Trim()) is { } meta)
         {
             var unreadable = meta.Unreadable;
             return new AnalyzedLine(
