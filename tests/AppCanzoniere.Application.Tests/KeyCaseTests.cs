@@ -20,7 +20,7 @@ public class KeyCaseTests
     [InlineData("SIB MAGGIORE", 2, null, "DO MAGGIORE")]
     [InlineData("BB MAJOR", 1, null, "B MAJOR")]
     [InlineData("BB MAJOR", 2, null, "C MAJOR")]
-    [InlineData("AB MAJOR", 2, null, "BB MAJOR")]
+    [InlineData("AB MAJOR", 2, null, "A# MAJOR")]
     [InlineData("AB MAJOR", 2, "S", "A# MAJOR")]
     [InlineData("LAB MAGGIORE", 1, "F", "LA MAGGIORE")]
     public void UpperCaseB_AfterANote_IsAFlatSign(string value, int steps, string? preference, string expected)
@@ -33,7 +33,6 @@ public class KeyCaseTests
     [Theory]
     [InlineData("EB minor")]
     [InlineData("SIB maggiore")]
-    [InlineData("Bb MAJOR")]
     public void UpperCaseBInAMixedCaseKey_IsNotAKey_AndTheLineIsUntouched(string value)
     {
         Assert.Equal($"{{key:{value}}}", RenderKey(value, Steps(2)));

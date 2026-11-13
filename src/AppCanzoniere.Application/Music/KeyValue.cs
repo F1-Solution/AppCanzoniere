@@ -54,27 +54,30 @@ internal sealed record KeyValue(ChordSymbol Symbol, Notation Notation, KeyWords?
         if (!match.Success || (match.Groups["symbol"].Success && match.Groups["word"].Success))
             return false;
 
+        var allUpper = !text.Any(char.IsLower);
+        var symbol = match.Groups["symbol"].Success ? match.Groups["symbol"].Value : null;
+        if (symbol == "B" && !allUpper)
+            return false; // An upper-case B is a flat sign only when the whole key is upper case.
+
         var name = match.Groups["note"].Value;
         var notation = name.Length == 1 ? Notation.English : Notation.Italian;
-        var accidental = match.Groups["symbol"].Success ? match.Groups["symbol"].Value : match.Groups["word"].Value;
-        var root = ReadNote(name, accidental, notation);
+        if (!ChordSymbolParser.TryParseNote(name, notation, out var natural))
+            return false;
+
+        var word = match.Groups["word"].Success ? match.Groups["word"].Value : null;
+        var root = new Note(natural.Letter, AccidentalSign(symbol ?? word));
         var quality = match.Groups["quality"].Value;
-        var symbol = new ChordSymbol(root, quality.StartsWith("min", StringComparison.OrdinalIgnoreCase), string.Empty, string.Empty, null);
-        key = new KeyValue(symbol, notation, new KeyWords(match.Groups["symbol"].Success, match.Groups["word"].Success ? match.Groups["word"].Value : null, quality));
+        var chord = new ChordSymbol(root, quality.StartsWith("min", StringComparison.OrdinalIgnoreCase), string.Empty, string.Empty, null);
+        key = new KeyValue(chord, notation, new KeyWords(symbol, word, quality, name, allUpper));
         return true;
     }
 
-    private static Note ReadNote(string name, string accidental, Notation notation)
+    private static int AccidentalSign(string? accidental) => accidental?.ToLowerInvariant() switch
     {
-        var parsed = ChordSymbolParser.TryParseNote(name + (accidental.Length == 1 ? accidental : string.Empty), notation, out var note);
-        var sign = accidental.ToLowerInvariant() switch
-        {
-            "diesis" or "sharp" => 1,
-            "bemolle" or "flat" => -1,
-            _ => note.Accidental
-        };
-        return parsed ? new Note(note.Letter, sign) : default;
-    }
+        "#" or "♯" or "diesis" or "sharp" => 1,
+        "b" or "♭" or "bemolle" or "flat" => -1,
+        _ => 0
+    };
 
     /// <summary>Writes the key with a new root; the style it was written in is kept unless a conversion asks for the output notation.</summary>
     public string Write(ChordSymbol shifted, NotationOptions output, bool conversion)
@@ -84,11 +87,22 @@ internal sealed record KeyValue(ChordSymbol Symbol, Notation Notation, KeyWords?
             return ChordNotation.Format(shifted, new NotationOptions(notation, output.MinorStyle), keepMinorToken: !conversion);
 
         var root = shifted.Root;
-        var text = ChordNotation.FormatNote(new Note(root.Letter, 0), notation);
+        var name = ChordNotation.FormatNote(new Note(root.Letter, 0), notation);
+        var text = Words.AllUpper ? name.ToUpperInvariant() : MatchCase(Words.NoteName, name);
         if (root.Accidental != 0)
-            text += Words.SymbolAccidental ? (root.Accidental > 0 ? "#" : "b") : " " + AccidentalWord(root.Accidental, notation);
+            text += Words.Symbol is not null ? AccidentalSymbol(root.Accidental) : " " + AccidentalWord(root.Accidental, notation);
 
         return text + " " + Quality(Notation, notation);
+    }
+
+    // The written sign decides the style: Unicode stays Unicode, and the flat letter follows the case of an all-upper key.
+    private string AccidentalSymbol(int accidental)
+    {
+        var written = Words!.Symbol![0];
+        if (written is '♭' or '♯')
+            return accidental > 0 ? "♯" : "♭";
+
+        return accidental > 0 ? "#" : Words.AllUpper ? "B" : "b";
     }
 
     private string AccidentalWord(int accidental, Notation notation)
@@ -114,9 +128,9 @@ internal sealed record KeyValue(ChordSymbol Symbol, Notation Notation, KeyWords?
         if (template.Length > 1 && template.All(c => !char.IsLetter(c) || char.IsUpper(c)))
             return word.ToUpperInvariant();
 
-        return char.IsUpper(template[0]) ? char.ToUpperInvariant(word[0]) + word[1..] : word;
+        return char.IsUpper(template[0]) ? char.ToUpperInvariant(word[0]) + word[1..] : word.ToLowerInvariant();
     }
 }
 
-/// <summary>How a worded key was written: symbol or word accidental, and the quality word as typed.</summary>
-internal sealed record KeyWords(bool SymbolAccidental, string? AccidentalWord, string Quality);
+/// <summary>How a worded key was written: its accidental sign or word, quality word and note name as typed.</summary>
+internal sealed record KeyWords(string? Symbol, string? AccidentalWord, string Quality, string NoteName, bool AllUpper);
