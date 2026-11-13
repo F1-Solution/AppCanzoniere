@@ -10,29 +10,29 @@ internal static class ChordMerger
     /// <summary>Merged line plus warnings found while placing the chords; the lyric text is never altered.</summary>
     public static MergeResult Merge(ContentUnit chords, ContentUnit lyric, int snapColumns)
     {
-        var text = lyric.Text[lyric.Start..];
+        var elements = TextElements.Split(lyric.Text[lyric.Start..]);
         var warnings = new List<SheetWarning>();
         var inline = new List<(int Offset, SheetToken Token)>();
         var tail = new List<SheetToken>();
 
         // Chords after a section label are placed relative to the text that follows the label.
-        var chordOrigin = chords.Indented ? lyric.Start : chords.Start;
+        var chordOrigin = chords.Indented ? TextElements.ColumnOf(lyric.Text, lyric.Start) : TextElements.ColumnOf(chords.Text, chords.Start);
         foreach (var token in chords.Class.Tokens)
         {
-            var column = Math.Max(0, token.Column - chordOrigin);
-            if (column >= text.Length)
+            var column = Math.Max(0, TextElements.ColumnOf(chords.Text, token.Column) - chordOrigin);
+            if (column >= elements.Length)
             {
                 tail.Add(token);
                 continue;
             }
 
-            var offset = BeforeBracket(text, Snap(text, column, snapColumns, warnings));
-            if (offset > 0 && text[offset - 1] != ' ' && text[offset] != ' ')
+            var offset = BeforeBracket(elements, Snap(elements, column, snapColumns, warnings));
+            if (offset > 0 && elements[offset - 1] != " " && elements[offset] != " ")
                 warnings.Add(SheetWarning.ChordInsideWord);
             inline.Add((offset, token));
         }
 
-        return new MergeResult(Build(text, inline, tail), warnings.Distinct().ToList());
+        return new MergeResult(Build(elements, inline, tail), warnings.Distinct().ToList());
     }
 
     /// <summary>The chord line alone: chords in brackets, other tokens as written, whitespace collapsed.</summary>
@@ -52,24 +52,24 @@ internal static class ChordMerger
     }
 
     // A chord never goes inside an existing [chord]: it is placed right before its opening bracket.
-    private static int BeforeBracket(string text, int offset)
+    private static int BeforeBracket(string[] elements, int offset)
     {
         if (offset == 0)
             return offset;
 
-        var open = text.LastIndexOf('[', offset - 1);
-        return open >= 0 && open > text.LastIndexOf(']', offset - 1) ? open : offset;
+        var open = Array.LastIndexOf(elements, "[", offset - 1);
+        return open >= 0 && open > Array.LastIndexOf(elements, "]", offset - 1) ? open : offset;
     }
 
-    private static int Snap(string text, int column, int snapColumns, List<SheetWarning> warnings)
+    private static int Snap(string[] elements, int column, int snapColumns, List<SheetWarning> warnings)
     {
-        if (text[column] != ' ')
+        if (elements[column] != " ")
             return column;
 
-        for (var step = 1; step <= snapColumns && column + step < text.Length; step++)
+        for (var step = 1; step <= snapColumns && column + step < elements.Length; step++)
         {
             var candidate = column + step;
-            if (text[candidate] != ' ' && text[candidate - 1] == ' ')
+            if (elements[candidate] != " " && elements[candidate - 1] == " ")
             {
                 warnings.Add(SheetWarning.SnappedColumn);
                 return candidate;
@@ -79,17 +79,17 @@ internal static class ChordMerger
         return column;
     }
 
-    private static string Build(string text, List<(int Offset, SheetToken Token)> inline, List<SheetToken> tail)
+    private static string Build(string[] elements, List<(int Offset, SheetToken Token)> inline, List<SheetToken> tail)
     {
         var builder = new StringBuilder();
         var position = 0;
         foreach (var (offset, token) in inline.OrderBy(i => i.Offset))
         {
-            builder.Append(text, position, offset - position).Append(Render(token));
+            builder.AppendJoin(string.Empty, elements[position..offset]).Append(Render(token));
             position = offset;
         }
 
-        builder.Append(text, position, text.Length - position);
+        builder.AppendJoin(string.Empty, elements[position..]);
         foreach (var token in tail)
             builder.Append(' ').Append(Render(token));
         return builder.ToString();

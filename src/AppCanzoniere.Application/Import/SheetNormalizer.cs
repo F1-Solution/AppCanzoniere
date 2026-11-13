@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Text;
 
 namespace AppCanzoniere.Application.Import;
@@ -5,10 +6,11 @@ namespace AppCanzoniere.Application.Import;
 /// <summary>One input line as pasted and after normalisation.</summary>
 internal sealed record NormalizedLine(string Raw, string Text, bool TabExpanded);
 
-/// <summary>Splits pasted text into lines and normalises tabs, invisible characters and trailing spaces.</summary>
+/// <summary>Splits pasted text into lines and normalises Unicode form, tabs, invisible characters and trailing spaces.</summary>
 internal static class SheetNormalizer
 {
     private const char ByteOrderMark = '﻿';
+    private const char ZeroWidthSpace = '​';
 
     public static IReadOnlyList<string> SplitLines(string text)
     {
@@ -21,25 +23,58 @@ internal static class SheetNormalizer
     public static IReadOnlyList<NormalizedLine> Normalize(string text, int tabWidth)
     {
         var withoutBom = text.StartsWith(ByteOrderMark) ? text[1..] : text;
-        return SplitLines(withoutBom).Select(raw => NormalizeLine(raw, Math.Max(1, tabWidth))).ToList();
+        return SplitLines(Compose(withoutBom)).Select(raw => NormalizeLine(raw, Math.Max(1, tabWidth))).ToList();
+    }
+
+    // Unpaired surrogates cannot be normalised; such text is left as it is.
+    private static string Compose(string text)
+    {
+        try
+        {
+            return text.Normalize(NormalizationForm.FormC);
+        }
+        catch (ArgumentException)
+        {
+            return text;
+        }
     }
 
     private static NormalizedLine NormalizeLine(string raw, int tabWidth)
     {
-        var builder = new StringBuilder(raw.Length);
-        var tabExpanded = false;
+        var cleaned = new StringBuilder(raw.Length);
         foreach (var c in raw)
         {
-            if (c == '\t')
-            {
-                tabExpanded = true;
-                builder.Append(' ', tabWidth - builder.Length % tabWidth);
-            }
-            else if (c is not ('​' or ByteOrderMark))
-                builder.Append(IsSpaceLike(c) ? ' ' : c);
+            if (c is not (ZeroWidthSpace or ByteOrderMark))
+                cleaned.Append(IsSpaceLike(c) ? ' ' : c);
         }
 
-        return new NormalizedLine(raw, builder.ToString().TrimEnd(), tabExpanded);
+        var text = cleaned.ToString();
+        var tabExpanded = text.Contains('\t');
+        return new NormalizedLine(raw, (tabExpanded ? ExpandTabs(text, tabWidth) : text).TrimEnd(), tabExpanded);
+    }
+
+    // Tab stops count text elements, like every other column of the converter.
+    private static string ExpandTabs(string text, int tabWidth)
+    {
+        var builder = new StringBuilder(text.Length);
+        var column = 0;
+        var elements = StringInfo.GetTextElementEnumerator(text);
+        while (elements.MoveNext())
+        {
+            var element = (string)elements.Current;
+            if (element[0] != '\t')
+            {
+                builder.Append(element);
+                column++;
+                continue;
+            }
+
+            var width = tabWidth - column % tabWidth;
+            builder.Append(' ', width).Append(element, 1, element.Length - 1);
+            column += width;
+        }
+
+        return builder.ToString();
     }
 
     private static bool IsSpaceLike(char c) =>
