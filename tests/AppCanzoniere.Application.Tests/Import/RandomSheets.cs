@@ -67,7 +67,7 @@ internal static class RandomSheets
 
     private static void AddBlock(Random r, SheetFeatures f, string[] chords, string inlineChord, List<string> lines, List<string> lyrics)
     {
-        switch (r.Next(8))
+        switch (r.Next(10))
         {
             case 0 or 1 or 2:
                 lines.Add(ChordLine(r, f, chords));
@@ -81,6 +81,11 @@ internal static class RandomSheets
                 break;
             case 6:
                 lines.Add(new[] { "Rit.", "1.", "Strofa 2", "Bridge" }[r.Next(4)]);
+                break;
+            case 7:
+                lines.Add(new[] { "N.C.", "  N.C.   x2", "%" }[r.Next(3)]);
+                if (r.Next(2) == 0)
+                    AddLyric(r, f, inlineChord, lines, lyrics);
                 break;
             default:
                 lines.Add("e|---3---0---|----");
