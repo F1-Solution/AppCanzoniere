@@ -20,6 +20,19 @@ public class ChordAlteredTensionTests
     }
 
     [Theory]
+    [InlineData("B♭♭5", 1, "B(♭5)")]
+    [InlineData("B♭♭5", 2, "C(♭5)")]
+    [InlineData("F♯♯5", 1, "G(♯5)")]
+    [InlineData("C♯♭5", 1, "D(♭5)")]
+    [InlineData("E♭♭9/G", 2, "F(♭9)/A")]
+    public void UnicodeAccidentalTension_GetsParenthesesLikeTheAsciiOne(string chord, int steps, string expected)
+    {
+        Assert.Equal(expected, _transposer.TransposeChord(chord, steps, AccidentalPreference.Sharps));
+        Assert.True(ChordSymbolParser.TryParse(expected, Notation.English, out var parsed));
+        Assert.Equal(0, parsed.Root.Accidental);
+    }
+
+    [Theory]
     [InlineData("Bb7b9", 2, "C7b9")]
     [InlineData("Cm7b5", 2, "Dm7b5")]
     [InlineData("C7#9", 2, "D7#9")]
