@@ -19,7 +19,7 @@ public static class ChordProKeys
     public static string? WrittenKey(ChordProDocument document, ChordProRenderOptions options) =>
         Transformer(document, options).WrittenKey();
 
-    /// <summary>Key the song sounds in, in the output notation; the explicit accidental preference names it. Null without a readable key.</summary>
+    /// <summary>Key the song sounds in, in the output notation and named by the explicit accidental preference, or null without a readable key.</summary>
     public static string? SoundingKey(ChordProDocument document, ChordProRenderOptions options) =>
         Transformer(document, options).SoundingKey();
 

@@ -13,9 +13,14 @@ public sealed record LayoutSourceLine
         ArgumentNullException.ThrowIfNull(text);
         ArgumentNullException.ThrowIfNull(chords);
         ArgumentNullException.ThrowIfNull(tabLabel);
+        if (documentIndex < -1)
+            throw new ArgumentException("A document index is not negative; -1 leaves it to the position.", nameof(documentIndex));
+
         Type = type;
         Text = text;
-        Chords = Frozen.From(Normalise(chords, text.Length));
+        var (sorted, ordinals) = Normalise(chords, text.Length);
+        Chords = Frozen.From(sorted);
+        ChordOrdinals = Frozen.From(ordinals);
         StartsTabBlock = startsTabBlock;
         TabLabel = tabLabel;
         DocumentIndex = documentIndex;
@@ -34,7 +39,10 @@ public sealed record LayoutSourceLine
     public string TabLabel { get; }
 
     /// <summary>Index of the line in the parsed document's lines, titles included; the position in the source when hand-built.</summary>
-    public int DocumentIndex { get; }
+    public int DocumentIndex { get; init; }
+
+    /// <summary>For each chord of <see cref="Chords"/>, its index in the list the caller gave.</summary>
+    internal IReadOnlyList<int> ChordOrdinals { get; }
 
     /// <summary>True on the first line of an explicit chorus or bridge; a comment before it labels it instead of joining the previous section.</summary>
     public bool StartsSection { get; }
@@ -42,9 +50,9 @@ public sealed record LayoutSourceLine
     /// <summary>True on a comment written inside an open chorus or bridge, even as its last line.</summary>
     public bool InOpenSection { get; }
 
-    internal LayoutSourceLine WithDocumentIndex(int index) => new(Type, Text, Chords, StartsTabBlock, TabLabel, index, StartsSection, InOpenSection);
+    internal LayoutSourceLine WithDocumentIndex(int index) => this with { DocumentIndex = index };
 
-    private static LayoutChord[] Normalise(IReadOnlyList<LayoutChord> chords, int textLength)
+    private static (LayoutChord[] Sorted, int[] Ordinals) Normalise(IReadOnlyList<LayoutChord> chords, int textLength)
     {
         var copy = new LayoutChord[chords.Count];
         for (var i = 0; i < copy.Length; i++)
@@ -56,7 +64,8 @@ public sealed record LayoutSourceLine
             copy[i] = chord with { Position = Math.Clamp(chord.Position, 0, textLength) };
         }
 
-        return copy.OrderBy(c => c.Position).ToArray();
+        var order = Enumerable.Range(0, copy.Length).OrderBy(i => copy[i].Position).ToArray();
+        return (order.Select(i => copy[i]).ToArray(), order);
     }
 }
 
@@ -67,8 +76,13 @@ public sealed record LayoutSource
     {
         var copy = Frozen.Copy(lines, nameof(lines));
         var indexed = new LayoutSourceLine[copy.Count];
+        var seen = new HashSet<int>();
         for (var i = 0; i < indexed.Length; i++)
+        {
             indexed[i] = copy[i].DocumentIndex >= 0 ? copy[i] : copy[i].WithDocumentIndex(i);
+            if (!seen.Add(indexed[i].DocumentIndex))
+                throw new ArgumentException($"The document index {indexed[i].DocumentIndex} is used by more than one line.", nameof(lines));
+        }
 
         Lines = Frozen.From(indexed);
     }

@@ -17,7 +17,7 @@ public class CommentWrapTests
 
         Assert.Equal(5, line.Rows.Count);
         Assert.All(line.Rows, r => Assert.Equal("word word word word", Single(r, RunKind.Comment).Text));
-        Assert.Equal(new[] { 0, 20, 40, 60, 80 }, line.Rows.Select(r => Single(r, RunKind.Comment).SourceOffset));
+        Assert.Equal(new[] { 1, 21, 41, 61, 81 }, line.Rows.Select(r => Single(r, RunKind.Comment).SourceOffset));
     }
 
     [Fact]

@@ -7,7 +7,8 @@ internal static class LyricLineLayouter
     {
         var chords = ctx.LyricsOnly ? Array.Empty<LayoutChord>() : line.Chords;
         var instrumental = chords.Count > 0 && LineModel.IsBlank(line.Text);
-        var model = new LineModel(line.Text, chords, lyricRole, instrumental);
+        var ordinals = ctx.LyricsOnly ? Array.Empty<int>() : line.ChordOrdinals;
+        var model = new LineModel(line.Text, chords, ordinals, lyricRole, instrumental);
         var segments = BuildSegments(model, ctx);
         var specs = SplitIntoRows(model, segments, ctx);
 

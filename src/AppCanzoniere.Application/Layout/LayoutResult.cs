@@ -1,7 +1,8 @@
 namespace AppCanzoniere.Application.Layout;
 
 /// <summary>One string to draw at (TextX, BaselineY) inside its box.</summary>
-/// <param name="ChordIndex">The chord run's ordinal in its source line's chords, else -1.</param>
+/// <param name="SourceOffset">Offset in the line text as parsed, a comment's leading blanks included; -1 when the run has none.</param>
+/// <param name="ChordIndex">The chord run's index in its source line's chords as given, else -1.</param>
 public sealed record LayoutRun(
     RunKind Kind, string Text, TextRole Role,
     double X, double Y, double Width, double Height,
@@ -31,12 +32,14 @@ public sealed record LayoutLine(int SourceLineIndex, int? Number, double Y, doub
 }
 
 /// <summary>A section or the part of it that falls on one page; LabelRuns holds one run per row of a wrapped label.</summary>
+/// <param name="LabelOverflow">True when a row of the wrapped label is wider than the width.</param>
 public sealed record LayoutSection(
     SectionKind Kind, string? Label, IReadOnlyList<LayoutRun> LabelRuns,
     double Y, double Height,
     double TabScale, bool TabClipped,
     bool ContinuedFromPrevious, bool ContinuesOnNext,
-    IReadOnlyList<LayoutLine> Lines)
+    IReadOnlyList<LayoutLine> Lines,
+    bool LabelOverflow = false)
 {
     private readonly IReadOnlyList<LayoutRun> _labelRuns = Frozen.Copy(LabelRuns, nameof(LabelRuns));
     private readonly IReadOnlyList<LayoutLine> _lines = Frozen.Copy(Lines, nameof(Lines));

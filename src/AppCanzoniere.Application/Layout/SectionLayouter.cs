@@ -7,9 +7,11 @@ internal static class SectionLayouter
     {
         var y = top;
         IReadOnlyList<LayoutRun> labelRuns = Frozen.From(Array.Empty<LayoutRun>());
+        var labelOverflow = false;
         if (plan.Label is { } label)
         {
-            var rows = PlainTextLayouter.Rows(label, TextRole.SectionLabel, RunKind.SectionLabel, false, y, ctx);
+            var rows = PlainTextLayouter.Rows(label, TextRole.SectionLabel, RunKind.SectionLabel, null, y, ctx);
+            labelOverflow = rows.Any(r => r.Overflow);
             labelRuns = Frozen.From(rows.Select(r => r.Runs[0]).ToArray());
             y = rows[^1].Y + rows[^1].Height + ctx.Options.LabelSpacing;
         }
@@ -17,7 +19,7 @@ internal static class SectionLayouter
         if (plan.Kind == SectionKind.Tab)
         {
             var block = TabLayouter.Layout(source, plan.LineIndexes, y, ctx);
-            return new LayoutSection(plan.Kind, plan.Label, labelRuns, top, block.Bottom - top, block.Scale, block.Clipped, false, false, block.Lines);
+            return new LayoutSection(plan.Kind, plan.Label, labelRuns, top, block.Bottom - top, block.Scale, block.Clipped, false, false, block.Lines, labelOverflow);
         }
 
         var lines = new List<LayoutLine>(plan.LineIndexes.Count);
@@ -31,7 +33,7 @@ internal static class SectionLayouter
             y = line.Y + line.Height;
         }
 
-        return new LayoutSection(plan.Kind, plan.Label, labelRuns, top, y - top, 1, false, false, false, Frozen.From(lines));
+        return new LayoutSection(plan.Kind, plan.Label, labelRuns, top, y - top, 1, false, false, false, Frozen.From(lines), labelOverflow);
     }
 
     private static LayoutLine LayoutOne(SectionKind kind, int index, LayoutSourceLine line, double y, FlowContext ctx, ref int lastNumber)
@@ -46,7 +48,8 @@ internal static class SectionLayouter
 
     private static LayoutLine CommentLine(LayoutSourceLine line, double y, FlowContext ctx)
     {
-        var rows = PlainTextLayouter.Rows(line.Text.Trim(), TextRole.Comment, RunKind.Comment, true, y, ctx);
+        var blanks = line.Text.Length - line.Text.TrimStart().Length;
+        var rows = PlainTextLayouter.Rows(line.Text.Trim(), TextRole.Comment, RunKind.Comment, blanks, y, ctx);
         var height = rows[^1].Y + rows[^1].Height - y;
         return new LayoutLine(line.DocumentIndex, null, y, height, Frozen.From(rows.ToArray()), true);
     }

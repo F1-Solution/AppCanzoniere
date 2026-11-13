@@ -30,7 +30,7 @@ public class LayoutEdgeCaseTests
 
     private sealed class HugeMeasurer : ITextMeasurer
     {
-        public TextMetrics Measure(string text, TextRole role) => new(text.Length == 0 ? 0 : double.MaxValue / 2, 10, 8);
+        public TextMetrics Measure(string text, TextRole role) => new(text.Length * 10, double.MaxValue, 8);
     }
 
     private static LayoutSourceLine Line(string text, int documentIndex = -1, params LayoutChord[] chords) =>
@@ -130,10 +130,16 @@ public class LayoutEdgeCaseTests
     }
 
     [Fact]
-    public void AMeasurerSoLargeThatAnXOverflows_RaisesInvalidOperation()
+    public void AMeasurerHeightSoLargeThatAYOverflows_RaisesInvalidOperation()
     {
-        var options = Options(double.MaxValue);
+        Assert.Throws<InvalidOperationException>(() => Flow("a\nb", Options(), new HugeMeasurer()));
+    }
 
-        Assert.Throws<InvalidOperationException>(() => Flow("[C]ab[G]cd", options, new HugeMeasurer()));
+    [Fact]
+    public void AnOptionSoLargeThatAnXOverflows_RaisesInvalidOperation()
+    {
+        var options = Options(double.MaxValue) with { ChordStyle = ChordBoxStyle.Pill, PillPaddingX = double.MaxValue };
+
+        Assert.Throws<InvalidOperationException>(() => Flow("[C]ab[G]cd", options));
     }
 }

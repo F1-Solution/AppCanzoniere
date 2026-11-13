@@ -6,7 +6,7 @@ public sealed record ChordProRenderOptions
     /// <summary>Semitones to transpose the sounding song; the written key and chords shift by this plus the capo change.</summary>
     public int TransposeSteps { get; init; }
 
-    /// <summary>Spelling of altered notes at capo 0 and of the sounding key; with a capo the shapes are always spelled by their own key. Null keeps notes as written unless shifted, then sharps.</summary>
+    /// <summary>Spelling of altered notes and of the sounding key, where null keeps notes as written unless shifted, then sharps, and a capo always spells the shapes by their own key.</summary>
     public AccidentalPreference? Accidentals { get; init; }
 
     /// <summary>Notation the document's chords and key are written in.</summary>

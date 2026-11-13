@@ -26,6 +26,7 @@ public static class SongLayoutEngine
             y = section.Y + section.Height;
         }
 
+        FiniteCoordinates.Require(y, sections);
         return new FlowLayout(options.Width, gutter, y, numbered, Frozen.From(sections));
     }
 

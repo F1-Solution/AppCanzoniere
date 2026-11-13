@@ -1,7 +1,7 @@
 namespace AppCanzoniere.Application.Layout;
 
-/// <summary>The text, chords and role of one lyric line being laid out.</summary>
-internal readonly record struct LineModel(string Text, IReadOnlyList<LayoutChord> Chords, TextRole LyricRole, bool Instrumental)
+/// <summary>The text, chords (with their index in the line as given) and role of one lyric line being laid out.</summary>
+internal readonly record struct LineModel(string Text, IReadOnlyList<LayoutChord> Chords, IReadOnlyList<int> ChordOrdinals, TextRole LyricRole, bool Instrumental)
 {
     public static bool IsBlank(string text) => string.IsNullOrWhiteSpace(text);
 

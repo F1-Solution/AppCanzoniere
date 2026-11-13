@@ -18,7 +18,7 @@ internal static class RowRenderer
 
         var runs = new List<LayoutRun>(segs.Count * 2 + 1);
         if (number is { } n && rowIndex == 0 && ctx.ShowNumbers)
-            runs.Add(NumberRun(n, top, lyricTop + lyric.Ascent, ctx));
+            runs.Add(NumberRun(n, top, height, lyricTop + lyric.Ascent, ctx));
 
         for (var i = 0; i < segs.Count; i++)
         {
@@ -48,7 +48,7 @@ internal static class RowRenderer
             role,
             x, top, seg.ChordWidth, ctx.ChordRowHeight,
             x + ctx.ChordPadX, top + ctx.ChordPadY + ctx.Metrics(role).Ascent,
-            chord.Position, false, seg.ChordIndex));
+            chord.Position, false, model.ChordOrdinals[seg.ChordIndex]));
     }
 
     private static void AddLyric(List<LayoutRun> runs, in LineModel model, in Seg seg, Seg? next, double advance, double x, double lyricTop, FlowContext ctx)
@@ -68,14 +68,14 @@ internal static class RowRenderer
             seg.Start, splitsAWord));
     }
 
-    /// <summary>The number shares the lyric baseline unless its box would then start above the row.</summary>
-    private static LayoutRun NumberRun(int number, double rowTop, double lyricBaseline, FlowContext ctx)
+    /// <summary>The number shares the lyric baseline unless its box would then leave the row at the top or the bottom.</summary>
+    private static LayoutRun NumberRun(int number, double rowTop, double rowHeight, double lyricBaseline, FlowContext ctx)
     {
         var text = number.ToString(CultureInfo.InvariantCulture);
         var metrics = ctx.Metrics(TextRole.LineNumber);
         var width = ctx.WidthOf(text, TextRole.LineNumber);
         var x = ctx.Gutter - ctx.Options.GutterGap - width;
-        var top = Math.Max(rowTop, lyricBaseline - metrics.Ascent);
+        var top = Math.Max(rowTop, Math.Min(lyricBaseline - metrics.Ascent, rowTop + rowHeight - metrics.LineHeight));
         return new LayoutRun(RunKind.LineNumber, text, TextRole.LineNumber, x, top, width, metrics.LineHeight, x, top + metrics.Ascent, -1, false);
     }
 }
