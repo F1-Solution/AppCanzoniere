@@ -77,6 +77,7 @@ internal static class Html
         SheetWarning.KeyAndCapo => "tonalità e capotasto insieme",
         SheetWarning.UnreadableMetadata => "metadato illeggibile",
         SheetWarning.EscapedLyric => "riga di testo con cancelletto",
+        SheetWarning.BracketsReplaced => "parentesi quadre o graffe sostituite",
         _ => warning.ToString()
     };
 

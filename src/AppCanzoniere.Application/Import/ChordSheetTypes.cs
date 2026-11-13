@@ -69,7 +69,10 @@ public enum SheetWarning
     UnreadableMetadata,
 
     /// <summary>A lyric starting with '#' got a leading space.</summary>
-    EscapedLyric
+    EscapedLyric,
+
+    /// <summary>Square brackets or braces in the text were replaced by parentheses.</summary>
+    BracketsReplaced
 }
 
 /// <summary>Diagnosis of one input line; OutputLine is the 0-based output line that carries its text.</summary>
