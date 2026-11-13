@@ -62,6 +62,29 @@ public class LowerCaseChordLineTests
     }
 
     [Fact]
+    public void SolfegeRunInADocumentWithLowerCaseChordLines_StaysALyric()
+    {
+        var result = Run(
+            "do sol7 lam", "Il Signore e il mio pastore", "re- la mi7", "Non manco di nulla",
+            "fa do/mi sol", "Su pascoli verdi", "do re mi fa sol", "Mi fa riposare");
+
+        Assert.Equal(SheetLineKind.ChordLine, result.Diag(1).Kind);
+        Assert.Equal(SheetLineKind.ChordLine, result.Diag(5).Kind);
+        Assert.Equal(SheetLineKind.Lyric, result.Diag(7).Kind);
+        Assert.Contains("\ndo re mi fa sol\n", result.ChordPro);
+    }
+
+    [Fact]
+    public void WideGapsInADocumentWithLowerCaseChordLines_AreStillAChordLine()
+    {
+        var result = Run(
+            "do sol7 lam", "Il Signore e il mio pastore", "re- la mi7", "Non manco di nulla",
+            "fa do/mi sol", "Su pascoli verdi", "do   re   mi", "Mi fa riposare");
+
+        Assert.Equal(SheetLineKind.ChordLine, result.Diag(7).Kind);
+    }
+
+    [Fact]
     public void DocumentWithSeveralLowerCaseChordLines_ReadsLowerCaseLinesWithoutGapsAsChords()
     {
         var result = Run(
