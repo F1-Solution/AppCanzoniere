@@ -11,7 +11,6 @@ internal static class LooseChords
     private const int MinForeignAnchors = 3;
     private const int MinDoubtfulAnchors = 2;
     private const int MinWideGap = 3;
-    private const int MinStyleDistinct = 3;
     public const int MinStyleLines = 3;
 
     /// <summary>The tokens with loose chords turned into chords, or null when the line does not qualify.</summary>
@@ -48,7 +47,7 @@ internal static class LooseChords
         if (distinct < 2)
             return false;
 
-        var styled = context.LowerCaseStyle && (HasWideGap(tokens) || distinct >= MinStyleDistinct);
+        var styled = context.LowerCaseStyle && HasWideGap(tokens);
         return styled || lowers.Any(t => HasChordFeature(t, notation)) || HasAlignedWideGap(tokens, context.Below);
     }
 
