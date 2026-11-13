@@ -60,4 +60,20 @@ public class LowerCaseChordLineTests
         Assert.Equal(SheetLineKind.ChordLine, result.Diag(1).Kind);
         Assert.Equal(Out("[re]Santo [sol]Signore [do]dei tanti"), result.ChordPro);
     }
+
+    [Fact]
+    public void DocumentWithSeveralLowerCaseChordLines_ReadsLowerCaseLinesWithoutGapsAsChords()
+    {
+        var result = Run(
+            "   sol               do sol re sol", "", "Rit. Canto al Signore", "",
+            "        re   do sol re", "", "Benedetto sia il mare", "",
+            "   re      mi    la", "", "Terra e cielo", "",
+            "        sol do sol re sol", "", "fa la la la la");
+
+        Assert.Equal(SheetLineKind.ChordLine, result.Diag(1).Kind);
+        Assert.Equal(SheetLineKind.ChordLine, result.Diag(5).Kind);
+        Assert.Equal(SheetLineKind.ChordLine, result.Diag(9).Kind);
+        Assert.Equal(SheetLineKind.ChordLine, result.Diag(13).Kind);
+        Assert.Equal(SheetLineKind.Lyric, result.Diag(15).Kind);
+    }
 }

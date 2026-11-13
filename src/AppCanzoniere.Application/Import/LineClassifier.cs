@@ -45,9 +45,9 @@ internal static class LineClassifier
     private const double LikelyLyric = 0.8;
     private const int StrayWordMinChords = 4;
 
-    public static ContentUnit BuildUnit(string text, int start, bool indented, Notation notation)
+    public static ContentUnit BuildUnit(string text, int start, bool indented, Notation notation, LineContext context = default)
     {
-        var classification = Classify(SheetTokenizer.Tokenize(text, start, notation), notation);
+        var classification = Classify(SheetTokenizer.Tokenize(text, start, notation), notation, context);
         if (classification.IsChord)
             return new ContentUnit(UnitKind.Chord, text, start, indented, SafeTokens(classification));
 
@@ -74,9 +74,9 @@ internal static class LineClassifier
             : classification;
     }
 
-    public static LineClassification Classify(IReadOnlyList<SheetToken> tokens, Notation notation)
+    public static LineClassification Classify(IReadOnlyList<SheetToken> tokens, Notation notation, LineContext context = default)
     {
-        if (LooseChords.Promote(tokens, notation) is { } promoted && ClassifyTokens(promoted) is { IsChord: true } chordLine)
+        if (LooseChords.Promote(tokens, notation, context) is { } promoted && ClassifyTokens(promoted) is { IsChord: true } chordLine)
         {
             return chordLine with
             {

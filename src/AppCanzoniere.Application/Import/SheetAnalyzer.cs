@@ -40,9 +40,11 @@ internal static class SheetAnalyzer
     {
         var analyzed = new List<AnalyzedLine>(lines.Count);
         var inHeader = true;
+        var lowerCaseStyle = HasLowerCaseStyle(lines, notation);
         for (var i = 0; i < lines.Count; i++)
         {
-            var line = AnalyzeLine(i, lines[i], notation, inHeader);
+            var context = new LineContext(i + 1 < lines.Count ? lines[i + 1].Text : null, lowerCaseStyle);
+            var line = AnalyzeLine(i, lines[i], notation, inHeader, context);
             analyzed.Add(line);
             inHeader = inHeader && !EndsHeader(line);
         }
@@ -67,7 +69,11 @@ internal static class SheetAnalyzer
         line.Kind == SheetLineKind.Lyric && other.Kind == SheetLineKind.ChordLine &&
         other.Content is { Class: { Pending: false, Unambiguous: >= 1, Words: 0 } };
 
-    private static AnalyzedLine AnalyzeLine(int index, NormalizedLine line, Notation notation, bool inHeader)
+    // A document with several lower-case chord lines writes all its chords in lower case.
+    private static bool HasLowerCaseStyle(IReadOnlyList<NormalizedLine> lines, Notation notation) =>
+        lines.Count(l => l.Text.Length > 0 && LooseChords.IsStyleEvidence(SheetTokenizer.Tokenize(l.Text, 0, notation), notation)) >= LooseChords.MinStyleLines;
+
+    private static AnalyzedLine AnalyzeLine(int index, NormalizedLine line, Notation notation, bool inHeader, LineContext context)
     {
         var text = line.Text;
         IReadOnlyList<SheetWarning> warnings = line.TabExpanded ? new[] { SheetWarning.TabExpanded } : Array.Empty<SheetWarning>();
@@ -86,10 +92,10 @@ internal static class SheetAnalyzer
         }
 
         if (SectionLabelParser.TryParse(text) is { } label)
-            return AnalyzeLabel(index, line, label, notation, warnings);
+            return AnalyzeLabel(index, line, label, notation, warnings, context);
 
         var start = text.Length - text.TrimStart().Length;
-        var unit = LineClassifier.BuildUnit(text, start, true, notation);
+        var unit = LineClassifier.BuildUnit(text, start, true, notation, context);
         var kind = unit.Kind switch
         {
             UnitKind.Chord => SheetLineKind.ChordLine,
@@ -99,12 +105,12 @@ internal static class SheetAnalyzer
         return new AnalyzedLine(index, line, kind, unit.Class.Confidence, warnings.Concat(unit.Class.Warnings).ToList(), unit);
     }
 
-    private static AnalyzedLine AnalyzeLabel(int index, NormalizedLine line, SectionLabel label, Notation notation, IReadOnlyList<SheetWarning> warnings)
+    private static AnalyzedLine AnalyzeLabel(int index, NormalizedLine line, SectionLabel label, Notation notation, IReadOnlyList<SheetWarning> warnings, LineContext context)
     {
         if (label.RestStart < 0)
             return new AnalyzedLine(index, line, SheetLineKind.SectionLabel, 1.0, warnings, Label: label);
 
-        var unit = LineClassifier.BuildUnit(line.Text, label.RestStart, false, notation);
+        var unit = LineClassifier.BuildUnit(line.Text, label.RestStart, false, notation, context);
         return new AnalyzedLine(
             index, line, SheetLineKind.SectionLabel, unit.Class.Confidence,
             warnings.Concat(unit.Class.Warnings).ToList(), unit, label);
