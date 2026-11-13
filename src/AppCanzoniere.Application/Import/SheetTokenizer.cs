@@ -31,7 +31,7 @@ internal static class SheetTokenizer
     private static readonly Regex Bars = new(@"^[|:]*\|[|:]*$", RegexOptions.Compiled | RegexOptions.CultureInvariant);
     private static readonly Regex BarRuns = new(@"([|:]*\|[|:]*)", RegexOptions.Compiled | RegexOptions.CultureInvariant);
     private static readonly Regex RepeatCount = new(@"^(?:[xX×]\d{1,2}|\d{1,2}[xX×])$", RegexOptions.Compiled | RegexOptions.CultureInvariant);
-    private static readonly Regex ShortNumber = new(@"^\d{1,2}$", RegexOptions.Compiled | RegexOptions.CultureInvariant);
+    private static readonly Regex ShortNumber = new(@"^\d{1,3}$", RegexOptions.Compiled | RegexOptions.CultureInvariant);
 
     private static readonly HashSet<string> NeutralWords = new(StringComparer.OrdinalIgnoreCase)
     {
@@ -124,7 +124,7 @@ internal static class SheetTokenizer
         if (core.Length > 2 && core[0] == '(' && core[^1] == ')')
         {
             var inner = core[1..^1];
-            return new[] { TryChord(inner, notation) ? Chord(core, column, inner, notation, true) : Word(core, column) };
+            return new[] { ParenthesisedToken(core, column, inner, notation) };
         }
 
         if (TryChord(core, notation))
@@ -150,6 +150,16 @@ internal static class SheetTokenizer
         }
 
         return tokens;
+    }
+
+    private static SheetToken ParenthesisedToken(string core, int column, string inner, Notation notation)
+    {
+        if (TryChord(inner, notation))
+            return Chord(core, column, inner, notation, true);
+
+        return char.IsLower(inner[0]) && ChordSymbolParser.TryParse(inner, notation, out _)
+            ? new SheetToken(core, column, TokenKind.Word, Parenthesised: true, LowerChord: true)
+            : Word(core, column);
     }
 
     // Lower-case chords and chords of the other notation stay words unless the whole line turns out to be a chord line.

@@ -48,4 +48,12 @@ public class CorpusFindingsTests
     [Fact]
     public void CoroLabel_IsAChorus() =>
         Assert.Equal(Out("{start_of_chorus}", "Santo", "{end_of_chorus}"), Run("CORO:", "Santo").ChordPro);
+
+    [Fact]
+    public void IndentedLowerCaseBareNames_AreAChordLine() =>
+        Assert.Equal(Out("[do] [sol] [re] [sol]"), Run("        do sol re sol").ChordPro);
+
+    [Fact]
+    public void ParenthesisedLowerCaseKeyAndSongNumber_BeforeChords() =>
+        Assert.Equal(Out("134 [do] [fa] [do] [mi] [la-]"), Run("134 (do) fa    do    mi   la-").ChordPro);
 }

@@ -7,6 +7,7 @@ internal static class LooseChords
 {
     private const int MinForeignAnchors = 3;
     private const int MinWideGap = 3;
+    private const int MinWideIndent = 6;
 
     /// <summary>The tokens with loose chords turned into chords, or null when the line does not qualify.</summary>
     public static IReadOnlyList<SheetToken>? Promote(IReadOnlyList<SheetToken> tokens, Notation notation)
@@ -37,14 +38,15 @@ internal static class LooseChords
         notation == Notation.Italian ? SheetTokenizer.IsAmbiguous(text, notation) : text.Length == 1;
 
     private static bool HasWideGap(IReadOnlyList<SheetToken> tokens) =>
+        tokens[0].Column >= MinWideIndent ||
         tokens.Zip(tokens.Skip(1), (a, b) => b.Column - (a.Column + a.Text.Length)).Any(gap => gap >= MinWideGap);
 
     private static SheetToken ToChord(SheetToken token, Notation notation) =>
         token with
         {
             Kind = TokenKind.Chord,
-            Chord = token.Text,
-            Ambiguous = token.LowerChord && SheetTokenizer.IsAmbiguous(token.Text, notation),
+            Chord = token.Parenthesised ? token.Text[1..^1] : token.Text,
+            Ambiguous = token.LowerChord && SheetTokenizer.IsAmbiguous(token.Parenthesised ? token.Text[1..^1] : token.Text, notation),
             LowerChord = false,
             Foreign = false
         };

@@ -33,6 +33,17 @@ public class CorpusTests
             .Where(n => n > 0)
             .ToHashSet();
 
+    // A label line such as "Intro: Do Sol" counts as a chord line when its text carries chords.
+    private static HashSet<int> ChordLineNumbers(ChordSheetResult result)
+    {
+        var output = result.ChordPro.Split('\n');
+        return result.Lines
+            .Where(l => l.Kind == SheetLineKind.ChordLine ||
+                        (l.Kind == SheetLineKind.SectionLabel && l.OutputLine < output.Length && output[l.OutputLine].Contains('[')))
+            .Select(l => l.LineNumber)
+            .ToHashSet();
+    }
+
     [Fact]
     public void LabelledChordLines_AreFoundWithRecallOfAtLeastNinetyPercent()
     {
@@ -48,8 +59,7 @@ public class CorpusTests
                 continue;
 
             var truth = ReadLabels(labelFile);
-            var predicted = ChordSheetConverter.Convert(File.ReadAllText(textFile)).Lines
-                .Where(l => l.Kind == SheetLineKind.ChordLine).Select(l => l.LineNumber).ToHashSet();
+            var predicted = ChordLineNumbers(ChordSheetConverter.Convert(File.ReadAllText(textFile)));
             labelled += truth.Count;
             classified += predicted.Count;
             found += truth.Count(predicted.Contains);
