@@ -8,7 +8,7 @@ internal sealed record KeyValue(ChordSymbol Symbol, Notation Notation, KeyWords?
     private static readonly Regex Spaces = new(@"\s+", RegexOptions.Compiled | RegexOptions.CultureInvariant);
 
     private static readonly Regex Worded = new(
-        @"^(?<note>sol|do|re|mi|fa|la|si|[a-g])(?<symbol>[#b♯♭])?(?: (?<word>diesis|bemolle|sharp|flat))? (?<quality>minore|minor|min\.?|maggiore|major|magg\.?|maj\.?)$",
+        @"^(?<note>sol|do|re|mi|fa|la|si|[a-g])(?<symbol>[#b♯♭])?(?: (?<detached>[#b♯♭])(?= ))?(?: (?<word>diesis|bemolle|sharp|flat))?(?: (?<quality>minore|minor|min\.?|maggiore|major|magg\.?|maj\.?))?$",
         RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
 
     // Quality word (lower case) to its Italian and English forms.
@@ -49,13 +49,29 @@ internal sealed record KeyValue(ChordSymbol Symbol, Notation Notation, KeyWords?
 
     private static bool TryParseWords(string text, out KeyValue key)
     {
+        if (TryParseWorded(text, string.Empty, out key))
+            return true;
+
+        // A full stop after the whole key is kept as written.
+        return text.EndsWith('.') && TryParseWorded(text[..^1], ".", out key);
+    }
+
+    private static bool TryParseWorded(string text, string trailing, out KeyValue key)
+    {
         key = null!;
         var match = Worded.Match(text);
-        if (!match.Success || (match.Groups["symbol"].Success && match.Groups["word"].Success))
+        if (!match.Success)
+            return false;
+
+        var attached = match.Groups["symbol"].Success;
+        var detached = match.Groups["detached"].Success;
+        var hasWord = match.Groups["word"].Success;
+        var hasQuality = match.Groups["quality"].Success;
+        if ((attached || detached) && hasWord || attached && detached || detached && !hasQuality || !hasQuality && !hasWord)
             return false;
 
         var allUpper = !text.Any(char.IsLower);
-        var symbol = match.Groups["symbol"].Success ? match.Groups["symbol"].Value : null;
+        var symbol = attached ? match.Groups["symbol"].Value : detached ? match.Groups["detached"].Value : null;
         if (symbol == "B" && !allUpper)
             return false; // An upper-case B is a flat sign only when the whole key is upper case.
 
@@ -66,9 +82,9 @@ internal sealed record KeyValue(ChordSymbol Symbol, Notation Notation, KeyWords?
 
         var word = match.Groups["word"].Success ? match.Groups["word"].Value : null;
         var root = new Note(natural.Letter, AccidentalSign(symbol ?? word));
-        var quality = match.Groups["quality"].Value;
-        var chord = new ChordSymbol(root, quality.StartsWith("min", StringComparison.OrdinalIgnoreCase), string.Empty, string.Empty, null);
-        key = new KeyValue(chord, notation, new KeyWords(symbol, word, quality, name, allUpper));
+        var quality = hasQuality ? match.Groups["quality"].Value : null;
+        var chord = new ChordSymbol(root, quality?.StartsWith("min", StringComparison.OrdinalIgnoreCase) == true, string.Empty, string.Empty, null);
+        key = new KeyValue(chord, notation, new KeyWords(symbol, word, quality, name, allUpper, detached, trailing));
         return true;
     }
 
@@ -90,9 +106,9 @@ internal sealed record KeyValue(ChordSymbol Symbol, Notation Notation, KeyWords?
         var name = ChordNotation.FormatNote(new Note(root.Letter, 0), notation);
         var text = Words.AllUpper ? name.ToUpperInvariant() : MatchCase(Words.NoteName, name);
         if (root.Accidental != 0)
-            text += Words.Symbol is not null ? AccidentalSymbol(root.Accidental) : " " + AccidentalWord(root.Accidental, notation);
+            text += Words.Symbol is not null ? (Words.Detached ? " " : string.Empty) + AccidentalSymbol(root.Accidental) : " " + AccidentalWord(root.Accidental, notation);
 
-        return text + " " + Quality(Notation, notation);
+        return text + (Words.Quality is null ? string.Empty : " " + Quality(Notation, notation)) + Words.Trailing;
     }
 
     // The written sign decides the style: Unicode stays Unicode, and the flat letter follows the case of an all-upper key.
@@ -110,12 +126,12 @@ internal sealed record KeyValue(ChordSymbol Symbol, Notation Notation, KeyWords?
         var word = notation == Notation.Italian
             ? (accidental > 0 ? "diesis" : "bemolle")
             : (accidental > 0 ? "sharp" : "flat");
-        return MatchCase(Words!.AccidentalWord ?? Words.Quality, word);
+        return MatchCase(Words!.AccidentalWord ?? Words.Quality!, word);
     }
 
     private string Quality(Notation from, Notation to)
     {
-        var written = Words!.Quality;
+        var written = Words!.Quality!;
         if (from == to || !Qualities.TryGetValue(written.ToLowerInvariant(), out var forms))
             return written;
 
@@ -132,5 +148,5 @@ internal sealed record KeyValue(ChordSymbol Symbol, Notation Notation, KeyWords?
     }
 }
 
-/// <summary>How a worded key was written: its accidental sign or word, quality word and note name as typed.</summary>
-internal sealed record KeyWords(string? Symbol, string? AccidentalWord, string Quality, string NoteName, bool AllUpper);
+/// <summary>How a worded key was written: its accidental sign or word, quality word, note name and closing full stop as typed.</summary>
+internal sealed record KeyWords(string? Symbol, string? AccidentalWord, string? Quality, string NoteName, bool AllUpper, bool Detached, string Trailing);

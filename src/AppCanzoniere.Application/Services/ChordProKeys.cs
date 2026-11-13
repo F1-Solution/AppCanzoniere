@@ -11,6 +11,7 @@ public static class ChordProKeys
     {
         ArgumentNullException.ThrowIfNull(document);
         ArgumentNullException.ThrowIfNull(options);
+        ChordTransformer.ValidateCapo(options);
         return options.Capo ?? document.CapoFret ?? 0;
     }
 

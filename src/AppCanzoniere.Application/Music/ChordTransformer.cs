@@ -19,8 +19,7 @@ public sealed class ChordTransformer
     /// <param name="documentChords">Chords of the song in order; without a usable key the first one stands in for it.</param>
     public ChordTransformer(ChordProRenderOptions options, string? documentKey, int documentCapo, IEnumerable<string>? documentChords = null)
     {
-        if (options.Capo is { } requested && requested is < 0 or > CapoCalculator.MaxFret)
-            throw new ArgumentOutOfRangeException(nameof(options), options.Capo, $"Capo fret must be between 0 and {CapoCalculator.MaxFret}.");
+        ValidateCapo(options);
 
         _options = options;
         _documentKeyText = documentKey;
@@ -42,6 +41,13 @@ public sealed class ChordTransformer
         }
         else if (FirstChord(chordList, options.InputNotation.Notation) is { } first)
             _reference = (Note.Mod12(first.Root.PitchClass + _shift), first.IsMinor);
+    }
+
+    /// <summary>Rejects a requested capo fret outside 0-11.</summary>
+    internal static void ValidateCapo(ChordProRenderOptions options)
+    {
+        if (options.Capo is { } requested && requested is < 0 or > CapoCalculator.MaxFret)
+            throw new ArgumentOutOfRangeException(nameof(options), options.Capo, $"Capo fret must be between 0 and {CapoCalculator.MaxFret}.");
     }
 
     // More chords readable only in the other notation than in the requested one: the key is left alone with them.
