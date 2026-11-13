@@ -19,11 +19,30 @@ internal static class ChordWords
 
     /// <summary>True when the text parses as a chord and its quality is not a bare letter run outside the real qualities.</summary>
     public static bool TryParseDefinite(string text, Notation notation, out ChordSymbol chord) =>
-        ChordSymbolParser.TryParse(text, notation, out chord) && IsDefinite(chord);
+        TryParse(text, notation, out chord) && IsDefinite(chord);
 
     /// <summary>True when the text parses as a chord but only through a letter-only suffix that is not a real quality.</summary>
     public static bool IsDoubtful(string text, Notation notation) =>
-        ChordSymbolParser.TryParse(text, notation, out var chord) && !IsDefinite(chord);
+        TryParse(text, notation, out var chord) && !IsDefinite(chord);
+
+    /// <summary>True when the text parses as a chord of the notation and its parentheses are balanced.</summary>
+    public static bool IsChord(string text, Notation notation) => TryParse(text, notation, out _);
+
+    private static bool TryParse(string text, Notation notation, out ChordSymbol chord) =>
+        ChordSymbolParser.TryParse(text, notation, out chord) && IsBalanced(text);
+
+    private static bool IsBalanced(string text)
+    {
+        var depth = 0;
+        foreach (var c in text)
+        {
+            depth += c == '(' ? 1 : c == ')' ? -1 : 0;
+            if (depth < 0)
+                return false;
+        }
+
+        return depth == 0;
+    }
 
     public static bool IsWordLike(string chord) => WordLike.Contains(chord);
 

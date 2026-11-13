@@ -162,8 +162,12 @@ internal static class SheetTokenizer
         if (TryChord(inner, notation))
             return Chord(core, column, inner, notation, true);
 
-        return char.IsLower(inner[0]) && ChordWords.TryParseDefinite(inner, notation, out _)
-            ? new SheetToken(core, column, TokenKind.Word, Parenthesised: true, LowerChord: true)
+        if (char.IsLower(inner[0]) && ChordWords.TryParseDefinite(inner, notation, out _))
+            return new SheetToken(core, column, TokenKind.Word, Parenthesised: true, LowerChord: true);
+
+        var other = notation == Notation.Italian ? Notation.English : Notation.Italian;
+        return char.IsUpper(inner[0]) && ChordWords.TryParseDefinite(inner, other, out _)
+            ? new SheetToken(core, column, TokenKind.Word, Parenthesised: true, Foreign: true)
             : Word(core, column);
     }
 

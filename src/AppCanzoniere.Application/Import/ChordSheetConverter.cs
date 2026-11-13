@@ -10,11 +10,7 @@ public static class ChordSheetConverter
         @"^\s*\{\s*(title|t|subtitle|st|artist|composer|lyricist|key|capo|tempo|time|comment|c|ci|cb|chorus|start_of_\w+|end_of_\w+|so[cbtv]|eo[cbtv]|define|new_song|ns|meta)\b[^}]*\}\s*$",
         RegexOptions.Compiled | RegexOptions.CultureInvariant | RegexOptions.IgnoreCase);
 
-    private static readonly Regex BracketedChord = new(@"\[([^\[\]]+)\]", RegexOptions.Compiled | RegexOptions.CultureInvariant);
-
-    private static readonly Regex Annotation = new(@"\[\*[^\[\]]*\]", RegexOptions.Compiled | RegexOptions.CultureInvariant);
-
-    private const int MinBracketedLines = 2;
+    private const int MinAttachedLines = 2;
 
     /// <summary>Converts chords-above-lyrics text to ChordPro; ChordPro input is returned unchanged.</summary>
     public static ChordSheetResult Convert(string text, ChordSheetOptions? options = null)
@@ -78,9 +74,5 @@ public static class ChordSheetConverter
     }
 
     private static bool IsChordPro(IReadOnlyList<NormalizedLine> lines) =>
-        lines.Any(l => Directive.IsMatch(l.Text) || Annotation.IsMatch(l.Text)) ||
-        lines.Count(l => BracketedChord.Matches(l.Text).Any(m => IsChord(m.Groups[1].Value))) >= MinBracketedLines;
-
-    private static bool IsChord(string text) =>
-        ChordSymbolParser.TryParse(text, Notation.Italian, out _) || ChordSymbolParser.TryParse(text, Notation.English, out _);
+        lines.Any(l => Directive.IsMatch(l.Text)) || lines.Count(l => BracketedText.HasAttachedChord(l.Text)) >= MinAttachedLines;
 }

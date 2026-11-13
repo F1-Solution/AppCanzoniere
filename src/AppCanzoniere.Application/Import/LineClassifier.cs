@@ -53,7 +53,7 @@ internal static class LineClassifier
 
         if (InlineChords.TryConvert(text, start, notation, out var converted, out var unambiguous, out var ambiguous))
         {
-            var safe = TextSafety.ReplaceKeepingChords(converted, notation);
+            var safe = TextSafety.ReplaceKeepingChords(converted);
             var inline = new LineClassification(false, false, CertainLyric, Replaced(safe != converted), Array.Empty<SheetToken>(), unambiguous, ambiguous, 0);
             return new ContentUnit(UnitKind.Inline, safe, start, indented, inline);
         }
@@ -142,7 +142,6 @@ internal static class LineClassifier
 /// <summary>Chords already written inside a lyric: bracketed, or in parentheses before a letter (spec 5.5).</summary>
 internal static class InlineChords
 {
-    private static readonly Regex Bracketed = new(@"\[([^\[\]]+)\]", RegexOptions.Compiled | RegexOptions.CultureInvariant);
     private static readonly Regex Parenthesised = new(@"\(([^()\s]+)\)", RegexOptions.Compiled | RegexOptions.CultureInvariant);
 
     public static bool TryConvert(string text, int start, Notation notation, out string converted, out int unambiguous, out int ambiguous)
@@ -151,10 +150,10 @@ internal static class InlineChords
         unambiguous = ambiguous = 0;
         var rest = text[start..];
 
-        var bracketed = Bracketed.Matches(rest).Select(m => m.Groups[1].Value).Where(c => ChordSymbolParser.TryParse(c, notation, out _)).ToList();
+        var bracketed = BracketedText.Matches(rest).Select(m => m.Groups[1].Value).Where(BracketedText.IsKept).ToList();
         if (bracketed.Count > 0)
         {
-            Count(bracketed, notation, ref unambiguous, ref ambiguous);
+            Count(bracketed.Where(c => !BracketedText.IsAnnotation(c) && ChordWords.IsChord(c, notation)), notation, ref unambiguous, ref ambiguous);
             return true;
         }
 
