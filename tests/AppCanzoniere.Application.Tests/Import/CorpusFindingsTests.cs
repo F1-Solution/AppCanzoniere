@@ -56,4 +56,12 @@ public class CorpusFindingsTests
     [Fact]
     public void ParenthesisedLowerCaseKeyAndSongNumber_BeforeChords() =>
         Assert.Equal(Out("134 [do] [fa] [do] [mi] [la-]"), Run("134 (do) fa    do    mi   la-").ChordPro);
+
+    [Fact]
+    public void LoneParenthesesAroundAChord_AreNeutral() =>
+        Assert.Equal(Out("[Am] [F7+] [C] ( [F7+] )"), Run("Am   F7+   C ( F7+ )").ChordPro);
+
+    [Fact]
+    public void BassOnlyChordAndArrow_AreNeutral() =>
+        Assert.Equal(Out("[Re-] [La-] /do [Sib7+] → [Sol]"), Run("Re- La- /do Sib7+ → Sol").ChordPro);
 }
