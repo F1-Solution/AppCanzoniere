@@ -102,7 +102,7 @@ public class KeyNotationConsistencyTests
         var document = new ChordProDocument { Key = "La" };
         document.Lines.Add(new ChordProLine { Type = ChordProLineType.Verse, Text = "x", Chords = { new ChordPosition { Chord = "La", Position = 0 } } });
 
-        Assert.Equal("{key:La}\n[La]x\n", _parser.Render(document, new ChordProRenderOptions { TransposeSteps = 2 }));
-        Assert.Equal("{key:Si}\n[Si]x\n", _parser.Render(document, Italian(2)));
+        Assert.Equal("{key:La}\n\n[La]x\n", _parser.Render(document, new ChordProRenderOptions { TransposeSteps = 2 }));
+        Assert.Equal("{key:Si}\n\n[Si]x\n", _parser.Render(document, Italian(2)));
     }
 }
