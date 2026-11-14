@@ -97,6 +97,35 @@ public class PdfDrawingCostTests
     }
 
     [Fact]
+    public async Task ExtractAsync_ReadsNestedFormsThatReuseOneName()
+    {
+        // Each level calls its child /X, as generated files often do: the nearest resources decide, so this is no cycle.
+        var forms = new[]
+        {
+            Form("/X Do\n", "<< /XObject << /X 7 0 R >> >>"),
+            Form(Text),
+        };
+        var pdf = OnePage(string.Empty, Ascii("/X Do\n"), "/XObject << /X 6 0 R >>", forms);
+
+        var result = await Extract(pdf);
+
+        Assert.Equal(PdfExtractionStatus.Success, result.Status);
+        Assert.Single(result.Pages[0].Words, w => w.Text == "gioia");
+    }
+
+    [Fact]
+    public async Task ExtractAsync_ReadsAFormThatCallsItself_AsPdfPigDropsThatCall()
+    {
+        var forms = new[] { Form(Text + "/X Do\n", "<< /Font << /F1 3 0 R >> /XObject << /X 6 0 R >> >>") };
+        var pdf = OnePage(string.Empty, Ascii("/X Do\n"), "/XObject << /X 6 0 R >>", forms);
+
+        var result = await Extract(pdf);
+
+        Assert.Equal(PdfExtractionStatus.Success, result.Status);
+        Assert.Single(result.Pages[0].Words, w => w.Text == "gioia");
+    }
+
+    [Fact]
     public async Task ExtractAsync_DoesNotCountImagesAsDrawnContent()
     {
         // An image is drawn 2,000 times; PdfPig does not unpack images to read the text, so they cost nothing here.
