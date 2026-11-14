@@ -29,9 +29,10 @@ public sealed class PdfTextImporter
         ArgumentNullException.ThrowIfNull(pdf);
         using var deadline = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         deadline.CancelAfter(_maxDuration);
+        var clock = System.Diagnostics.Stopwatch.StartNew();
         try
         {
-            return await ImportWithinAsync(pdf, deadline.Token).ConfigureAwait(false);
+            return await ImportWithinAsync(pdf, deadline.Token, clock).ConfigureAwait(false);
         }
         catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
         {
@@ -43,17 +44,25 @@ public sealed class PdfTextImporter
     public static string TimedOutReason(TimeSpan limit) =>
         string.Create(System.Globalization.CultureInfo.InvariantCulture, $"Reading the file took longer than the limit of {limit.TotalSeconds:0.#} seconds.");
 
-    private async Task<PdfTextResult> ImportWithinAsync(Stream pdf, CancellationToken token)
+    private async Task<PdfTextResult> ImportWithinAsync(Stream pdf, CancellationToken token, System.Diagnostics.Stopwatch clock)
     {
         var words = await _extractor.ExtractAsync(pdf, token).ConfigureAwait(false);
-        token.ThrowIfCancellationRequested();
         var pages = new List<PageText>(words.Pages.Count);
         foreach (var page in words.Pages)
         {
-            token.ThrowIfCancellationRequested();
+            StopIfOver(token, clock);
             pages.Add(PdfPageLayout.Lay(page, token));
         }
 
+        StopIfOver(token, clock);
         return new PdfTextResult(words.Status, words.Reason, pages);
+    }
+
+    // The clock is checked too, so a busy machine that delays the deadline timer still stops on time.
+    private void StopIfOver(CancellationToken token, System.Diagnostics.Stopwatch clock)
+    {
+        token.ThrowIfCancellationRequested();
+        if (clock.Elapsed > _maxDuration)
+            throw new OperationCanceledException(token);
     }
 }
