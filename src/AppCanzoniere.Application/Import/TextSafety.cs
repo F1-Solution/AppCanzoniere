@@ -7,8 +7,8 @@ internal static class TextSafety
     public static string Replace(string text) =>
         text.IndexOfAny(Special) < 0 ? text : Map(text, text.Length, _ => false);
 
-    /// <summary>Like <see cref="Replace"/>, but a bracketed chord of either notation or a star annotation stays as written.</summary>
-    public static string ReplaceKeepingChords(string text)
+    /// <summary>Like <see cref="Replace"/>, but a bracketed chord (of <paramref name="only"/> when given, else of either notation) or a star annotation stays.</summary>
+    public static string ReplaceKeepingChords(string text, AppCanzoniere.Application.Music.Notation? only = null)
     {
         if (text.IndexOfAny(Special) < 0)
             return text;
@@ -16,7 +16,7 @@ internal static class TextSafety
         var kept = new HashSet<int>();
         foreach (var m in BracketedText.Matches(text))
         {
-            if (BracketedText.IsKept(m.Groups[1].Value))
+            if (BracketedText.IsKept(m.Groups[1].Value, only))
             {
                 kept.Add(m.Index);
                 kept.Add(m.Index + m.Length - 1);

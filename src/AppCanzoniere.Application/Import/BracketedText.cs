@@ -10,15 +10,17 @@ internal static class BracketedText
 
     public static IEnumerable<Match> Matches(string text) => Pair.Matches(text);
 
-    /// <summary>True for a chord of either notation written without spaces inside the brackets.</summary>
-    public static bool IsInlineChord(string inner) =>
+    /// <summary>True for a chord written without spaces inside the brackets: of <paramref name="only"/> when given, else of either notation.</summary>
+    public static bool IsInlineChord(string inner, Notation? only = null) =>
         inner.Length > 0 && !char.IsWhiteSpace(inner[0]) && !char.IsWhiteSpace(inner[^1]) &&
-        (ChordWords.IsChord(inner, Notation.Italian) || ChordWords.IsChord(inner, Notation.English));
+        (only is { } n
+            ? ChordWords.IsChord(inner, n)
+            : ChordWords.IsChord(inner, Notation.Italian) || ChordWords.IsChord(inner, Notation.English));
 
     /// <summary>True for the converter's own neutral mark, such as the text of <c>[*N.C.]</c> read as "*N.C.".</summary>
     public static bool IsAnnotation(string inner) => inner.Length > 1 && inner[0] == '*';
 
-    public static bool IsKept(string inner) => IsAnnotation(inner) || IsInlineChord(inner);
+    public static bool IsKept(string inner, Notation? only = null) => IsAnnotation(inner) || IsInlineChord(inner, only);
 
     public static bool ContainsInlineChord(string text) => Matches(text).Any(m => IsInlineChord(m.Groups[1].Value));
 

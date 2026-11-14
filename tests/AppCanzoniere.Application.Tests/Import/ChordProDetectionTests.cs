@@ -43,7 +43,7 @@ public class ChordProDetectionTests
         var result = Run("Am   G", "Santo ascolta", "Canta [Do] forte", "Pace [Re] terra");
 
         Assert.False(result.WasChordPro);
-        Assert.Equal(Out("[Am]Santo [G]ascolta", "Canta [Do] forte", "Pace [Re] terra"), result.ChordPro);
+        Assert.Equal(Out("[Am]Santo [G]ascolta", "Canta (Do) forte", "Pace (Re) terra"), result.ChordPro);
     }
 
     [Fact]

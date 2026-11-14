@@ -56,9 +56,12 @@ internal static class LineClassifier
             return new ContentUnit(UnitKind.Chord, text, start, indented, classification with { Warnings = warnings });
         }
 
-        if (InlineChords.TryConvert(text, start, notation, out var converted, out var found, out var foreign))
+        // On a lyric line, a bracketed word that is a chord only in the other notation is text.
+        var only = context.OtherNotationAsText && text.Contains('[') && TreatsOtherNotationAsText(text, start, notation) ? notation : (Notation?)null;
+
+        if (InlineChords.TryConvert(text, start, notation, only, out var converted, out var found, out var foreign))
         {
-            var safe = TextSafety.ReplaceKeepingChords(converted);
+            var safe = TextSafety.ReplaceKeepingChords(converted, only);
             var ambiguous = found.Count(c => SheetTokenizer.IsAmbiguous(c, notation));
             var tokens = found.Count == 1 ? new[] { SheetTokenizer.Chord(found[0], 0, found[0], notation, false) } : Array.Empty<SheetToken>();
             var inline = new LineClassification(false, false, CertainLyric, Replaced(safe != converted), tokens, found.Count - ambiguous, ambiguous, foreign);
@@ -68,6 +71,34 @@ internal static class LineClassifier
         var lyric = TextSafety.Replace(text);
         var warned = classification with { Warnings = classification.Warnings.Concat(Replaced(lyric != text)).ToList() };
         return new ContentUnit(UnitKind.Lyric, lyric, start, indented, warned);
+    }
+
+    // Only a clean lyric (plain words and brackets): any other line may be the converter's own output, which stays as it is.
+    private static bool TreatsOtherNotationAsText(string text, int start, Notation notation)
+    {
+        if (BracketedText.HasAttachedChord(text) || BracketedText.Matches(text).Any(m => BracketedText.IsAnnotation(m.Groups[1].Value)))
+            return false;
+
+        // The line is judged as it will be written, without its chord brackets, so the replaced text reads the same way.
+        var written = TextSafety.Replace(WithoutChordBrackets(text));
+        var plain = SheetTokenizer.Tokenize(written, start, notation);
+        return plain.Any(IsPlainWord) && plain.All(t => t.Kind == TokenKind.Neutral || IsBracketOnly(t) || IsPlainWord(t));
+    }
+
+    private static string WithoutChordBrackets(string text)
+    {
+        var characters = text.ToCharArray();
+        foreach (var m in BracketedText.Matches(text).Where(m => BracketedText.IsKept(m.Groups[1].Value)))
+            Array.Fill(characters, ' ', m.Index, m.Length);
+        return new string(characters);
+    }
+
+    private static bool IsBracketOnly(SheetToken t) => t.Text.All(c => c is '[' or ']' or '(' or ')' or '{' or '}');
+
+    private static bool IsPlainWord(SheetToken t)
+    {
+        var word = t.Text.TrimEnd(',', ';', ':', '.', '!', '?');
+        return t.Kind == TokenKind.Word && !IsLoose(t) && word.Length >= 2 && word.All(c => char.IsLetter(c) || c is '\'' or '’' or '-');
     }
 
     private static SheetWarning[] Replaced(bool changed) => changed ? new[] { SheetWarning.BracketsReplaced } : Array.Empty<SheetWarning>();
@@ -92,6 +123,8 @@ internal static class LineClassifier
 
         return ClassifyTokens(tokens);
     }
+
+    private static bool IsLoose(SheetToken t) => t.LowerChord || t.Foreign || t.Doubtful;
 
     private static bool IsLyricWithTail(IReadOnlyList<SheetToken> tokens) =>
         tokens.Count(t => !t.Bracketed && t.Kind == TokenKind.Chord) == 1;
@@ -155,14 +188,14 @@ internal static class InlineChords
 {
     private static readonly Regex Parenthesised = new(@"\(([^()\s]+)\)", RegexOptions.Compiled | RegexOptions.CultureInvariant);
 
-    public static bool TryConvert(string text, int start, Notation notation, out string converted, out IReadOnlyList<string> found, out int foreign)
+    public static bool TryConvert(string text, int start, Notation notation, Notation? only, out string converted, out IReadOnlyList<string> found, out int foreign)
     {
         converted = text;
         found = Array.Empty<string>();
         foreign = 0;
         var rest = text[start..];
 
-        var bracketed = BracketedText.Matches(rest).Select(m => m.Groups[1].Value).Where(BracketedText.IsKept).ToList();
+        var bracketed = BracketedText.Matches(rest).Select(m => m.Groups[1].Value).Where(c => BracketedText.IsKept(c, only)).ToList();
         if (bracketed.Count > 0)
         {
             var written = bracketed.Where(c => !BracketedText.IsAnnotation(c)).ToList();

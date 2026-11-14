@@ -55,7 +55,7 @@ public static class ChordSheetConverter
     private static DocumentAnalysis Analyze(IReadOnlyList<NormalizedLine> lines, ChordSheetOptions options)
     {
         if (options.Notation is { } forced)
-            return SheetAnalyzer.Analyze(lines, forced);
+            return SheetAnalyzer.Analyze(lines, forced, true);
 
         var italian = SheetAnalyzer.Analyze(lines, Notation.Italian);
         var english = SheetAnalyzer.Analyze(lines, Notation.English);
@@ -66,7 +66,9 @@ public static class ChordSheetConverter
         var (chosen, other) = italianVotes == englishVotes
             ? (options.TieBreakNotation == Notation.Italian ? italian : english, options.TieBreakNotation == Notation.Italian ? english : italian)
             : italianVotes > englishVotes ? (italian, english) : (english, italian);
-        return SheetAnalyzer.FlagOtherNotation(chosen, other);
+        // Notation is chosen on the plain reading; only the final reading replaces brackets of the other notation.
+        var final = lines.Any(l => l.Text.Contains('[')) ? SheetAnalyzer.Analyze(lines, chosen.Notation, true) : chosen;
+        return SheetAnalyzer.FlagOtherNotation(final, other);
     }
 
     private static ChordSheetResult ChordProResult(string text, IReadOnlyList<NormalizedLine> lines)

@@ -58,14 +58,15 @@ internal static class SheetAnalyzer
 
     private static readonly Regex TabStart = new(@"^\s*[A-Ga-g][#b]?\s?[|:]", RegexOptions.Compiled | RegexOptions.CultureInvariant);
 
-    public static DocumentAnalysis Analyze(IReadOnlyList<NormalizedLine> lines, Notation notation)
+    /// <param name="otherNotationAsText">True for the final reading: a bracketed word of the other notation on a clean lyric line is text.</param>
+    public static DocumentAnalysis Analyze(IReadOnlyList<NormalizedLine> lines, Notation notation, bool otherNotationAsText = false)
     {
         var analyzed = new List<AnalyzedLine>(lines.Count);
         var inHeader = true;
         var lowerCaseStyle = HasLowerCaseStyle(lines, notation);
         for (var i = 0; i < lines.Count; i++)
         {
-            var context = new LineContext(i + 1 < lines.Count ? lines[i + 1].Text : null, lowerCaseStyle);
+            var context = new LineContext(i + 1 < lines.Count ? lines[i + 1].Text : null, lowerCaseStyle, otherNotationAsText);
             var line = AnalyzeLine(i, lines[i], notation, inHeader, context);
             analyzed.Add(line);
             inHeader = inHeader && !EndsHeader(line);
