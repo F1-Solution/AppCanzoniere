@@ -11,7 +11,16 @@ internal enum SectionKind
 }
 
 /// <summary>A section label line; Value is the directive value, RestStart the index of the text after the label or -1.</summary>
-internal sealed record SectionLabel(SectionKind Kind, string Text, string? Value, int RestStart);
+internal sealed record SectionLabel(SectionKind Kind, string Text, string? Value, int RestStart)
+{
+    private static readonly HashSet<string> InstrumentalNames = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "intro", "introduzione", "finale", "fine", "coda", "interludio", "intermezzo", "strumentale", "outro", "inizio", "ponte strumentale"
+    };
+
+    /// <summary>True for a label of a part without lyrics (Intro, Coda...), which can carry bare chords on its own line.</summary>
+    public bool IsInstrumental => InstrumentalNames.Contains(string.Join(' ', Text.Trim().TrimEnd('.', ':').Split(' ', StringSplitOptions.RemoveEmptyEntries)));
+}
 
 /// <summary>Recognises Rit., Strofa 2, 1., Intro: and friends (spec 6.1).</summary>
 internal static class SectionLabelParser
@@ -19,7 +28,7 @@ internal static class SectionLabelParser
     private const RegexOptions Options = RegexOptions.Compiled | RegexOptions.CultureInvariant | RegexOptions.IgnoreCase;
 
     private static readonly Regex Keyword = new(
-        @"^(?<kw>ritornello|rit|coro|chorus|refrain|strofa|str|verse|stanza|bridge|ponte|special|introduzione|intro|interludio|strumentale|finale|coda|outro|fine)(?!\p{L})",
+        @"^(?<kw>ritornello|rit|coro|chorus|refrain|strofa|str|verse|stanza|bridge|ponte\s+strumentale|ponte|special|introduzione|intro|interludio|strumentale|finale|coda|outro|fine)(?!\p{L})",
         Options);
 
     private static readonly Regex NumberOnly = new(@"^\d{1,2}[.)](?=\s|$)", Options);

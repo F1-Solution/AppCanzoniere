@@ -151,7 +151,7 @@ internal static class SheetAnalyzer
         if (label.RestStart < 0)
             return new AnalyzedLine(index, line, SheetLineKind.SectionLabel, 1.0, warnings, Label: label);
 
-        var unit = LineClassifier.BuildUnit(line.Text, label.RestStart, false, notation, context with { AfterLabel = true });
+        var unit = LineClassifier.BuildUnit(line.Text, label.RestStart, false, notation, context with { AfterLabel = label.IsInstrumental });
         return new AnalyzedLine(
             index, line, SheetLineKind.SectionLabel, unit.Class.Confidence,
             warnings.Concat(unit.Class.Warnings).ToList(), unit, label);
