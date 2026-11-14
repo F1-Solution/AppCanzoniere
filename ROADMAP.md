@@ -10,7 +10,7 @@ Windows fa parte della prima versione insieme ad Android (non è una fase condiz
 |---|---|---|---|---|| F0 | Ricognizione: valutazione del codice, proposte UX e UI, piano commerciale, collegamento a GitHub | **completata** | — | — |
 | G0 | Validazione commerciale e d'uso (Gate 0, lavoro del proprietario, in parallelo) | da iniziare | F0 | Avvio entro il 16/11/2026; copione delle interviste aggiornato a tre modalità, pubblicità e Pro |
 | F1 | Risanamento del repository e CI verde (build Android e Windows) | **in corso** (prima PR unita l'11/11/2026) | F0 | Protezione del branch e minuti Actions sul piano GitHub (V-09); workload della macchina locale (proprietario) |
-| F2 | Nucleo musicale: ChordPro, trasposizione, notazione legata alla lingua, "incolla" | **in corso** (round 1 di 3: notazione, bemolle, capotasto, blocchi tab) | F1 (job core) | Nulla |
+| F2 | Nucleo musicale: ChordPro, trasposizione, notazione legata alla lingua, "incolla" | **in corso** (round 2 di 3: round-trip senza perdite, impaginazione, "incolla"; restano il confronto visivo sui canti reali e la correzione del rendering nell'app) | F1 (job core) | Nulla |
 | F3 | Prove tecniche del Gate 0: leggio su tablet Android e su Windows, import da PDF | da iniziare | F1 (job Android e Windows), F2 | Tablet economico, pedale Bluetooth, PC Windows di prova; 10 libretti PDF reali |
 | F4 | Sistema di token, cinque temi e componenti | da iniziare | F1 | Installazione della taste-skill (proprietario) |
 | F5 | Prove visive automatiche (confronto di schermate) in CI | da iniziare | F1, F4 | Cattura su emulatore Android e su Windows nei runner (V-09) |
