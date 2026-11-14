@@ -98,6 +98,27 @@ public class SongDisplayBehaviourTests
         Assert.Equal("Reb", shown.Key);
     }
 
+    // DEC 18: a key in the other notation is recognised and rewritten in its own style; a minor marker the chords disagree on changes nothing about it.
+    [Theory]
+    [InlineData("{key: Do}%n[C]x [A-]y", "Do", new[] { "C", "Am" })]
+    [InlineData("{key: Lam}%n[Am]x [D-]y", "Lam", new[] { "Am", "Dm" })]
+    [InlineData("{key: Sol}%n[G]x [Em]y [A-]z", "Sol", new[] { "G", "Em", "Am" })]
+    public void AKeyInTheOtherNotation_IsNotRewrittenBecauseAChordsMinorMarkerDiffers(string song, string expectedKey, string[] expectedChords)
+    {
+        var shown = Show(song.Replace("%n", "\n"), settings: Pref(AccidentalPreference.Auto));
+
+        Assert.Equal(expectedKey, shown.Key);
+        Assert.Equal(expectedChords, shown.Text.Split('\n')[0].Split(' ', StringSplitOptions.RemoveEmptyEntries));
+    }
+
+    [Fact]
+    public void ACompactMinorKey_FollowsTheMinorMarkerOfTheChords()
+    {
+        var shown = Show("{key: A-}\n[A-]x [D-]y");
+
+        Assert.Equal("Am", shown.Key);
+    }
+
     [Fact]
     public void WithACapo_ThePreferenceNamesTheSoundingKey_AndTheShapesKeepTheirOwnSpelling()
     {
