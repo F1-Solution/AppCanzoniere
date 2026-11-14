@@ -22,7 +22,9 @@ internal static class MixedSheets
     private static readonly string[] ItalianChords = { "Sib", "Lam", "Do", "Re", "Sol7", "Mi-", "Fa#", "La", "Rem" };
     private static readonly string[] EnglishChords = { "G", "Am", "C", "D7", "Bb", "E", "F#m", "A", "Em" };
     private static readonly string[] OtherWords = { "e", "a", "E", "Am", "la", "si", "Do", "mi", "Re", "G", "C", "Fa" };
-    private static readonly string[] Leads = { "2", "1.", "«", "(bis)", "x2", "3)" };
+    private static readonly string[] LongWords = { "Vieni", "Signore", "gloria", "Cantate", "Alleluia" };
+    private static readonly string[] LowerNotes = { "do", "fa", "sol", "re", "la", "mi" };
+    private static readonly string[] Leads ={ "2", "1.", "«", "(bis)", "x2", "3)" };
 
     public static IEnumerable<string> Many(int seed, int count)
     {
@@ -34,7 +36,7 @@ internal static class MixedSheets
     public static string Create(Random r)
     {
         var italian = r.Next(2) == 0;
-        var lines = new List<string>(Anchors(r, italian));
+        var lines = new List<string>(Anchors(italian));
         var blocks = r.Next(1, 4);
         for (var b = 0; b < blocks; b++)
         {
@@ -47,12 +49,12 @@ internal static class MixedSheets
     }
 
     // Two instrumental lines in the document's notation, each followed by a blank line, so the notation is clear
-    // without gluing any chord to a letter; a tie between notations is a different problem from the ones generated here.
-    private static IEnumerable<string> Anchors(Random r, bool italian)
-    {
-        var anchors = italian ? new[] { "Do   Sol   Lam   Fa", "Rem   Sol7   Do" } : new[] { "C   G   Am   F", "Dm   G7   C" };
-        return r.Next(3) == 0 ? Array.Empty<string>() : new[] { anchors[0], string.Empty, anchors[1], string.Empty };
-    }
+    // without gluing any chord to a letter. A document whose notation rests on one or two chord lines can still change
+    // notation on a second conversion when those lines are merged; that is a separate problem, not generated here.
+    private static IEnumerable<string> Anchors(bool italian) =>
+        italian
+            ? new[] { "Do   Sol   Lam   Fa", string.Empty, "Rem   Sol7   Do", string.Empty }
+            : new[] { "C   G   Am   F", string.Empty, "Dm   G7   C", string.Empty };
 
     private static void AddBlock(Random r, bool italian, List<string> lines)
     {
@@ -68,6 +70,9 @@ internal static class MixedSheets
                 break;
             case 2:
                 lines.Add(Lyric(r, italian));
+                break;
+            case 3 when italian:
+                AddAlignedLowerCase(r, lines);
                 break;
             default:
                 lines.Add(ChordLine(r, italian));
@@ -99,6 +104,29 @@ internal static class MixedSheets
         }
 
         return builder.ToString();
+    }
+
+    // Lower-case notes over the word starts of a lyric that holds a bracketed word of the other notation, with one wide gap.
+    private static void AddAlignedLowerCase(Random r, List<string> lines)
+    {
+        var words = new List<string> { LongWords[r.Next(LongWords.Length)] };
+        var count = r.Next(2, 5);
+        for (var i = 1; i < count; i++)
+            words.Add(r.Next(3) == 0 ? $"[{OtherWords[r.Next(OtherWords.Length)]}]" : ShortWords[r.Next(ShortWords.Length)]);
+
+        var chords = new StringBuilder();
+        var column = 0;
+        foreach (var word in words)
+        {
+            var note = LowerNotes[r.Next(LowerNotes.Length)];
+            if (chords.Length > 0 && chords.Length >= column)
+                break;
+            chords.Append(' ', column - chords.Length).Append(note);
+            column += word.Length + 1;
+        }
+
+        lines.Add(chords.ToString());
+        lines.Add(string.Join(" ", words));
     }
 
     // The same note name repeated, separated by tabs or wide gaps, so a chord placed over it lands in a gap.

@@ -54,6 +54,19 @@ public class IdempotenceTests
         Assert.Equal(first, ChordSheetConverter.Convert(first).ChordPro);
     }
 
+    // The lyric below a lower-case chord line is judged as it will be written: a bracketed word that becomes text
+    // must not hide the alignment on the first conversion and reveal it on the second.
+    [Theory]
+    [InlineData("Vieni [e] la luce")]
+    [InlineData("Vieni (e) la luce")]
+    public void LowerCaseChordLineOverALyricWithABracketedWord_MergesTheSameWayAndIsStable(string lyric)
+    {
+        var first = Run("Do      Sol", "Canta il Signore", "", "do    fa  sol", lyric).ChordPro;
+
+        Assert.Equal(Out("[Do]Canta il [Sol]Signore", "", "[do]Vieni [fa](e) [sol]la luce"), first);
+        Assert.Equal(first, ChordSheetConverter.Convert(first).ChordPro);
+    }
+
     private const int MixedDocuments = 20000;
 
     [Fact]
