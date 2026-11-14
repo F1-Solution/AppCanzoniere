@@ -224,7 +224,7 @@ public class SongDisplayBehaviourTests
     {
         var shown = Show("{soc}\n[C]Due\n{eoc}", language: language);
 
-        Assert.Equal(Lines(word, "C", "Due"), shown.Text);
+        Assert.Equal(Lines(word, language.StartsWith("it") ? "Do" : "C", "Due"), shown.Text);
     }
 
     [Fact]

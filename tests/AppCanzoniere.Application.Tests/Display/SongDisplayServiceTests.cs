@@ -8,8 +8,8 @@ public class SongDisplayServiceTests
 {
     private readonly SongDisplayService _service = new(new ChordProParser());
 
-    private SongDisplay Show(string song, int steps = 0, ChordDisplaySettings? settings = null, string? language = "en", string? fallbackKey = null) =>
-        _service.Render(new SongDisplayRequest(song, steps, settings ?? ChordDisplaySettings.Default, language, fallbackKey));
+    private SongDisplay Show(string song, int steps = 0, ChordDisplaySettings? settings = null, string? language = "en") =>
+        _service.Render(new SongDisplayRequest(song, steps, settings ?? ChordDisplaySettings.Default, language));
 
     private static string Lines(params string[] lines) => string.Join("\n", lines);
 
@@ -42,7 +42,7 @@ public class SongDisplayServiceTests
     {
         var shown = Show("[G]Uno\n\n{start_of_chorus}\n[C]Due\n{end_of_chorus}");
 
-        Assert.Equal(Lines("G", "Uno", "", "C", "Due"), shown.Text);
+        Assert.Equal(Lines("G", "Uno", "", "Chorus", "C", "Due"), shown.Text);
     }
 
     [Fact]
@@ -234,27 +234,6 @@ public class SongDisplayServiceTests
     public void WithoutAKeyAnywhere_TheKeyIsEmpty()
     {
         Assert.Equal(string.Empty, Show("[G]x").Key);
-    }
-
-    [Fact]
-    public void WhenTheFileHasNoKey_TheFallbackKeyIsTransposedAndWrittenInTheUserNotation()
-    {
-        var shown = Show("[G]x", steps: 2, language: "it", fallbackKey: "G");
-
-        Assert.Equal("La", shown.Key);
-        Assert.Equal("La", shown.Text.Split('\n')[0]);
-    }
-
-    [Fact]
-    public void TheKeyOfTheFile_WinsOverTheFallbackKey()
-    {
-        Assert.Equal("D", Show("{key:D}\n[D]x", fallbackKey: "G").Key);
-    }
-
-    [Fact]
-    public void AnUnreadableFallbackKey_IsIgnored()
-    {
-        Assert.Equal(string.Empty, Show("[G]x", fallbackKey: "not a key").Key);
     }
 
     [Fact]
