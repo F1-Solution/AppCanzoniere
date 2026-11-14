@@ -77,8 +77,8 @@ public static class ChordSheetConverter
             throw new ArgumentOutOfRangeException(nameof(options), options.TieBreakNotation, "The tie-break notation is not defined.");
         if (options.TabWidth is < MinTabWidth or > MaxTabWidth)
             throw new ArgumentOutOfRangeException(nameof(options), options.TabWidth, "The tab width must be between 1 and 16.");
-        if (options.SnapColumns < 0)
-            throw new ArgumentOutOfRangeException(nameof(options), options.SnapColumns, "The snap width cannot be negative.");
+        if (options.SnapColumns < BracketedText.MinSnapColumns)
+            throw new ArgumentOutOfRangeException(nameof(options), options.SnapColumns, "The snap width must be at least 1.");
     }
 
     private static DocumentAnalysis Analyze(IReadOnlyList<NormalizedLine> lines, ChordSheetOptions options)

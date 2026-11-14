@@ -34,7 +34,10 @@ internal static class BracketedText
     public static bool HasParenthesisedChordBetweenWords(string text, Notation notation) =>
         Parenthesised.Matches(text).Any(m => IsInlineChord(m.Groups[1].Value, notation) && StandsBetweenWords(text, 0, m.Index, m.Index + m.Length));
 
-    // The converter writes a chord that misses a letter after the lyric or before a gap of three spaces, never like this.
+    /// <summary>Smallest snap width: with it a chord over the space before a word moves onto the word, never between words.</summary>
+    public const int MinSnapColumns = 1;
+
+    // With a snap of at least MinSnapColumns the converter writes a chord that misses a letter only after the lyric or before a wide gap.
     private static bool StandsBetweenWords(string text, int start, int index, int end) =>
         (index == start || text[index - 1] == ' ') &&
         end + 1 < text.Length && text[end] == ' ' && text[end + 1] is not (' ' or '[');
