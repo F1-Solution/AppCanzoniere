@@ -27,6 +27,9 @@ public sealed record PdfExtractionLimits
     /// <summary>Largest size any single stream may unpack to while PdfPig reads it, in bytes (default 16 MB; the corpus maximum is 440 KB).</summary>
     public long MaxDecodedStreamBytes { get; init; } = 16L * 1024 * 1024;
 
+    /// <summary>Most bytes PdfPig may unpack over the whole document, a stream counted each time it is unpacked (default 128 MB; the corpus maximum is 5 MB).</summary>
+    public long MaxDecodedBytesPerDocument { get; init; } = 128L * 1024 * 1024;
+
     /// <summary>Longest time spent reading one file (default 2 minutes, the importer's default).</summary>
     public TimeSpan MaxDuration { get; init; } = AppCanzoniere.Application.PdfImport.PdfTextImporter.DefaultMaxDuration;
 }
