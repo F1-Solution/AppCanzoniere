@@ -121,6 +121,24 @@ public class AlignedTextRendererTests
     }
 
     [Fact]
+    public void Render_KeepsATightRowOfCapitalChords_AsChords_UnderAnotherChordRow()
+    {
+        // Two chord rows in a row, the lower one tight: capitals mark chords, so both follow the lyric below.
+        const string lyric = "canto la mia gioia al Signore";
+        var page = new PageBuilder { WithLetters = true }
+            .Word("DO", 50, 724)
+            .Word("SOL", PageBuilder.XOf(lyric, 13, 50), 724)
+            .Text("SI- MI LA", PageBuilder.XOf(lyric, 19, 50), 712)
+            .Text(lyric, 50, 700);
+
+        var lines = Render(page);
+
+        Assert.Equal(3, lines.Count);
+        Assert.Equal(lyric, lines[2]);
+        Assert.Equal(19, lines[1].IndexOf("SI-", StringComparison.Ordinal));
+    }
+
+    [Fact]
     public void Render_AnchorsChords_OnTheLyricBelow_EvenWhenItsSyllablesAreSpreadApart()
     {
         // Psalm sheets pull syllables apart to make room for the chords ("fo   ssa"); such a lyric is still the anchor.
