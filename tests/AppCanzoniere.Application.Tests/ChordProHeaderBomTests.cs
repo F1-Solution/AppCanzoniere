@@ -1,4 +1,5 @@
 using AppCanzoniere.Application.Interfaces;
+using AppCanzoniere.Application.Music;
 using AppCanzoniere.Application.Services;
 
 namespace AppCanzoniere.Application.Tests;
@@ -54,6 +55,44 @@ public class ChordProHeaderBomTests
         document.Title = "New";
 
         Assert.Equal(Marks(marks) + "{title:New}\n[C]x\n", _parser.Render(document));
+    }
+
+    [Theory]
+    [InlineData(1)]
+    [InlineData(2)]
+    [InlineData(3)]
+    public void TransposingAFileWithLeadingMarks_RewritesTheKeyLineAndKeepsTheMarks(int marks)
+    {
+        var document = _parser.Parse(Marks(marks) + "{key: C}\n[C]x\n");
+
+        Assert.Equal(Marks(marks) + "{key: D}\n[D]x\n", _parser.Render(document, 2));
+    }
+
+    [Theory]
+    [InlineData(1)]
+    [InlineData(2)]
+    [InlineData(3)]
+    public void RequestingACapoOnAFileWithLeadingMarks_RewritesTheCapoLineAndKeepsTheMarks(int marks)
+    {
+        var document = _parser.Parse(Marks(marks) + "{capo: 2}\n[C]x\n");
+
+        var written = _parser.Render(document, new ChordProRenderOptions { Capo = 3 });
+
+        Assert.StartsWith(Marks(marks) + "{capo: 3}\n", written);
+    }
+
+    [Theory]
+    [InlineData(1)]
+    [InlineData(2)]
+    [InlineData(3)]
+    public void ACapoInsertedBeforeALyricLine_KeepsAllTheLeadingMarksInFront(int marks)
+    {
+        var document = _parser.Parse(Marks(marks) + "[C]x\n");
+
+        var written = _parser.Render(document, new ChordProRenderOptions { Capo = 3 });
+
+        Assert.StartsWith(Marks(marks) + "{capo:3}\n", written);
+        Assert.Equal(marks, written.Count(c => c == Bom));
     }
 
     [Fact]

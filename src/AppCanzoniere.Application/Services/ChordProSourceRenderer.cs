@@ -12,9 +12,9 @@ internal static class ChordProSourceRenderer
     private const char Bom = (char)0xFEFF;
 
     private static readonly Regex ChordToken = new(@"\[([^\]]*)\]", RegexOptions.Compiled | RegexOptions.CultureInvariant);
-    private static readonly Regex DirectiveValue = new("^(?<head>" + Bom + @"?\s*\{[^:}]*:)(?<value>.*)(?<tail>\}\s*)$", RegexOptions.Compiled | RegexOptions.CultureInvariant);
-    private static readonly Regex CapoDirective = new("^(?<lead>" + Bom + @"?\s*\{[^:}]*)(?::(?<value>.*))?(?<tail>\}\s*)$", RegexOptions.Compiled | RegexOptions.CultureInvariant);
-    private static readonly Regex TitleDirective = new("^" + Bom + @"?\s*\{\s*(?:title|t)\s*[:}]", RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+    private static readonly Regex DirectiveValue = new("^(?<head>" + Bom + @"*\s*\{[^:}]*:)(?<value>.*)(?<tail>\}\s*)$", RegexOptions.Compiled | RegexOptions.CultureInvariant);
+    private static readonly Regex CapoDirective = new("^(?<lead>" + Bom + @"*\s*\{[^:}]*)(?::(?<value>.*))?(?<tail>\}\s*)$", RegexOptions.Compiled | RegexOptions.CultureInvariant);
+    private static readonly Regex TitleDirective = new("^" + Bom + @"*\s*\{\s*(?:title|t)\s*[:}]", RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
 
     public static string Render(IReadOnlyList<ChordProSourceLine> lines, ChordTransformer transformer, int? capo)
     {
@@ -59,12 +59,10 @@ internal static class ChordProSourceRenderer
     // A byte order mark belongs at the very start, so it moves in front of a capo line inserted there.
     private static bool AppendInsertedCapo(StringBuilder sb, IReadOnlyList<ChordProSourceLine> lines, int fret)
     {
-        var moveBom = sb.Length == 0 && lines[0].Raw.StartsWith(Bom);
-        if (moveBom)
-            sb.Append(Bom);
-
+        var marks = sb.Length == 0 ? lines[0].Raw.Length - lines[0].Raw.TrimStart(Bom).Length : 0;
+        sb.Append(Bom, marks);
         sb.Append("{capo:").Append(fret.ToString(CultureInfo.InvariantCulture)).Append("}\n");
-        return moveBom;
+        return marks > 0;
     }
 
     private static void AppendLine(StringBuilder sb, ChordProSourceLine line, ChordTransformer transformer, int? capo)
