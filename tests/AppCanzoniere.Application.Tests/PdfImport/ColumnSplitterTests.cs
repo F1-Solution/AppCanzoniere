@@ -136,6 +136,28 @@ public class ColumnSplitterTests
     }
 
     [Fact]
+    public void Split_KeepsASmallerRunningHeaderWhole_WhenItsSpaceAtTheGutterIsSlightlyWider()
+    {
+        // As in one booklet: a header in a smaller size whose space at the gutter (2 points) is a little wider than its
+        // other spaces (1.8 points), with the word after it starting at the right column's margin.
+        const double scale = 0.6;
+        var header = new[] { "CANZONIERE", "BRANCA", "GRUPPO", "SCOUT", "AGESCI", "MAZARA", "DEL", "VALLO" };
+        double WidthOf(string word) => PageBuilder.Width(word) * scale;
+        var x = 310 - 2.0 - header.Take(3).Sum(WidthOf) - (2 * 1.8);
+        var words = TwoColumns(top: 740).Words.ToList();
+        foreach (var word in header)
+        {
+            words.Add(new PositionedWord(word, new WordBox(x, 800, x + WidthOf(word), 800 + (PageBuilder.TextHeight * scale))));
+            x += WidthOf(word) + (word == "GRUPPO" ? 2.0 : 1.8);
+        }
+
+        var regions = ColumnSplitter.Split(words, PageBuilder.PageWidth);
+
+        Assert.Equal(new[] { (0, 1), (0, 2), (1, 2) }, regions.Select(r => (r.ColumnIndex, r.ColumnCount)));
+        Assert.Equal(header, TextOf(regions[0]));
+    }
+
+    [Fact]
     public void Split_KeepsAFooterWhole_WhenItCrossesTheGutterWithAWordSpace()
     {
         var page = TwoColumns();
