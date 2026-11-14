@@ -11,10 +11,7 @@ internal sealed class DecodeLimitExceededException(long limit)
     public long Limit { get; } = limit;
 }
 
-/// <summary>
-/// PdfPig's own filters behind a cap: every stream PdfPig unpacks while reading (content, forms, fonts, object streams)
-/// is first decoded within the cap, so no single stream can unpack to more than it.
-/// </summary>
+/// <summary>Capped decoders in place of PdfPig's filters for every stream PdfPig unpacks while reading (content, forms, fonts, object streams).</summary>
 internal sealed class BoundedFilterProvider : BaseFilterProvider
 {
     public BoundedFilterProvider(long maxDecodedBytes)
@@ -70,9 +67,13 @@ internal sealed class BoundedFilterProvider : BaseFilterProvider
                     Volatile.Write(ref _tripped, 1);
                     throw new DecodeLimitExceededException(cap);
                 default:
-                    // Where the capped decoder fails PdfPig fails too, or falls back to the packed bytes: both stay small.
-                    return inner.Decode(input, streamDictionary, filterProvider, filterIndex);
+                    // PdfPig's filter is never run, as it allocates by what the file claims: Flate gives back the packed bytes as PdfPig does on failure, the others fail as PdfPig's do.
+                    return name is "FlateDecode" or "Fl" ? input : throw new UnreadableStreamException(name);
             }
         }
     }
 }
+
+/// <summary>Thrown inside PdfPig for a stream its filter cannot read either, in place of running that filter.</summary>
+internal sealed class UnreadableStreamException(string filter)
+    : InvalidOperationException($"The {filter} data of a stream cannot be read.");
