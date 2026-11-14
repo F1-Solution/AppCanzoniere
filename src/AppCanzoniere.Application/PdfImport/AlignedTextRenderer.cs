@@ -36,10 +36,11 @@ public static class AlignedTextRenderer
         var grid = CharacterGrid.For(rows);
         var lyric = LyricRows(rows);
         var placed = rows.Select((row, i) => lyric[i] ? PlacedRow.Natural(row, grid) : null).ToArray();
+        var anchors = rows.Select((_, i) => lyric[i] ? -1 : Anchor(rows, lyric, i)).ToArray();
         for (var i = 0; i < rows.Count; i++)
-            placed[i] ??= PlacedRow.Mapped(rows[i], Anchor(rows, lyric, placed, i), grid);
+            placed[i] ??= PlacedRow.Mapped(rows[i], anchors[i] >= 0 ? placed[anchors[i]] : null, grid);
 
-        return WithBlankLines(rows, placed.Select(p => p!.Text).ToList());
+        return WithBlankLines(rows, placed.Select(p => p!.Text).ToList(), anchors);
     }
 
     // Rows laid out with their own spacing: dense rows that are not chords, and any row right under a chord row,
@@ -77,26 +78,27 @@ public static class AlignedTextRenderer
     private static bool IsClose(TextRow row, TextRow other) =>
         Math.Abs(row.Baseline - other.Baseline) <= MaxAnchorDistanceInHeights * row.Height;
 
-    // The lyric row just below, or else just above, close enough to be the lyric a chord row belongs to.
-    private static PlacedRow? Anchor(IReadOnlyList<TextRow> rows, bool[] lyric, PlacedRow?[] placed, int index)
+    // Index of the lyric row just below, or else just above, close enough to be the lyric a chord row belongs to; -1 if none.
+    private static int Anchor(IReadOnlyList<TextRow> rows, bool[] lyric, int index)
     {
         foreach (var neighbour in new[] { index + 1, index - 1 })
         {
             if (neighbour >= 0 && neighbour < rows.Count && lyric[neighbour] && IsClose(rows[index], rows[neighbour]))
-                return placed[neighbour];
+                return neighbour;
         }
 
-        return null;
+        return -1;
     }
 
-    private static IReadOnlyList<AlignedLine> WithBlankLines(IReadOnlyList<TextRow> rows, IReadOnlyList<string> texts)
+    // A wide vertical gap becomes a blank line, except between a row and the lyric below it that it is mapped onto.
+    private static IReadOnlyList<AlignedLine> WithBlankLines(IReadOnlyList<TextRow> rows, IReadOnlyList<string> texts, int[] anchors)
     {
         var pitches = rows.Zip(rows.Skip(1), (a, b) => a.Baseline - b.Baseline).Where(p => p > 0).OrderBy(p => p).ToList();
         var pitch = pitches.Count == 0 ? double.MaxValue : pitches[pitches.Count / 2];
         var lines = new List<AlignedLine> { new(texts[0], rows[0]) };
         for (var i = 1; i < rows.Count; i++)
         {
-            if (rows[i - 1].Baseline - rows[i].Baseline > BlankLinePitchFactor * pitch)
+            if (rows[i - 1].Baseline - rows[i].Baseline > BlankLinePitchFactor * pitch && anchors[i - 1] != i)
                 lines.Add(new AlignedLine(string.Empty, null));
             lines.Add(new AlignedLine(texts[i], rows[i]));
         }

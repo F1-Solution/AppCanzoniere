@@ -6,6 +6,12 @@ namespace AppCanzoniere.Infrastructure.PdfImport;
 /// <summary>Converts one PdfPig page into the positioned words of the application model.</summary>
 internal static class PdfPigPage
 {
+    // Words closer than this share of the smaller one's height are one word split by a change of size...
+    private const double TouchingGapShare = 0.1;
+
+    // ...when their bottoms differ by at most this share of the larger one's height.
+    private const double SameBaselineShare = 0.3;
+
     // Typographic ligatures folded back to their letters, so that "ﬁne" reads "fine".
     private static readonly Dictionary<char, string> Ligatures = new()
     {
@@ -23,10 +29,40 @@ internal static class PdfPigPage
         var origin = page.CropBox.Bounds;
         var words = page.GetWords()
             .Where(w => w.TextOrientation == TextOrientation.Horizontal && !string.IsNullOrWhiteSpace(w.Text))
-            .Select(w => ToWord(w, origin.Left, origin.Bottom))
-            .ToList();
-        return new PdfPageWords(page.Number, page.Width, page.Height, words, HasImages(page));
+            .Select(w => ToWord(w, origin.Left, origin.Bottom));
+        return new PdfPageWords(page.Number, page.Width, page.Height, JoinTouching(words), HasImages(page));
     }
+
+    // PdfPig splits a word where the font size changes, as in small capitals; touching letters on one baseline are rejoined.
+    private static List<PositionedWord> JoinTouching(IEnumerable<PositionedWord> words)
+    {
+        var joined = new List<PositionedWord>();
+        foreach (var word in words)
+        {
+            if (joined.Count > 0 && Touches(joined[^1], word))
+                joined[^1] = Join(joined[^1], word);
+            else
+                joined.Add(word);
+        }
+
+        return joined;
+    }
+
+    private static bool Touches(PositionedWord left, PositionedWord right)
+    {
+        var gap = right.Box.Left - left.Box.Right;
+        var smaller = Math.Min(left.Box.Height, right.Box.Height);
+        var larger = Math.Max(left.Box.Height, right.Box.Height);
+        return char.IsLetter(left.Text[^1]) && char.IsLetter(right.Text[0])
+            && right.Box.Left > left.Box.Left
+            && gap <= TouchingGapShare * smaller
+            && Math.Abs(right.Box.Bottom - left.Box.Bottom) <= SameBaselineShare * larger;
+    }
+
+    private static PositionedWord Join(PositionedWord left, PositionedWord right) => new(
+        left.Text + right.Text,
+        new WordBox(left.Box.Left, Math.Min(left.Box.Bottom, right.Box.Bottom), Math.Max(left.Box.Right, right.Box.Right), Math.Max(left.Box.Top, right.Box.Top)),
+        left.LetterLefts is { } a && right.LetterLefts is { } b ? a.Concat(b).ToList() : null);
 
     private static PositionedWord ToWord(Word word, double originLeft, double originBottom)
     {
