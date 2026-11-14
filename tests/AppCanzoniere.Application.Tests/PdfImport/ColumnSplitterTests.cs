@@ -107,6 +107,35 @@ public class ColumnSplitterTests
     }
 
     [Fact]
+    public void Split_KeepsTwoColumnTitlesInTheirColumns_WhenTheirGapIsNarrowerThanTheirHeight()
+    {
+        // Each column opens with a title set larger than the body; the gap between the two titles is narrower than
+        // their height, but the right title starts at the right column's margin, so it is the right column's title.
+        const double scale = 14 / PageBuilder.TextHeight;
+        var words = TwoColumns(top: 740).Words.ToList();
+        void Title(string text, double x)
+        {
+            foreach (var word in text.Split(' '))
+            {
+                var width = PageBuilder.Width(word) * scale;
+                words.Add(new PositionedWord(word, new WordBox(x, 800, x + width, 800 + (PageBuilder.TextHeight * scale))));
+                x += width + (PageBuilder.SpaceWidth * scale);
+            }
+        }
+
+        const string leftTitle = "CANTO DEL MARE";
+        var leftWidth = (PageBuilder.Width(leftTitle.Replace(" ", string.Empty)) + (2 * PageBuilder.SpaceWidth)) * scale;
+        Title(leftTitle, 300 - leftWidth);
+        Title("CANTO DELLA SERA", 310);
+
+        var regions = ColumnSplitter.Split(words, PageBuilder.PageWidth);
+
+        Assert.Equal(new[] { (0, 2), (1, 2) }, regions.Select(r => (r.ColumnIndex, r.ColumnCount)));
+        Assert.Equal(new[] { "CANTO", "DEL", "MARE" }, regions[0].Rows[0].Words.Select(w => w.Text));
+        Assert.Equal(new[] { "CANTO", "DELLA", "SERA" }, regions[1].Rows[0].Words.Select(w => w.Text));
+    }
+
+    [Fact]
     public void Split_KeepsAFooterWhole_WhenItCrossesTheGutterWithAWordSpace()
     {
         var page = TwoColumns();

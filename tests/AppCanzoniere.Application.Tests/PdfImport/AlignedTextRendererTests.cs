@@ -89,6 +89,37 @@ public class AlignedTextRendererTests
         Assert.Equal(lyric.IndexOf("gnor", StringComparison.Ordinal), chords.IndexOf("MI", StringComparison.Ordinal));
     }
 
+    [Theory]
+    [InlineData("3", "e la notte buia non fa paura")]
+    [InlineData("", "canto gioia")]
+    public void Render_KeepsAVerseAsLyrics_WhenOnlyTheGapAfterItsNumberIsWide(string number, string verse)
+    {
+        // Only the gap after a verse number may be wide, and a two-word line has no number to set apart; either way
+        // the verse is a lyric laid out with single spaces, not a sparse row mapped onto the narrow letters below.
+        var page = new PageBuilder { WithLetters = true };
+        if (number.Length > 0)
+            page.Word(number, 50, 712);
+        page.Text(verse, number.Length > 0 ? 50 + PageBuilder.Width(number) + 20 : 50, 712);
+        page.Text("iii lll iii lll iii lll iii lll iii lll iii", 50, 700);
+
+        var lines = Render(page);
+
+        Assert.Matches($"^{number} *{verse}$", lines[0]);
+    }
+
+    [Fact]
+    public void Render_ReadsALyricOfNoteNames_AsTheLyricUnderItsChords()
+    {
+        // "la la la" reads like a row of chords, but right under a sparse chord row a dense row like it is the lyric.
+        var page = new PageBuilder { WithLetters = true }.ChordsOver("^la la la ^la la la", new[] { "DO", "SOL" }, 50, 700);
+
+        var lines = Render(page);
+
+        Assert.Equal(2, lines.Count);
+        Assert.Equal("la la la la la la", lines[1]);
+        Assert.Equal(9, lines[0].IndexOf("SOL", StringComparison.Ordinal));
+    }
+
     [Fact]
     public void Render_AnchorsChords_OnTheLyricBelow_EvenWhenItsSyllablesAreSpreadApart()
     {

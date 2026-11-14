@@ -91,6 +91,20 @@ internal static class PdfFixtures
         return builder.Build();
     }
 
+    /// <summary>
+    /// "of Elijah" in Times Italic with a narrow but real word space: the italic f overhangs its advance, so its glyph
+    /// box nearly reaches the E, while the pen leaves a full space between the words.
+    /// </summary>
+    public static byte[] ItalicWordsOneSpaceApart()
+    {
+        var builder = new PdfDocumentBuilder();
+        var font = builder.AddStandard14Font(Standard14Font.TimesItalic);
+        var page = builder.AddPage(PageSize.A4);
+        var of = page.AddText("of", FontSize, new PdfPoint(100, 700), font);
+        page.AddText("Elijah", FontSize, new PdfPoint(of[^1].EndBaseLine.X + 2.5, 700), font);
+        return builder.Build();
+    }
+
     public static byte[] ScannedPages(int pages = 1)
     {
         var builder = new PdfDocumentBuilder();

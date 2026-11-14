@@ -58,6 +58,15 @@ public class PdfPigWordExtractorTests
     }
 
     [Fact]
+    public async Task ExtractAsync_KeepsTwoItalicWordsApart_WhenTheirGlyphBoxesNearlyTouch()
+    {
+        // The pen leaves a word space between "of" and "Elijah"; only the overhang of the italic f closes the boxes' gap.
+        var result = await Extract(PdfFixtures.ItalicWordsOneSpaceApart());
+
+        Assert.Equal(new[] { "of", "Elijah" }, result.Pages[0].Words.Select(w => w.Text));
+    }
+
+    [Fact]
     public async Task Import_ReadsTwoColumns_LeftColumnFirst_WithChordsOverTheirSyllables()
     {
         var result = await Import(PdfFixtures.TwoColumns());
