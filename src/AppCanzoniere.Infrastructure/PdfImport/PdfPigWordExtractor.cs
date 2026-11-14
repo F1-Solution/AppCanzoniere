@@ -24,6 +24,8 @@ public sealed class PdfPigWordExtractor : IPdfWordExtractor
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(_limits.MaxLettersPerPage, nameof(limits));
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(_limits.MaxContentBytesPerPage, nameof(limits));
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(_limits.MaxDecodedStreamBytes, nameof(limits));
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(_limits.MaxContentBytesPerDocument, nameof(limits));
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(_limits.MaxLettersPerDocument, nameof(limits));
         ArgumentOutOfRangeException.ThrowIfLessThan(_limits.MaxDuration, TimeSpan.Zero, nameof(limits));
     }
 
@@ -138,6 +140,7 @@ public sealed class PdfPigWordExtractor : IPdfWordExtractor
             return refusal;
 
         var pages = new List<PdfPageWords>(count);
+        long letters = 0;
         for (var number = 1; number <= count; number++)
         {
             if (Checkpoint(clock, cancellationToken) is { } stop)
@@ -146,6 +149,9 @@ public sealed class PdfPigWordExtractor : IPdfWordExtractor
             var page = document.GetPage(number);
             if (Refuse(page) is { } tooBig)
                 return tooBig;
+            letters += page.Letters.Count;
+            if (letters > _limits.MaxLettersPerDocument)
+                return TooLarge($"The document has more than {_limits.MaxLettersPerDocument} characters, the limit.");
 
             cancellationToken.ThrowIfCancellationRequested();
             pages.Add(PdfPigPage.Words(page));
