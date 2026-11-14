@@ -110,7 +110,7 @@ public class ChordProSectionFlagRenderTests
     }
 
     private static List<string> WrittenKinds(string written) =>
-        written.Split('\n').Where(l => l.StartsWith("{start_of_")).Select(l => l["{start_of_".Length..^1]).ToList();
+        written.Split('\n').Where(l => l is "{start_of_chorus}" or "{start_of_bridge}").Select(l => l["{start_of_".Length..^1]).ToList();
 
     [Fact]
     public void EditingOneLyricCharacter_KeepsEverySectionBoundary_ForGeneratedDocuments()

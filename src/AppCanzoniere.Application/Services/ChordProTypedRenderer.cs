@@ -15,18 +15,21 @@ internal static class ChordProTypedRenderer
         if (hasMetadata && body.Count > 0 && body[0].Type != ChordProLineType.Empty)
             sb.Append('\n');
 
-        var section = ChordProLineType.Verse;
+        var section = new OpenSection(ChordProLineType.Verse, false);
         var inTab = false;
         for (var i = 0; i < body.Count; i++)
         {
             var line = body[i];
-            if (inTab && !(line.Type == ChordProLineType.Tab && !line.StartsTabBlock))
+            var continuesTab = inTab && line.Type == ChordProLineType.Tab && !line.StartsTabBlock;
+            if (inTab && !continuesTab)
             {
                 sb.Append("{end_of_tab}\n");
                 inTab = false;
             }
 
-            section = MoveSection(sb, body, i, section);
+            if (!continuesTab)
+                section = MoveSection(sb, body, i, section);
+
             if (line.Type == ChordProLineType.Tab && !inTab)
             {
                 sb.Append(line.TabLabel.Length > 0 ? $"{{start_of_tab:{line.TabLabel}}}\n" : "{start_of_tab}\n");
@@ -39,7 +42,7 @@ internal static class ChordProTypedRenderer
         if (inTab)
             sb.Append("{end_of_tab}\n");
 
-        AppendSectionEnd(sb, section);
+        AppendSectionEnd(sb, section.Kind);
         return sb.ToString();
     }
 
@@ -63,21 +66,23 @@ internal static class ChordProTypedRenderer
     }
 
     // Closes and opens sections for the line at the index and returns the section that is open for it.
-    private static ChordProLineType MoveSection(StringBuilder sb, List<ChordProLine> body, int index, ChordProLineType open)
+    private static OpenSection MoveSection(StringBuilder sb, List<ChordProLine> body, int index, OpenSection open)
     {
         var line = body[index];
-        var next = SectionOf(body, index, open);
-        var opensNew = line.StartsSection && next != ChordProLineType.Verse;
-        if (next == open && !opensNew)
-            return open;
+        var next = SectionOf(body, index, open.Kind);
+        if (next == ChordProLineType.Verse)
+        {
+            AppendSectionEnd(sb, open.Kind);
+            return new OpenSection(next, false);
+        }
 
-        AppendSectionEnd(sb, open);
-        if (next == ChordProLineType.Chorus)
-            sb.Append("{start_of_chorus}\n");
-        else if (next == ChordProLineType.Bridge)
-            sb.Append("{start_of_bridge}\n");
+        // A section opened by a blank or tab line is not reopened by the first line that carries its start.
+        if (next == open.Kind && !(line.StartsSection && open.Started))
+            return open with { Started = open.Started || line.StartsSection };
 
-        return next;
+        AppendSectionEnd(sb, open.Kind);
+        sb.Append(next == ChordProLineType.Chorus ? "{start_of_chorus}\n" : "{start_of_bridge}\n");
+        return new OpenSection(next, line.StartsSection);
     }
 
     private static ChordProLineType SectionOf(List<ChordProLine> body, int index, ChordProLineType open)
@@ -89,24 +94,48 @@ internal static class ChordProTypedRenderer
         if (line.Type == ChordProLineType.Verse || !(line.StartsSection || line.InOpenSection))
             return ChordProLineType.Verse;
 
-        return open != ChordProLineType.Verse && !line.StartsSection ? open : TypeOfNextSection(body, index);
+        if (line.StartsSection || open == ChordProLineType.Verse)
+            return TypeOfNextSection(body, index);
+
+        return line.Type == ChordProLineType.Tab ? TabSection(body, index, open) : open;
     }
 
-    // A comment, blank line or tab that opens a section does not say its kind, so the first line inside it does.
-    private static ChordProLineType TypeOfNextSection(List<ChordProLine> body, int index)
+    // A tab right before a lyric line that starts a section of another kind is the first line of that section.
+    private static ChordProLineType TabSection(List<ChordProLine> body, int index, ChordProLineType open)
     {
         for (var i = index + 1; i < body.Count; i++)
         {
             var line = body[i];
             if (line.Type is ChordProLineType.Chorus or ChordProLineType.Bridge)
-                return line.StartsSection ? ChordProLineType.Chorus : line.Type;
+                return line.StartsSection ? line.Type : open;
 
-            if (line.Type == ChordProLineType.Verse || line.StartsSection)
+            if (line.Type is not (ChordProLineType.Tab or ChordProLineType.Empty))
+                break; // A comment would take the start of the new section.
+        }
+
+        return open;
+    }
+
+    // A comment, blank line or tab that opens a section does not say its kind, so the first lyric line inside it does.
+    private static ChordProLineType TypeOfNextSection(List<ChordProLine> body, int index)
+    {
+        var seenStart = body[index].StartsSection;
+        for (var i = index + 1; i < body.Count; i++)
+        {
+            var line = body[i];
+            if (line.Type is ChordProLineType.Chorus or ChordProLineType.Bridge)
+                return line.Type;
+
+            if (line.Type == ChordProLineType.Verse || (line.StartsSection && seenStart))
                 break;
+
+            seenStart |= line.StartsSection;
         }
 
         return ChordProLineType.Chorus;
     }
+
+    private readonly record struct OpenSection(ChordProLineType Kind, bool Started);
 
     private static void AppendSectionEnd(StringBuilder sb, ChordProLineType type)
     {
