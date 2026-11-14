@@ -23,15 +23,36 @@ internal static class PdfPigPage
         var origin = page.CropBox.Bounds;
         var words = page.GetWords()
             .Where(w => w.TextOrientation == TextOrientation.Horizontal && !string.IsNullOrWhiteSpace(w.Text))
-            .Select(w => new PositionedWord(
-                FoldLigatures(w.Text),
-                new WordBox(
-                    w.BoundingBox.Left - origin.Left,
-                    w.BoundingBox.Bottom - origin.Bottom,
-                    w.BoundingBox.Right - origin.Left,
-                    w.BoundingBox.Top - origin.Bottom)))
+            .Select(w => ToWord(w, origin.Left, origin.Bottom))
             .ToList();
         return new PdfPageWords(page.Number, page.Width, page.Height, words, HasImages(page));
+    }
+
+    private static PositionedWord ToWord(Word word, double originLeft, double originBottom)
+    {
+        var text = FoldLigatures(word.Text);
+        var box = new WordBox(
+            word.BoundingBox.Left - originLeft,
+            word.BoundingBox.Bottom - originBottom,
+            word.BoundingBox.Right - originLeft,
+            word.BoundingBox.Top - originBottom);
+        return new PositionedWord(text, box, LetterLefts(word, originLeft, text.Length));
+    }
+
+    // Pen position of each character of the folded text, as the word box uses; a ligature's letters share its advance.
+    private static IReadOnlyList<double>? LetterLefts(Word word, double originLeft, int length)
+    {
+        var lefts = new List<double>(length);
+        foreach (var letter in word.Letters)
+        {
+            var text = FoldLigatures(letter.Value);
+            var start = letter.StartBaseLine.X;
+            var advance = letter.EndBaseLine.X - start;
+            for (var k = 0; k < text.Length; k++)
+                lefts.Add(start - originLeft + (k * advance / text.Length));
+        }
+
+        return lefts.Count == length ? lefts : null;
     }
 
     private static bool HasImages(Page page)

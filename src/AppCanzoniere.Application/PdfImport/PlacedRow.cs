@@ -24,6 +24,7 @@ internal sealed record CharacterGrid(double Left, double CharWidth)
 /// <summary>A rendered row and where each of its words starts, so that other rows can map x positions onto it.</summary>
 internal sealed record PlacedRow(TextRow Row, IReadOnlyList<int> Starts, string Text)
 {
+
     // Lyrics: words keep their own text and are separated by as many spaces as their gap holds, at least one.
     public static PlacedRow Natural(TextRow row, CharacterGrid grid)
     {
@@ -67,13 +68,26 @@ internal sealed record PlacedRow(TextRow Row, IReadOnlyList<int> Starts, string 
             var box = words[i].Box;
             var length = words[i].Text.Length;
             if (x < box.Right)
-                return Starts[i] + Math.Min(length - 1, Round((x - box.Left) / (box.Width / length)));
+                return Starts[i] + LetterAt(words[i], x);
 
             if (i + 1 < words.Count && x < words[i + 1].Box.Left)
                 return Interpolate(x, box.Right, Starts[i] + length, words[i + 1].Box.Left, Starts[i + 1]);
         }
 
         return Starts[^1] + words[^1].Text.Length + grid.Columns(x - words[^1].Box.Right);
+    }
+
+    // Index of the letter under x: the last letter starting at or before x, or the average letter width when unknown.
+    private static int LetterAt(PositionedWord word, double x)
+    {
+        var length = word.Text.Length;
+        if (word.LetterLefts is not { } lefts || lefts.Count != length)
+            return Math.Min(length - 1, Round((x - word.Box.Left) / (word.Box.Width / length)));
+
+        var index = 0;
+        while (index + 1 < length && lefts[index + 1] <= x)
+            index++;
+        return index;
     }
 
     private static int Round(double value) => (int)Math.Round(value, MidpointRounding.AwayFromZero);
