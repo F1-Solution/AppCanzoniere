@@ -69,13 +69,33 @@ public class SongDisplayBehaviourTests
         Assert.Equal(expected[0], shown.Key);
     }
 
-    [Fact]
-    public void ThePreferenceNamesTheSoundingKey_ButNotTheStoredChords_WithoutTransposition()
+    [Theory]
+    [InlineData(AccidentalPreference.Sharps, "Db")]
+    [InlineData(AccidentalPreference.Flats, "Db")]
+    [InlineData(AccidentalPreference.Auto, "Db")]
+    public void WithoutTranspositionOrCapo_TheKeyIsShownAsWritten_LikeTheChords(AccidentalPreference preference, string expectedKey)
     {
-        var shown = Show("{key:Db}\n[Db]x [Gb]y", settings: Pref(AccidentalPreference.Sharps));
+        var shown = Show("{key:Db}\n[Db]x [Gb]y [Ab]z", settings: Pref(preference));
 
-        Assert.Equal("C#", shown.Key);
-        Assert.Equal(new[] { "Db", "Gb" }, shown.Text.Split('\n')[0].Split(' ', StringSplitOptions.RemoveEmptyEntries));
+        Assert.Equal(expectedKey, shown.Key);
+        Assert.Equal(new[] { "Db", "Gb", "Ab" }, shown.Text.Split('\n')[0].Split(' ', StringSplitOptions.RemoveEmptyEntries));
+    }
+
+    [Fact]
+    public void WithoutTranspositionOrCapo_AnItalianKeyIsOnlyRenamed_NotRespelled()
+    {
+        var shown = Show("{key:Reb}\n[Reb]x [Solb]y [Lab]z", settings: Pref(AccidentalPreference.Sharps), language: "it");
+
+        Assert.Equal("Reb", shown.Key);
+        Assert.Equal(new[] { "Reb", "Solb", "Lab" }, shown.Text.Split('\n')[0].Split(' ', StringSplitOptions.RemoveEmptyEntries));
+    }
+
+    [Fact]
+    public void WithoutTranspositionOrCapo_AKeyInTheOtherNotationIsOnlyRenamed_NotRespelled()
+    {
+        var shown = Show("{key:Db}\n[Db]x [Gb]y", settings: Pref(AccidentalPreference.Sharps), language: "it");
+
+        Assert.Equal("Reb", shown.Key);
     }
 
     [Fact]
