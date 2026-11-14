@@ -1,3 +1,6 @@
+using System.Diagnostics;
+using System.Globalization;
+using AppCanzoniere.Application.Display;
 using AppCanzoniere.Application.Interfaces;
 using AppCanzoniere.Domain.Entities;
 using AppCanzoniere.Domain.Interfaces;
@@ -10,8 +13,10 @@ namespace AppCanzoniere.MAUI.ViewModels;
 public partial class SongDetailViewModel : ObservableObject
 {
     private readonly ISongRepository _songRepository;
-    private readonly IChordProParser _chordProParser;
-    private readonly IChordTransposer _chordTransposer;
+    private readonly ISongDisplayService _songDisplay;
+    private readonly IChordDisplaySettingsStore _displaySettings;
+    private string _errorMessage = string.Empty;
+    private string _capoText = string.Empty;
 
     [ObservableProperty]
     private Song? _song;
@@ -28,24 +33,48 @@ public partial class SongDetailViewModel : ObservableObject
     [ObservableProperty]
     private bool _isEditMode;
 
+    /// <summary>Why the chords could not be shown; empty when the song rendered.</summary>
+    public string ErrorMessage
+    {
+        get => _errorMessage;
+        private set
+        {
+            if (SetProperty(ref _errorMessage, value))
+                OnPropertyChanged(nameof(HasError));
+        }
+    }
+
+    public bool HasError => _errorMessage.Length > 0;
+
+    /// <summary>"Capo 2" when the song is played with a capo; empty otherwise.</summary>
+    public string CapoText
+    {
+        get => _capoText;
+        private set
+        {
+            if (SetProperty(ref _capoText, value))
+                OnPropertyChanged(nameof(HasCapo));
+        }
+    }
+
+    public bool HasCapo => _capoText.Length > 0;
+
     public SongDetailViewModel(
         ISongRepository songRepository,
-        IChordProParser chordProParser,
-        IChordTransposer chordTransposer)
+        ISongDisplayService songDisplay,
+        IChordDisplaySettingsStore displaySettings)
     {
         _songRepository = songRepository;
-        _chordProParser = chordProParser;
-        _chordTransposer = chordTransposer;
+        _songDisplay = songDisplay;
+        _displaySettings = displaySettings;
     }
 
     partial void OnSongChanged(Song? value)
     {
-        if (value != null)
-        {
-            CurrentKey = value.OriginalKey;
-            DisplayedContent = value.ChordProContent ?? value.MusicXmlContent ?? value.JsonContent ?? "No content available";
-            CurrentTranspose = 0;
-        }
+        if (value == null) return;
+
+        CurrentTranspose = 0;
+        UpdateDisplayedContent();
     }
 
     [RelayCommand]
@@ -79,25 +108,38 @@ public partial class SongDetailViewModel : ObservableObject
         UpdateDisplayedContent();
     }
 
+    // First display and every transpose step both come through here.
     private void UpdateDisplayedContent()
     {
         if (Song == null) return;
 
-        // Update current key with transposition
-        if (!string.IsNullOrEmpty(Song.OriginalKey))
+        var chordPro = Song.ChordProContent;
+        if (string.IsNullOrEmpty(chordPro))
         {
-            CurrentKey = _chordTransposer.TransposeKey(Song.OriginalKey, CurrentTranspose);
+            CurrentKey = Song.OriginalKey;
+            CapoText = string.Empty;
+            ErrorMessage = string.Empty;
+            DisplayedContent = Song.MusicXmlContent ?? Song.JsonContent ?? "No content available";
+            return;
         }
 
-        // Transpose ChordPro content if available
-        if (!string.IsNullOrEmpty(Song.ChordProContent))
+        try
         {
-            var document = _chordProParser.Parse(Song.ChordProContent);
-            DisplayedContent = _chordProParser.Render(document, CurrentTranspose);
+            var request = new SongDisplayRequest(
+                chordPro, CurrentTranspose, _displaySettings.Load(), CultureInfo.CurrentUICulture.Name, Song.OriginalKey);
+            var shown = _songDisplay.Render(request);
+            DisplayedContent = shown.Text;
+            CurrentKey = string.IsNullOrEmpty(shown.Key) ? Song.OriginalKey : shown.Key;
+            CapoText = shown.Capo > 0 ? $"Capo {shown.Capo}" : string.Empty;
+            ErrorMessage = string.Empty;
         }
-        else
+        catch (Exception ex)
         {
-            DisplayedContent = Song.MusicXmlContent ?? Song.JsonContent ?? "No content available";
+            Debug.WriteLine($"Song display failed: {ex}");
+            DisplayedContent = chordPro;
+            CurrentKey = Song.OriginalKey;
+            CapoText = string.Empty;
+            ErrorMessage = "The chords could not be laid out, so the song is shown as stored.";
         }
     }
 
