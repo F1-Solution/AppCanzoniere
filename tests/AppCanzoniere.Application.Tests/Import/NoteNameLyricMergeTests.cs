@@ -25,7 +25,8 @@ public class NoteNameLyricMergeTests
         Assert.Equal(first, ChordSheetConverter.Convert(first).ChordPro);
     }
 
-    // A chord line that already holds a bracketed chord is kept apart: merged, its bracket would no longer be checked.
+    // A chord line that already holds a bracketed chord is kept apart. The first conversion writes "[Sib]" alone over
+    // "Re      Re" because Sib lands in a gap; merging that bracketed line on the second conversion would put it on "Re".
     [Fact]
     public void BracketedChordOverANoteNameLyric_KeepsTheChordLineApartAndIsStable()
     {

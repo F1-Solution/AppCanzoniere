@@ -183,7 +183,7 @@ internal sealed class SheetWriter
     private static bool HasWordInBothNotations(ContentUnit lyric) =>
         new[] { Music.Notation.Italian, Music.Notation.English }.All(n => SheetTokenizer.Tokenize(lyric.Text, lyric.Start, n).Any(t => t.Kind == TokenKind.Word));
 
-    // A chord line that already holds brackets is left apart, since merging would hide them from the second reading.
+    // A bracketed chord line may be the line the first conversion kept apart, so it stays apart again.
     private bool EveryChordLandsOnALetter(ContentUnit chords, ContentUnit lyric)
     {
         if (chords.Class.Tokens.Any(t => t.Bracketed))
