@@ -33,6 +33,13 @@ public class UserSettingsRepository : IUserSettingsRepository
         return settings;
     }
 
+    public async Task<UserSettings> ResetAsync(CancellationToken cancellationToken = default)
+    {
+        var settings = new UserSettings();
+        await UpdateAsync(settings, cancellationToken);
+        return settings;
+    }
+
     public async Task UpdateAsync(UserSettings settings, CancellationToken cancellationToken = default)
     {
         _context.UserSettings.Update(settings);
