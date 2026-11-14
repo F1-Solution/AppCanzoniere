@@ -50,10 +50,6 @@ public partial class SettingsViewModel : ObservableObject
         "Dark"
     };
 
-    private static readonly NotationChoice[] NotationValues = { NotationChoice.FollowLanguage, NotationChoice.English, NotationChoice.Italian };
-    private static readonly MinorStyle[] MinorValues = { MinorStyle.LetterM, MinorStyle.Dash };
-    private static readonly AccidentalPreference[] AccidentalValues = { AccidentalPreference.Auto, AccidentalPreference.Sharps, AccidentalPreference.Flats };
-
     private readonly IChordDisplaySettingsStore _displayStore;
     private int _notationIndex;
     private int _minorIndex;
@@ -96,10 +92,10 @@ public partial class SettingsViewModel : ObservableObject
         _loadingDisplay = true;
         try
         {
-            var stored = _displayStore.Load();
-            NotationIndex = Math.Max(0, Array.IndexOf(NotationValues, stored.Notation));
-            MinorIndex = Math.Max(0, Array.IndexOf(MinorValues, stored.MinorStyle));
-            AccidentalsIndex = Math.Max(0, Array.IndexOf(AccidentalValues, stored.Accidentals));
+            var (notation, minor, accidentals) = ChordDisplayPickers.ToIndexes(_displayStore.Load());
+            NotationIndex = Math.Max(0, notation);
+            MinorIndex = Math.Max(0, minor);
+            AccidentalsIndex = Math.Max(0, accidentals);
         }
         finally
         {
@@ -110,18 +106,31 @@ public partial class SettingsViewModel : ObservableObject
     // A picker reports -1 while it is being reset; that is not a choice.
     private void SaveDisplaySettings()
     {
-        if (_loadingDisplay || NotationIndex < 0 || MinorIndex < 0 || AccidentalsIndex < 0) return;
+        if (_loadingDisplay || !ChordDisplayPickers.TryToSettings(NotationIndex, MinorIndex, AccidentalsIndex, out var settings)) return;
 
         try
         {
-            _displayStore.Save(new ChordDisplaySettings(
-                NotationValues[NotationIndex], MinorValues[MinorIndex], AccidentalValues[AccidentalsIndex]));
+            _displayStore.Save(settings);
         }
         catch (Exception ex)
         {
             Debug.WriteLine($"Saving chord display settings failed: {ex}");
             _ = Shell.Current.DisplayAlertAsync("Error", "The chord display choice could not be saved on this device.", "OK");
         }
+    }
+
+    private void ResetDisplaySettings()
+    {
+        try
+        {
+            _displayStore.Save(ChordDisplaySettings.Default);
+        }
+        catch (Exception ex)
+        {
+            Debug.WriteLine($"Resetting chord display settings failed: {ex}");
+        }
+
+        LoadDisplaySettings();
     }
 
     [RelayCommand]
@@ -158,6 +167,7 @@ public partial class SettingsViewModel : ObservableObject
         if (!confirm) return;
 
         Settings = new UserSettings();
+        ResetDisplaySettings();
         await SaveSettingsAsync();
     }
 

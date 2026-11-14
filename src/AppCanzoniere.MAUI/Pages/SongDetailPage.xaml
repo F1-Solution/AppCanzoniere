@@ -41,6 +41,7 @@
                        Opacity="0.9" />
                 <Label Grid.Row="2"
                        Text="{Binding CurrentKey, StringFormat='Key: {0}'}"
+                       IsVisible="{Binding HasKey}"
                        FontSize="14"
                        TextColor="White"
                        Opacity="0.8"
@@ -70,10 +71,16 @@
                        Padding="10"
                        CornerRadius="5">
                     <ScrollView Orientation="Horizontal">
-                        <Label Text="{Binding DisplayedContent}"
-                               FontFamily="Courier"
-                               FontSize="14"
-                               LineBreakMode="NoWrap" />
+                        <!-- One label per row: a row never wraps in a horizontal scroll view, and none can be cut to its first line. -->
+                        <VerticalStackLayout BindableLayout.ItemsSource="{Binding DisplayedLines}">
+                            <BindableLayout.ItemTemplate>
+                                <DataTemplate x:DataType="x:String">
+                                    <Label Text="{Binding .}"
+                                           FontFamily="JetBrainsMono"
+                                           FontSize="14" />
+                                </DataTemplate>
+                            </BindableLayout.ItemTemplate>
+                        </VerticalStackLayout>
                     </ScrollView>
                 </Frame>
 
