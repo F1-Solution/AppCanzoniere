@@ -82,6 +82,30 @@ public class BracketedOtherNotationTests
         Assert.Contains(lyric.Trim(), first);
     }
 
+    // "(Dmi" and "B)" are chords in parentheses, not words: with no real word on the line the bracket stays a chord,
+    // or the second conversion would read an English chord line and change the notation of the whole document.
+    [Fact]
+    public void BracketBesideChordsInParentheses_StaysAChordAndTheDocumentIsStable()
+    {
+        var first = Run("A       [C] (Dmi   B) fa", "(Re", "  C  [ G7 ]\tDmi       Ami", "gloria [] Lord pane, [Lam]sempre").ChordPro;
+
+        Assert.StartsWith("A       [C] (Dmi   B) fa\n", first);
+        Assert.Equal(first, ChordSheetConverter.Convert(first).ChordPro);
+    }
+
+    // A document that writes its chords in lower case gets them back in brackets, which no longer look lower case;
+    // the decision on a bracketed word must not depend on that style, or the second conversion decides differently.
+    [Fact]
+    public void LowerCaseChordDocument_DecidesABracketedWordTheSameWayWhenConvertedAgain()
+    {
+        var first = Run(
+            "Do   Sol   Lam   Fa", "", "Rem   Sol7   Do", "", "re       sol re", "Alleluia [a] mi",
+            "la     sol", "gloria [C]", "mi      sol", "Signore Go o E").ChordPro;
+
+        Assert.DoesNotContain("[a]", first);
+        Assert.Equal(first, ChordSheetConverter.Convert(first).ChordPro);
+    }
+
     // The converter writes chords that do not fall on a letter after the lyric or over a wide gap;
     // a bracket in those places is read back as a chord, so the output converts to itself again.
     [Theory]
