@@ -11,7 +11,7 @@ public sealed class PdfTextImporter
 {
     private readonly IPdfWordExtractor _extractor;
 
-    public PdfTextImporter(IPdfWordExtractor extractor) =>
+    public PdfTextImporter(IPdfWordExtractor extractor, TimeSpan? maxDuration = null) =>
         _extractor = extractor ?? throw new ArgumentNullException(nameof(extractor));
 
     /// <summary>Extracts and lays out every page; failures come back typed, cancellation throws.</summary>

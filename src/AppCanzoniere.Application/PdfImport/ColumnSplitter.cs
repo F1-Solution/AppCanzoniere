@@ -49,7 +49,7 @@ public static class ColumnSplitter
     // Candidate gutter positions are tried every this many points.
     private const double GutterStepPoints = 1.0;
 
-    public static IReadOnlyList<LayoutRegion> Split(IReadOnlyList<PositionedWord> words, double pageWidth)
+    public static IReadOnlyList<LayoutRegion> Split(IReadOnlyList<PositionedWord> words, double pageWidth, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(words);
         if (words.Count == 0)

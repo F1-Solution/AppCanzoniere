@@ -126,6 +126,26 @@ public class PdfPigWordExtractorTests
         Assert.Empty(result.Pages);
     }
 
+    [Theory]
+    [InlineData(1e7, 842)]
+    [InlineData(595, 1e7)]
+    public async Task ExtractAsync_ReportsAPageLargerThanPdfAllows_AsDamaged(double width, double height)
+    {
+        // The PDF format limits a page side to 14,400 units; a bigger page box is crafted or broken.
+        var result = await Extract(PdfFixtures.PageOfSize(width, height));
+
+        Assert.Equal(PdfExtractionStatus.Damaged, result.Status);
+        Assert.Empty(result.Pages);
+    }
+
+    [Fact]
+    public async Task ExtractAsync_AcceptsALargeButValidPage()
+    {
+        var result = await Extract(PdfFixtures.PageOfSize(14400, 14400));
+
+        Assert.Equal(PdfExtractionStatus.Success, result.Status);
+    }
+
     [Fact]
     public async Task ExtractAsync_ReportsAPasswordProtectedFile_AsEncrypted()
     {

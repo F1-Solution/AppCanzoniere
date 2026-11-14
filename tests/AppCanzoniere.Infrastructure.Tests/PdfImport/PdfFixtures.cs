@@ -70,6 +70,15 @@ internal static class PdfFixtures
         return builder.Build();
     }
 
+    /// <summary>One page with a line of text on a page box of the given size, in points.</summary>
+    public static byte[] PageOfSize(double width, double height)
+    {
+        var builder = new PdfDocumentBuilder();
+        var font = builder.AddStandard14Font(Standard14Font.Helvetica);
+        builder.AddPage(width, height).AddText("canto la mia gioia al Signore", FontSize, new PdfPoint(50, 700), font);
+        return builder.Build();
+    }
+
     public static byte[] ScannedPages(int pages = 1)
     {
         var builder = new PdfDocumentBuilder();

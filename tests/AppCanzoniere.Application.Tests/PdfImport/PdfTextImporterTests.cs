@@ -4,19 +4,39 @@ namespace AppCanzoniere.Application.Tests.PdfImport;
 
 public class PdfTextImporterTests
 {
+    // Blocks the calling thread like a parser that cannot be interrupted, then returns the result.
+    private sealed class SlowExtractor : IPdfWordExtractor
+    {
+        private readonly PdfWordsResult _result;
+        private readonly TimeSpan _delay;
+
+        public SlowExtractor(PdfWordsResult result, TimeSpan delay) => (_result, _delay) = (result, delay);
+
+        public Task<PdfWordsResult> ExtractAsync(Stream pdf, CancellationToken cancellationToken = default)
+        {
+            Thread.Sleep(_delay);
+            return Task.FromResult(_result);
+        }
+    }
+
+    // Waits cooperatively, as the real extractor does, and honours the token.
+    private sealed class WaitingExtractor : IPdfWordExtractor
+    {
+        public async Task<PdfWordsResult> ExtractAsync(Stream pdf, CancellationToken cancellationToken = default)
+        {
+            await Task.Delay(TimeSpan.FromSeconds(30), cancellationToken);
+            return PdfWordsResult.Success(Array.Empty<PdfPageWords>());
+        }
+    }
+
     private sealed class FakeExtractor : IPdfWordExtractor
     {
         private readonly PdfWordsResult _result;
 
         public FakeExtractor(PdfWordsResult result) => _result = result;
 
-        public CancellationToken ReceivedToken { get; private set; }
-
-        public Task<PdfWordsResult> ExtractAsync(Stream pdf, CancellationToken cancellationToken = default)
-        {
-            ReceivedToken = cancellationToken;
-            return Task.FromResult(_result);
-        }
+        public Task<PdfWordsResult> ExtractAsync(Stream pdf, CancellationToken cancellationToken = default) =>
+            Task.FromResult(_result);
     }
 
     private static PdfPageWords TextPage(int number) =>
@@ -68,14 +88,45 @@ public class PdfTextImporterTests
     }
 
     [Fact]
-    public async Task ImportAsync_HandsTheCancellationTokenToTheExtractor()
+    public async Task ImportAsync_ReturnsTimedOut_WhenTheTimeLimitRunsOutBeforeTheLayout()
+    {
+        // The time limit covers the layout too: once extraction has used it up, no page is laid out.
+        var pages = Enumerable.Range(1, 3).Select(TextPage).ToArray();
+        var extractor = new SlowExtractor(PdfWordsResult.Success(pages), TimeSpan.FromMilliseconds(300));
+        var importer = new PdfTextImporter(extractor, TimeSpan.FromMilliseconds(50));
+
+        var result = await importer.ImportAsync(new MemoryStream());
+
+        Assert.Equal(PdfExtractionStatus.TimedOut, result.Status);
+        Assert.False(string.IsNullOrWhiteSpace(result.Reason));
+        Assert.Empty(result.Pages);
+    }
+
+    [Fact]
+    public async Task ImportAsync_ReturnsTimedOut_WhenTheExtractorIsStillWaitingAtTheTimeLimit()
+    {
+        var importer = new PdfTextImporter(new WaitingExtractor(), TimeSpan.FromMilliseconds(100));
+
+        var result = await importer.ImportAsync(new MemoryStream()).WaitAsync(TimeSpan.FromSeconds(10));
+
+        Assert.Equal(PdfExtractionStatus.TimedOut, result.Status);
+    }
+
+    [Fact]
+    public async Task ImportAsync_Throws_WhenTheCallerCancels_EvenWithATimeLimit()
+    {
+        using var source = new CancellationTokenSource(TimeSpan.FromMilliseconds(50));
+        var importer = new PdfTextImporter(new WaitingExtractor(), TimeSpan.FromSeconds(30));
+
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => importer.ImportAsync(new MemoryStream(), source.Token));
+    }
+
+    [Fact]
+    public void Constructor_RejectsANegativeTimeLimit()
     {
         var extractor = new FakeExtractor(PdfWordsResult.Success(Array.Empty<PdfPageWords>()));
-        using var source = new CancellationTokenSource();
 
-        await new PdfTextImporter(extractor).ImportAsync(new MemoryStream(), source.Token);
-
-        Assert.Equal(source.Token, extractor.ReceivedToken);
+        Assert.Throws<ArgumentOutOfRangeException>(() => new PdfTextImporter(extractor, TimeSpan.FromSeconds(-1)));
     }
 
     [Fact]

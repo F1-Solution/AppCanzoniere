@@ -125,6 +125,36 @@ public class ColumnSplitterTests
     }
 
     [Fact]
+    public void Split_FinishesQuickly_OnAPageClaimingAnAbsurdWidth()
+    {
+        // A crafted page box a billion points wide, with text near both sides of its centre, used to make the gutter
+        // search try hundreds of millions of positions.
+        const double width = 1e9;
+        var words = TwoColumns(leftX: 40, rightX: (width / 2) + 100).Words;
+
+        var split = Task.Run(() => ColumnSplitter.Split(words, width));
+
+        Assert.True(split.Wait(TimeSpan.FromSeconds(5)), "the layout did not finish within 5 seconds");
+    }
+
+    [Fact]
+    public void Split_StopsWithCancellation_WhenTheTokenIsCancelled()
+    {
+        using var source = new CancellationTokenSource();
+        source.Cancel();
+
+        Assert.ThrowsAny<OperationCanceledException>(() => ColumnSplitter.Split(TwoColumns().Words, PageBuilder.PageWidth, source.Token));
+    }
+
+    [Fact]
+    public void Split_StillFindsTheGutter_OnAPageSlightlyWiderThanTheText()
+    {
+        var regions = ColumnSplitter.Split(TwoColumns().Words, PageBuilder.PageWidth + 20);
+
+        Assert.Equal(new[] { (0, 2), (1, 2) }, regions.Select(r => (r.ColumnIndex, r.ColumnCount)));
+    }
+
+    [Fact]
     public void Split_KeepsOneColumn_WhenOnlyChordsAtTheEndOfLinesReachTheRightHalf()
     {
         // Single-column songs often end a line with a chord placed well to the right; a stack of such chords
