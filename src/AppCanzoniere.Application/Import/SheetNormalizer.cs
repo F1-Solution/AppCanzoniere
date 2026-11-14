@@ -1,5 +1,6 @@
 using System.Globalization;
 using System.Text;
+using System.Text.RegularExpressions;
 
 namespace AppCanzoniere.Application.Import;
 
@@ -27,9 +28,14 @@ internal static class SheetNormalizer
     private const int LineSeparator = 0x2028;
     private const int ParagraphSeparator = 0x2029;
 
+    // Separators right before a newline, or at the end of the text, belong to that one break.
+    private static readonly Regex SeparatorsBeforeNewline = new(
+        "[" + (char)NextLine + (char)LineSeparator + (char)ParagraphSeparator + "]+(?=\r\n|\r|\n|\\z)",
+        RegexOptions.Compiled | RegexOptions.CultureInvariant);
+
     public static IReadOnlyList<string> SplitLines(string text)
     {
-        var lines = text.Split(LineBreaks, StringSplitOptions.None);
+        var lines = SeparatorsBeforeNewline.Replace(text, string.Empty).Split(LineBreaks, StringSplitOptions.None);
         return lines.Length > 1 && lines[^1].Length == 0
             ? lines[..^1] // A terminating newline ends the last line, it does not start another.
             : lines;

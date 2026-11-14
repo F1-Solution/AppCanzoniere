@@ -42,9 +42,9 @@ public class LineSeparatorTests
     [Fact]
     public void SeparatorBeforeABlankLine_KeepsExactlyOneBlankLine()
     {
-        var result = ChordSheetConverter.Convert("a" + Ls + "\n\nb");
+        var result = ChordSheetConverter.Convert("a," + Ls + "\n\nb");
 
-        Assert.Equal("a\n\nb\n", result.ChordPro);
+        Assert.Equal("a,\n\nb\n", result.ChordPro);
         Assert.Equal(3, result.Lines.Count);
     }
 

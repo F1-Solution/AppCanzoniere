@@ -19,8 +19,10 @@ internal static class CorpusFiles
     }
 
     /// <summary>For every converter line, the number of the physical (newline-terminated) line it belongs to; labels use that numbering.</summary>
-    public static IReadOnlyList<int> PhysicalLines(string text)
+    public static IReadOnlyList<int> PhysicalLines(string rawText)
     {
+        var text = System.Text.RegularExpressions.Regex.Replace(
+            rawText, "[" + (char)0x85 + (char)0x2028 + (char)0x2029 + "]+(?=\r\n|\r|\n|\\z)", string.Empty);
         var map = new List<int> { 1 };
         var physical = 1;
         for (var i = 0; i < text.Length; i++)
