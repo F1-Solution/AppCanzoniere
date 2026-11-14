@@ -57,7 +57,7 @@ public class ChordProLine
     /// <summary>True on the first line of an explicit chorus or bridge section.</summary>
     public bool StartsSection { get; set; }
 
-    /// <summary>True on a comment written inside an open chorus or bridge.</summary>
+    /// <summary>True on a comment, blank line or tab line written inside an open chorus or bridge.</summary>
     public bool InOpenSection { get; set; }
 }
 

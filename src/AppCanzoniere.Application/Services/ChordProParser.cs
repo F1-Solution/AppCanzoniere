@@ -1,4 +1,3 @@
-using System.Text;
 using System.Text.RegularExpressions;
 using AppCanzoniere.Application.Interfaces;
 using AppCanzoniere.Application.Music;
@@ -52,7 +51,7 @@ public class ChordProParser : IChordProParser
 
         if (trimmed.Length == 0)
         {
-            document.Lines.Add(new ChordProLine { Type = ChordProLineType.Empty });
+            document.Lines.Add(new ChordProLine { Type = ChordProLineType.Empty, InOpenSection = state.Section != ChordProLineType.Verse });
             return ChordProSourceKind.Verbatim;
         }
 
@@ -81,6 +80,7 @@ public class ChordProParser : IChordProParser
             Type = ChordProLineType.Tab,
             Text = line,
             StartsTabBlock = state.TabStart,
+            InOpenSection = state.Section != ChordProLineType.Verse,
             TabLabel = state.TabStart ? state.TabLabel : string.Empty
         });
         state.TabStart = false;
@@ -230,105 +230,6 @@ public class ChordProParser : IChordProParser
             return ChordProSourceRenderer.Render(lines, transformer, options.Capo);
         }
 
-        var sb = new StringBuilder();
-
-        var hasMetadata = AppendMetadata(sb, document, transformer, options);
-        var body = document.Lines.Where(l => l.Type != ChordProLineType.Title).ToList();
-        if (hasMetadata && body.Count > 0 && body[0].Type != ChordProLineType.Empty)
-            sb.Append('\n');
-
-        var previousType = ChordProLineType.Verse;
-        foreach (var line in body)
-        {
-            AppendSectionBoundary(sb, previousType, line);
-            AppendLine(sb, line, transformer);
-            previousType = line.Type;
-        }
-
-        AppendSectionEnd(sb, previousType);
-        return sb.ToString();
-    }
-
-    private static bool AppendMetadata(StringBuilder sb, ChordProDocument document, ChordTransformer transformer, ChordProRenderOptions options)
-    {
-        var start = sb.Length;
-        if (!string.IsNullOrEmpty(document.Title))
-            sb.Append($"{{title:{document.Title}}}\n");
-        if (!string.IsNullOrEmpty(document.Artist))
-            sb.Append($"{{artist:{document.Artist}}}\n");
-        if (!string.IsNullOrEmpty(document.Key))
-            sb.Append($"{{key:{transformer.Key(document.Key)}}}\n");
-
-        var capo = options.Capo is { } fret ? (fret > 0 ? fret.ToString() : string.Empty) : document.Capo;
-        if (!string.IsNullOrEmpty(capo))
-            sb.Append($"{{capo:{capo}}}\n");
-        if (!string.IsNullOrEmpty(document.Tempo))
-            sb.Append($"{{tempo:{document.Tempo}}}\n");
-        if (!string.IsNullOrEmpty(document.Time))
-            sb.Append($"{{time:{document.Time}}}\n");
-        return sb.Length > start;
-    }
-
-    private static void AppendSectionBoundary(StringBuilder sb, ChordProLineType previous, ChordProLine line)
-    {
-        var current = line.Type;
-        var newTabBlock = current == ChordProLineType.Tab && line.StartsTabBlock;
-        if (previous == current && !newTabBlock)
-            return;
-
-        AppendSectionEnd(sb, previous);
-        if (current == ChordProLineType.Chorus)
-            sb.Append("{start_of_chorus}\n");
-        else if (current == ChordProLineType.Bridge)
-            sb.Append("{start_of_bridge}\n");
-        else if (current == ChordProLineType.Tab)
-            sb.Append(line.TabLabel.Length > 0 ? $"{{start_of_tab:{line.TabLabel}}}\n" : "{start_of_tab}\n");
-    }
-
-    private static void AppendSectionEnd(StringBuilder sb, ChordProLineType type)
-    {
-        if (type == ChordProLineType.Chorus)
-            sb.Append("{end_of_chorus}\n");
-        else if (type == ChordProLineType.Bridge)
-            sb.Append("{end_of_bridge}\n");
-        else if (type == ChordProLineType.Tab)
-            sb.Append("{end_of_tab}\n");
-    }
-
-    private static void AppendLine(StringBuilder sb, ChordProLine line, ChordTransformer transformer)
-    {
-        switch (line.Type)
-        {
-            case ChordProLineType.Empty:
-                sb.Append('\n');
-                break;
-            case ChordProLineType.Comment:
-                sb.Append($"{{comment:{line.Text}}}\n");
-                break;
-            case ChordProLineType.Tab:
-                sb.Append(line.Text).Append('\n');
-                break;
-            case ChordProLineType.Title:
-                break; // Written with the metadata.
-            default:
-                sb.Append(RenderChordLine(line, transformer)).Append('\n');
-                break;
-        }
-    }
-
-    private static string RenderChordLine(ChordProLine line, ChordTransformer transformer)
-    {
-        var result = new StringBuilder();
-        var cursor = 0;
-        foreach (var chord in (line.Chords ?? new List<ChordPosition>()).OrderBy(c => c.Position))
-        {
-            var position = Math.Clamp(chord.Position, cursor, line.Text.Length);
-            result.Append(line.Text, cursor, position - cursor);
-            var text = transformer.Chord(chord.Chord);
-            result.Append('[').Append(text).Append(']');
-            cursor = position;
-        }
-
-        return result.Append(line.Text, cursor, line.Text.Length - cursor).ToString();
+        return ChordProTypedRenderer.Render(document, transformer, options);
     }
 }
