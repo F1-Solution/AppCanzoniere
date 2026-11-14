@@ -133,7 +133,8 @@ public class PdfContentSizeTests
     public async Task ExtractAsync_RefusesAnyStreamThatUnpacksOverTheDecodeLimit_EvenOutsideThePageContent()
     {
         // An embedded font program PdfPig unpacks while it reads the page; the page content itself is tiny.
-        var font = "<< /Type /Font /Subtype /TrueType /BaseFont /Bomb /FirstChar 32 /LastChar 126 /FontDescriptor 6 0 R >>";
+        var widths = string.Join(' ', Enumerable.Repeat(500, 95));
+        var font = $"<< /Type /Font /Subtype /TrueType /BaseFont /Bomb /FirstChar 32 /LastChar 126 /Widths [{widths}] /FontDescriptor 6 0 R >>";
         var pdf = Write(new[]
         {
             new Obj("<< /Type /Catalog /Pages 2 0 R >>"),
