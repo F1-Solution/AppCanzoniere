@@ -89,6 +89,31 @@ public class PdfContentSizeTests
     }
 
     [Fact]
+    public async Task ExtractAsync_ReadsAPageWhoseContentUsesAPngPredictor()
+    {
+        // Each row of 64 bytes is prefixed with predictor type 0 ("none"), so the rows unpack to the content unchanged.
+        const int Columns = 64;
+        var content = Padded(SmallBytes);
+        var rows = content.Chunk(Columns).SelectMany(row => row.Prepend((byte)0).Concat(new byte[Columns - row.Length])).ToArray();
+
+        var result = await Extract(OnePage($"/Filter /FlateDecode /DecodeParms << /Predictor 12 /Columns {Columns} >>", Zlib(rows)));
+
+        Assert.Equal(PdfExtractionStatus.Success, result.Status);
+        Assert.Contains(result.Pages[0].Words, w => w.Text == "gioia");
+    }
+
+    [Fact]
+    public async Task ExtractAsync_RefusesAPredictorWhoseRowIsLargerThanTheLimit()
+    {
+        // A sub-kilobyte file asking for predictor rows of 4 MB: PdfPig allocates the rows before it reads a byte.
+        var pdf = OnePage($"/Filter /FlateDecode /DecodeParms << /Predictor 12 /Columns {4 * 1024 * 1024} >>", Zlib(Ascii(Text)));
+
+        var result = await Extract(pdf);
+
+        Assert.Equal(PdfExtractionStatus.TooLarge, result.Status);
+    }
+
+    [Fact]
     public async Task ExtractAsync_MeasuresTheLastPage_WhenTheTreeHasAnEmptyNodeWithoutKids()
     {
         // PdfPig skips the empty node, so the bomb is its page 2; a walk that numbered the node as a page would miss it.
