@@ -24,6 +24,16 @@ internal static class BracketedText
 
     public static bool ContainsInlineChord(string text) => Matches(text).Any(m => IsInlineChord(m.Groups[1].Value));
 
+    /// <summary>True when every bracketed chord of only the other notation has a space or the line start before it and one space and a word after it.</summary>
+    public static bool OtherNotationStandsBetweenWords(string text, int start, Notation notation) =>
+        Matches(text).Where(m => m.Index >= start && IsInlineChord(m.Groups[1].Value) && !IsInlineChord(m.Groups[1].Value, notation))
+            .All(m => StandsBetweenWords(text, start, m.Index, m.Index + m.Length));
+
+    // The converter writes a chord that misses a letter after the lyric or before a gap of three spaces, never like this.
+    private static bool StandsBetweenWords(string text, int start, int index, int end) =>
+        (index == start || text[index - 1] == ' ') &&
+        end + 1 < text.Length && text[end] == ' ' && text[end + 1] is not (' ' or '[');
+
     /// <summary>True when a chord sits directly against a letter: the evidence that a line is already ChordPro.</summary>
     public static bool HasAttachedChord(string text) =>
         Matches(text).Any(m => IsInlineChord(m.Groups[1].Value) &&

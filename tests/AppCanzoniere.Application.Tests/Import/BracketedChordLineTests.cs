@@ -40,6 +40,21 @@ public class BracketedChordLineTests
         Assert.Equal(Out("[A]Cant[Lam]a il [Re]Signore"), result.ChordPro);
     }
 
+    // One plain chord beside a bracketed one, or a repeated name beside a bracketed one, is a chord line as well:
+    // the plain chord is not lyric text.
+    [Theory]
+    [InlineData("[Do]     Lam", "[Do]Canta il [Lam]Signore")]
+    [InlineData("Lam      [Do]", "[Lam]Canta il [Do]Signore")]
+    [InlineData("[Do]  Do Do", "[Do]Canta [Do]il [Do]Signore")]
+    [InlineData("[C]      Am", "[C]Canta il [Am]Signore")]
+    public void OnePlainChordBesideABracketedChord_MergesIntoTheLyric(string chords, string expected)
+    {
+        var result = Run(chords, "Canta il Signore");
+
+        Assert.Equal(Out(expected), result.ChordPro);
+        Assert.Equal(SheetLineKind.ChordLine, result.Diag(1).Kind);
+    }
+
     [Fact]
     public void BracketedChordBesideAWord_IsStillKeptAsWritten()
     {

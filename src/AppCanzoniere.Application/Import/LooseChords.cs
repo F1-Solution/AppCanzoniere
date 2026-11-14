@@ -64,7 +64,7 @@ internal static class LooseChords
             return false;
 
         var styled = context.LowerCaseStyle && HasWideGap(tokens);
-        return styled || lowers.Any(t => HasChordFeature(t, notation)) || HasAlignedWideGap(tokens, context.Below);
+        return styled || lowers.Any(t => HasChordFeature(t, notation)) || HasAlignedWideGap(tokens, context.Below, notation);
     }
 
     private static int DistinctNames(IReadOnlyList<SheetToken> tokens, List<SheetToken> lowers) =>
@@ -83,10 +83,10 @@ internal static class LooseChords
     }
 
     // Wide gaps count only when the chords sit over word starts of the lyric line directly below.
-    private static bool HasAlignedWideGap(IReadOnlyList<SheetToken> tokens, string? below)
+    private static bool HasAlignedWideGap(IReadOnlyList<SheetToken> tokens, string? below, Notation notation)
     {
-        // A line with bracketed chords is a merged lyric, which the line above never saw as its lyric.
-        if (!HasWideGap(tokens) || string.IsNullOrWhiteSpace(below) || BracketedText.ContainsInlineChord(below))
+        // A merged lyric, which the line above never saw as its lyric, holds chords of the notation; other brackets may be written back as text.
+        if (!HasWideGap(tokens) || string.IsNullOrWhiteSpace(below) || BracketedText.Matches(below).Any(m => BracketedText.IsInlineChord(m.Groups[1].Value, notation)))
             return false;
 
         var lyric = below.TrimStart();
