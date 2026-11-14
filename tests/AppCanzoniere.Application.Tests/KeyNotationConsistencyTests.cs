@@ -42,11 +42,19 @@ public class KeyNotationConsistencyTests
     }
 
     [Fact]
-    public void EqualCountsOnBothSides_HonourTheWordedKey()
+    public void EqualCountsOnBothSides_LeaveTheKeyAlone()
     {
         var result = Render("{key: La minore}\n[Am] [Re]", new ChordProRenderOptions { TransposeSteps = 2 });
 
-        Assert.Equal("{key: Si minore}\n[Bm] [Re]\n", result);
+        Assert.Equal("{key: La minore}\n[Bm] [Re]\n", result);
+    }
+
+    [Fact]
+    public void ATieBetweenInputAndOtherNotationChords_FreezesTheKey()
+    {
+        var result = Render("{key: Do}\n[Do]x [A]y", new ChordProRenderOptions { TransposeSteps = 2 });
+
+        Assert.Equal("{key: Do}\n[Do]x [B]y\n", result);
     }
 
     [Fact]

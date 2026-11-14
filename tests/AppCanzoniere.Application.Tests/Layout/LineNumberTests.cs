@@ -89,6 +89,25 @@ public class LineNumberTests
         Assert.Equal(new int?[] { 1, 2 }, OnlySection(flow).Lines.Select(l => l.Number));
     }
 
+    private sealed class TallNumberMeasurer : ITextMeasurer
+    {
+        private readonly FixedAdvanceMeasurer _inner = new();
+
+        public TextMetrics Measure(string text, TextRole role) =>
+            role == TextRole.LineNumber ? new TextMetrics(text.Length * 6, 40, 30) : _inner.Measure(text, role);
+    }
+
+    [Fact]
+    public void ANumberFontTallerThanTheRow_StillHasItsBoxInsideTheRow()
+    {
+        var flow = Flow("Signore", Numbered(), new TallNumberMeasurer());
+
+        var row = OnlyRow(flow.Sections[0].Lines[0]);
+        var number = Single(row, RunKind.LineNumber);
+        Assert.True(number.Y >= row.Y);
+        Assert.True(number.Y + number.Height <= row.Y + row.Height);
+    }
+
     [Fact]
     public void NoLyricLines_MeansNoGutter()
     {

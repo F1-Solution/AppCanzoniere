@@ -122,6 +122,14 @@ public class LayoutEdgeCaseTests
     }
 
     [Fact]
+    public void TheDocumentIndex_CannotBeSetFromOutsideTheLibrary()
+    {
+        var setter = typeof(LayoutSourceLine).GetProperty(nameof(LayoutSourceLine.DocumentIndex))!.SetMethod;
+
+        Assert.False(setter is { IsPublic: true });
+    }
+
+    [Fact]
     public void ASpacingSoLargeThatAYOverflows_RaisesInvalidOperation()
     {
         var options = Options() with { LineSpacing = double.MaxValue };
