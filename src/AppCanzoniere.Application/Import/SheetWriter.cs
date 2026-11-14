@@ -173,11 +173,14 @@ internal sealed class SheetWriter
     private bool NextHasContent(int i) =>
         i + 1 < _lines.Count && _lines[i + 1].Kind is not (SheetLineKind.Blank or SheetLineKind.SectionLabel or SheetLineKind.Tab);
 
-    // A lyric made only of marks and numbers would read as a chord line again once chords are appended to it.
+    // A lyric made only of marks, numbers or note names of either notation ("Re Re") would read as a chord line again once chords are put into it.
     private bool NextIsLyric(int i) =>
         i + 1 < _lines.Count && _lines[i + 1].Content is { Kind: UnitKind.Lyric } next &&
-        next.Class.Tokens.Any(t => t.Kind != TokenKind.Neutral) && next.Text.Any(char.IsLetterOrDigit) &&
+        HasWordInBothNotations(next) && next.Text.Any(char.IsLetterOrDigit) &&
         MetadataParser.TryParse(next.Text.Trim()) is null;
+
+    private static bool HasWordInBothNotations(ContentUnit lyric) =>
+        new[] { Music.Notation.Italian, Music.Notation.English }.All(n => SheetTokenizer.Tokenize(lyric.Text, lyric.Start, n).Any(t => t.Kind == TokenKind.Word));
 
     private bool NextIsInline(int i) =>
         i + 1 < _lines.Count && _lines[i + 1].Content is { Kind: UnitKind.Inline };
