@@ -3,13 +3,13 @@ using AppCanzoniere.Application.Interfaces;
 
 namespace AppCanzoniere.Application.Services;
 
-/// <summary>Writes edited header values into the first matching directive of the source lines, or adds the directive.</summary>
+/// <summary>Writes edited header values into the directive line the parser kept each value from, or adds the directive.</summary>
 internal static class ChordProHeaderEditor
 {
     private const char Bom = (char)0xFEFF;
 
     private static readonly Regex Directive = new(
-        "^(?<lead>" + Bom + @"?\s*\{(?<name>[^:}]*))(?::(?<value>.*))?(?<tail>\}\s*)$",
+        "^(?<lead>" + Bom + @"*\s*\{(?<name>[^:}]*))(?::(?<value>.*))?(?<tail>\}\s*)$",
         RegexOptions.Compiled | RegexOptions.CultureInvariant);
 
     private static readonly Dictionary<HeaderField, string[]> Names = new()
@@ -45,13 +45,20 @@ internal static class ChordProHeaderEditor
         if (index < 0)
             return false;
 
-        lines[index] = lines[index] with { Raw = Rewrite(lines[index].Raw, HeaderText.Clean(edit.Value)) };
+        var rewritten = Rewrite(lines[index].Raw, HeaderText.Clean(edit.Value));
+        if (rewritten is null)
+            return false;
+
+        lines[index] = lines[index] with { Raw = rewritten };
         return true;
     }
 
-    private static string Rewrite(string raw, string value)
+    private static string? Rewrite(string raw, string value)
     {
         var match = Directive.Match(raw);
+        if (!match.Success)
+            return null;
+
         var old = match.Groups["value"];
         var core = old.Value.Trim();
         var start = core.Length == 0 ? old.Value.Length : old.Value.IndexOf(core, StringComparison.Ordinal);
@@ -73,8 +80,9 @@ internal static class ChordProHeaderEditor
         var raw = "{" + name + ":" + HeaderText.Clean(edit.Value) + "}";
         if (index == 0 && lines.Count > 0 && lines[0].Raw.StartsWith(Bom))
         {
-            raw = Bom + raw;
-            lines[0] = lines[0] with { Raw = lines[0].Raw.TrimStart(Bom) };
+            var rest = lines[0].Raw.TrimStart(Bom);
+            raw = lines[0].Raw[..^rest.Length] + raw;
+            lines[0] = lines[0] with { Raw = rest };
         }
 
         lines.Insert(index, new ChordProSourceLine(kind, raw));

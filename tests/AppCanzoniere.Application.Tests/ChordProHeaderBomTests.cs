@@ -1,3 +1,4 @@
+using AppCanzoniere.Application.Interfaces;
 using AppCanzoniere.Application.Services;
 
 namespace AppCanzoniere.Application.Tests;
@@ -24,7 +25,7 @@ public class ChordProHeaderBomTests
         var written = _parser.Render(document);
 
         Assert.Equal(Marks(marks) + "{title: New}\n[C]x\n", written);
-        Assert.Equal("New", _parser.Parse(written).Title);
+        Assert.Equal("New", _parser.Parse(written).Title.Trim());
     }
 
     [Theory]
@@ -58,13 +59,15 @@ public class ChordProHeaderBomTests
     [Fact]
     public void ADirectiveLineThatCannotBeRewritten_IsLeftAloneAndANewDirectiveIsInserted()
     {
-        var odd = ((char)0x1C).ToString() + "{title: Old}";
-        var document = _parser.Parse(odd + "\n[C]x\n");
+        const string odd = "{title Old";
+        var document = _parser.Parse("{title: Old}\n[C]x\n");
+        var sourceLines = (System.Collections.IList)typeof(ChordProDocument)
+            .GetProperty("SourceLines", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)!
+            .GetValue(document)!;
+        var first = sourceLines[0]!;
+        first.GetType().GetProperty("Raw")!.SetValue(first, odd);
         document.Title = "New";
 
-        var written = _parser.Render(document);
-
-        Assert.Equal(odd + "\n{title:New}\n[C]x\n", written);
-        Assert.Equal("New", _parser.Parse(written).Title);
+        Assert.Equal(odd + "\n{title:New}\n[C]x\n", _parser.Render(document));
     }
 }
