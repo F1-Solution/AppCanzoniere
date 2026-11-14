@@ -32,8 +32,8 @@ internal static class FilterChain
         var parameters = DecodeParameterResolver.GetFilterParameters(dictionary, index);
         return name switch
         {
-            "FlateDecode" or "Fl" => Predicted(name, StreamDecoders.Flate(input, cap), input, dictionary, parameters, index, cap),
-            "LZWDecode" or "LZW" => Predicted(name, LzwDecoder.Decode(input.Span, Int(parameters, NameToken.EarlyChange, 1) == 1, cap), input, dictionary, parameters, index, cap),
+            "FlateDecode" or "Fl" => Predicted(StreamDecoders.Flate(input, cap), parameters, cap),
+            "LZWDecode" or "LZW" => Predicted(LzwDecoder.Decode(input.Span, Int(parameters, NameToken.EarlyChange, 1) == 1, cap), parameters, cap),
             "RunLengthDecode" or "RL" => StreamDecoders.RunLength(input.Span, cap),
             "ASCIIHexDecode" or "AHx" => StreamDecoders.AsciiHex(input.Span, cap),
             "ASCII85Decode" or "A85" => StreamDecoders.Ascii85(input.Span, cap),
@@ -57,25 +57,15 @@ internal static class FilterChain
         };
     }
 
-    // PdfPig runs a predictor over Flate and LZW output; its two row buffers and padded last row come on top of the data.
-    private static Decoded Predicted(string name, Decoded decoded, ReadOnlyMemory<byte> input, DictionaryToken dictionary, DictionaryToken parameters, int index, int cap)
+    // PdfPig runs a predictor over Flate and LZW output.
+    private static Decoded Predicted(Decoded decoded, DictionaryToken parameters, int cap)
     {
         var predictor = Int(parameters, NameToken.Predictor, -1);
         if (!decoded.IsDecoded || predictor <= 1)
             return decoded;
 
         var colors = Math.Min(Int(parameters, NameToken.Colors, 1), 32);
-        var bits = Int(parameters, NameToken.BitsPerComponent, 8);
-        var rowBytes = ((Int(parameters, NameToken.Columns, 1) * (long)colors * bits) + 7) / 8;
-
-        // PdfPig's predictor never advances on a row of zero bytes, so such rows and nonsensical samples are unreadable.
-        if (colors < 1 || bits is not (1 or 2 or 4 or 8 or 16) || rowBytes <= 0)
-            return Decoded.Unreadable;
-        if (decoded.Bytes.Length + (3 * rowBytes) > cap)
-            return Decoded.OverCap;
-
-        var filter = DefaultFilterProvider.Instance.GetNamedFilters(new[] { NameToken.Create(name) })[0];
-        return new Decoded(DecodeStatus.Decoded, filter.Decode(input.ToArray(), dictionary, DefaultFilterProvider.Instance, index));
+        return Predictor.Apply(decoded.Bytes.Span, predictor, colors, Int(parameters, NameToken.BitsPerComponent, 8), Int(parameters, NameToken.Columns, 1), cap);
     }
 
     private static int Int(DictionaryToken dictionary, NameToken key, int fallback) =>
