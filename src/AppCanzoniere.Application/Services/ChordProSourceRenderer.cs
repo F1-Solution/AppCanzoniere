@@ -9,12 +9,12 @@ namespace AppCanzoniere.Application.Services;
 /// <summary>Writes a parsed document back from its source lines, changing only what a requested transformation touches.</summary>
 internal static class ChordProSourceRenderer
 {
-    private const char Bom = '﻿';
+    private const char Bom = (char)0xFEFF;
 
     private static readonly Regex ChordToken = new(@"\[([^\]]*)\]", RegexOptions.Compiled | RegexOptions.CultureInvariant);
-    private static readonly Regex DirectiveValue = new(@"^(?<head>﻿?\s*\{[^:}]*:)(?<value>.*)(?<tail>\}\s*)$", RegexOptions.Compiled | RegexOptions.CultureInvariant);
-    private static readonly Regex CapoDirective = new(@"^(?<lead>﻿?\s*\{[^:}]*)(?::(?<value>.*))?(?<tail>\}\s*)$", RegexOptions.Compiled | RegexOptions.CultureInvariant);
-    private static readonly Regex TitleDirective = new(@"^﻿?\s*\{\s*(?:title|t)\s*[:}]", RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+    private static readonly Regex DirectiveValue = new("^(?<head>" + Bom + @"?\s*\{[^:}]*:)(?<value>.*)(?<tail>\}\s*)$", RegexOptions.Compiled | RegexOptions.CultureInvariant);
+    private static readonly Regex CapoDirective = new("^(?<lead>" + Bom + @"?\s*\{[^:}]*)(?::(?<value>.*))?(?<tail>\}\s*)$", RegexOptions.Compiled | RegexOptions.CultureInvariant);
+    private static readonly Regex TitleDirective = new("^" + Bom + @"?\s*\{\s*(?:title|t)\s*[:}]", RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
 
     public static string Render(IReadOnlyList<ChordProSourceLine> lines, ChordTransformer transformer, int? capo)
     {
