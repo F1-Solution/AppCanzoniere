@@ -69,13 +69,54 @@ public class SongDisplayBehaviourTests
         Assert.Equal(expected[0], shown.Key);
     }
 
-    [Fact]
-    public void ThePreferenceNamesTheSoundingKey_ButNotTheStoredChords_WithoutTransposition()
+    [Theory]
+    [InlineData(AccidentalPreference.Sharps, "Db")]
+    [InlineData(AccidentalPreference.Flats, "Db")]
+    [InlineData(AccidentalPreference.Auto, "Db")]
+    public void WithoutTranspositionOrCapo_TheKeyIsShownAsWritten_LikeTheChords(AccidentalPreference preference, string expectedKey)
     {
-        var shown = Show("{key:Db}\n[Db]x [Gb]y", settings: Pref(AccidentalPreference.Sharps));
+        var shown = Show("{key:Db}\n[Db]x [Gb]y [Ab]z", settings: Pref(preference));
 
-        Assert.Equal("C#", shown.Key);
-        Assert.Equal(new[] { "Db", "Gb" }, shown.Text.Split('\n')[0].Split(' ', StringSplitOptions.RemoveEmptyEntries));
+        Assert.Equal(expectedKey, shown.Key);
+        Assert.Equal(new[] { "Db", "Gb", "Ab" }, shown.Text.Split('\n')[0].Split(' ', StringSplitOptions.RemoveEmptyEntries));
+    }
+
+    [Fact]
+    public void WithoutTranspositionOrCapo_AnItalianKeyIsOnlyRenamed_NotRespelled()
+    {
+        var shown = Show("{key:Reb}\n[Reb]x [Solb]y [Lab]z", settings: Pref(AccidentalPreference.Sharps), language: "it");
+
+        Assert.Equal("Reb", shown.Key);
+        Assert.Equal(new[] { "Reb", "Solb", "Lab" }, shown.Text.Split('\n')[0].Split(' ', StringSplitOptions.RemoveEmptyEntries));
+    }
+
+    [Fact]
+    public void WithoutTranspositionOrCapo_AKeyInTheOtherNotationIsOnlyRenamed_NotRespelled()
+    {
+        var shown = Show("{key:Db}\n[Db]x [Gb]y", settings: Pref(AccidentalPreference.Sharps), language: "it");
+
+        Assert.Equal("Reb", shown.Key);
+    }
+
+    // DEC 18: a key in the other notation is recognised and rewritten in its own style; a minor marker the chords disagree on changes nothing about it.
+    [Theory]
+    [InlineData("{key: Do}%n[C]x [A-]y", "Do", new[] { "C", "Am" })]
+    [InlineData("{key: Lam}%n[Am]x [D-]y", "Lam", new[] { "Am", "Dm" })]
+    [InlineData("{key: Sol}%n[G]x [Em]y [A-]z", "Sol", new[] { "G", "Em", "Am" })]
+    public void AKeyInTheOtherNotation_IsNotRewrittenBecauseAChordsMinorMarkerDiffers(string song, string expectedKey, string[] expectedChords)
+    {
+        var shown = Show(song.Replace("%n", "\n"), settings: Pref(AccidentalPreference.Auto));
+
+        Assert.Equal(expectedKey, shown.Key);
+        Assert.Equal(expectedChords, shown.Text.Split('\n')[0].Split(' ', StringSplitOptions.RemoveEmptyEntries));
+    }
+
+    [Fact]
+    public void ACompactMinorKey_FollowsTheMinorMarkerOfTheChords()
+    {
+        var shown = Show("{key: A-}\n[A-]x [D-]y");
+
+        Assert.Equal("Am", shown.Key);
     }
 
     [Fact]
@@ -226,6 +267,33 @@ public class SongDisplayBehaviourTests
 
         Assert.Equal(Lines(word, language.StartsWith("it") ? "Do" : "C", "Due"), shown.Text);
     }
+
+    [Fact]
+    public void AnEarlierComment_DoesNotSuppressTheLabelOfALaterChorus()
+    {
+        var shown = Show("[G]x\n{c: x2}\n\n{soc}\n[C]y\n{eoc}");
+
+        Assert.Equal(1, CountOf(shown.Text, "Chorus"));
+    }
+
+    [Fact]
+    public void AChorusRecallRightAfterAComment_IsNotLabelledTwice()
+    {
+        var shown = Show("{c: Rit.}\n{chorus}");
+
+        Assert.Equal(1, CountOf(shown.Text, "Rit."));
+        Assert.Equal(0, CountOf(shown.Text, "Chorus"));
+    }
+
+    [Fact]
+    public void AChorusRecallAfterAnEarlierComment_StillGetsItsLabel()
+    {
+        var shown = Show("{c: Rit.}\n\n[G]x\n{chorus}");
+
+        Assert.Equal(1, CountOf(shown.Text, "Chorus"));
+    }
+
+    private static int CountOf(string text, string word) => text.Split(word).Length - 1;
 
     [Fact]
     public void AChorusThatAlreadyHasACommentLabel_IsNotMarkedTwice()

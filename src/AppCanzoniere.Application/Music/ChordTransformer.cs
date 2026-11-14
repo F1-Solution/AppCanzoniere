@@ -93,7 +93,10 @@ public sealed class ChordTransformer
         return foreign;
     }
 
+    // Notation or minor style differs, so chords are rewritten.
     private bool Conversion => _options.InputNotation != _options.OutputNotation;
+
+    private bool NotationChanges => _options.InputNotation.Notation != _options.OutputNotation.Notation;
 
     /// <summary>Tonic and mode the chords are spelled against after the shift: the key, else the first chord; null when neither reads.</summary>
     internal (int Tonic, bool Minor)? ReferenceKey => _reference;
@@ -121,11 +124,16 @@ public sealed class ChordTransformer
     public string? WrittenKey() =>
         _documentKey is null ? null : WriteKey(_documentKeyText!.Trim(), _documentKey, _shift, _writtenPreference);
 
-    /// <summary>Key the song sounds in, named by the explicit preference (Auto when none); null without a readable key.</summary>
-    public string? SoundingKey() =>
-        _documentKey is null
-            ? null
-            : WriteKey(_documentKeyText!.Trim(), _documentKey, Note.Mod12(_transpose + _documentCapo), _options.Accidentals ?? AccidentalPreference.Auto);
+    /// <summary>Key the song sounds in; the explicit spelling preference applies only when it is transposed or has a capo; null without a readable key.</summary>
+    public string? SoundingKey()
+    {
+        if (_documentKey is null)
+            return null;
+
+        var steps = Note.Mod12(_transpose + _documentCapo);
+        var preference = steps == 0 ? AccidentalPreference.Auto : _options.Accidentals ?? AccidentalPreference.Auto;
+        return WriteKey(_documentKeyText!.Trim(), _documentKey, steps, preference);
+    }
 
     private string WriteKey(string original, KeyValue key, int steps, AccidentalPreference? preference)
     {
@@ -133,7 +141,7 @@ public sealed class ChordTransformer
             return original;
 
         var reference = (Note.Mod12(key.Symbol.Root.PitchClass + steps), key.Symbol.IsMinor);
-        return key.Write(Shifted(key.Symbol, steps, reference, preference), _options.OutputNotation, Conversion);
+        return key.Write(Shifted(key.Symbol, steps, reference, preference), _options.OutputNotation, NotationChanges, Conversion);
     }
 
     private static bool IsUntouched(int steps, AccidentalPreference? preference) =>

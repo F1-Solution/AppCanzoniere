@@ -118,13 +118,13 @@ internal sealed record KeyValue(ChordSymbol Symbol, Notation Notation, KeyWords?
         _ => 0
     };
 
-    /// <summary>Writes the key with a new root; the style it was written in is kept unless a conversion asks for the output notation.</summary>
-    public string Write(ChordSymbol shifted, NotationOptions output, bool conversion)
+    /// <summary>Writes the key with a new root, in the output notation only when <paramref name="convertNotation"/>; <paramref name="rewriteMinor"/> writes the minor marker in the output style.</summary>
+    public string Write(ChordSymbol shifted, NotationOptions output, bool convertNotation, bool rewriteMinor)
     {
-        var notation = conversion ? output.Notation : Notation;
+        var notation = convertNotation ? output.Notation : Notation;
         if (Words is null)
         {
-            var compact = ChordNotation.Format(shifted, new NotationOptions(notation, output.MinorStyle), keepMinorToken: !conversion);
+            var compact = ChordNotation.Format(shifted, new NotationOptions(notation, output.MinorStyle), keepMinorToken: !rewriteMinor);
             return AllCaps ? compact.ToUpperInvariant() : compact;
         }
 

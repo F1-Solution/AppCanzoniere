@@ -59,7 +59,7 @@ internal static class SongSourcePreparer
         var label = LabelOf(directive.Groups["arg"].Value, chorusWord);
         if (name.Equals("chorus", StringComparison.OrdinalIgnoreCase))
         {
-            lines = new[] { Comment(label, ending) };
+            lines = PreviousLineIsComment(output) ? new[] { directive.Value + ending } : new[] { Comment(label, ending) };
             return true;
         }
 
@@ -82,16 +82,11 @@ internal static class SongSourcePreparer
 
     private static bool PreviousLineIsComment(List<string> output)
     {
-        for (var i = output.Count - 1; i >= 0; i--)
-        {
-            if (output[i].Trim().Length == 0)
-                continue;
+        if (output.Count == 0)
+            return false;
 
-            var match = Directive.Match(output[i]);
-            return match.Success && Comments.Contains(match.Groups["name"].Value);
-        }
-
-        return false;
+        var match = Directive.Match(output[^1]);
+        return match.Success && Comments.Contains(match.Groups["name"].Value);
     }
 
     // Chord brackets take no column, so the tab stops count only the lyric characters.

@@ -13,9 +13,13 @@ namespace AppCanzoniere.MAUI.ViewModels;
 
 public partial class SettingsViewModel : ObservableObject
 {
+    private const string SettingsNotSaved = "The settings could not be saved. Please try again.";
+    private const string SettingsNotLoaded = "The settings could not be loaded. Please try again.";
+
     private readonly IUserSettingsRepository _settingsRepository;
 
     [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(LanguageIndex))]
     private UserSettings? _settings;
 
     [ObservableProperty]
@@ -24,13 +28,6 @@ public partial class SettingsViewModel : ObservableObject
         "Guitar",
         "Piano",
         "Both"
-    };
-
-    [ObservableProperty]
-    private ObservableCollection<string> _languages = new()
-    {
-        "en",
-        "it"
     };
 
     [ObservableProperty]
@@ -55,6 +52,20 @@ public partial class SettingsViewModel : ObservableObject
     private int _minorIndex;
     private int _accidentalsIndex;
     private bool _loadingDisplay;
+
+    public IReadOnlyList<string> LanguageLabels => LanguagePicker.Labels;
+
+    // -1 comes from a picker being reset and is not a choice.
+    public int LanguageIndex
+    {
+        get => LanguagePicker.ToIndex(Settings?.PreferredLanguage);
+        set
+        {
+            if (Settings == null || !LanguagePicker.TryToCode(value, out var code) || Settings.PreferredLanguage == code) return;
+            Settings.PreferredLanguage = code;
+            OnPropertyChanged();
+        }
+    }
 
     public IReadOnlyList<string> NotationLabels { get; } = new[] { "Automatic (from language)", "Do Re Mi", "C D E" };
 
@@ -136,7 +147,15 @@ public partial class SettingsViewModel : ObservableObject
     [RelayCommand]
     private async Task LoadSettingsAsync()
     {
-        Settings = await _settingsRepository.GetOrCreateAsync();
+        try
+        {
+            Settings = await _settingsRepository.GetOrCreateAsync();
+        }
+        catch (Exception ex)
+        {
+            Debug.WriteLine($"Loading settings failed: {ex}");
+            await Shell.Current.DisplayAlertAsync("Error", SettingsNotLoaded, "OK");
+        }
     }
 
     [RelayCommand]
@@ -147,18 +166,21 @@ public partial class SettingsViewModel : ObservableObject
         try
         {
             await _settingsRepository.UpdateAsync(Settings);
-            await Shell.Current.DisplayAlert("Success", "Settings saved successfully", "OK");
         }
         catch (Exception ex)
         {
-            await Shell.Current.DisplayAlert("Error", $"Failed to save settings: {ex.Message}", "OK");
+            Debug.WriteLine($"Saving settings failed: {ex}");
+            await Shell.Current.DisplayAlertAsync("Error", SettingsNotSaved, "OK");
+            return;
         }
+
+        await Shell.Current.DisplayAlertAsync("Success", "Settings saved successfully", "OK");
     }
 
     [RelayCommand]
     private async Task ResetSettingsAsync()
     {
-        bool confirm = await Shell.Current.DisplayAlert(
+        bool confirm = await Shell.Current.DisplayAlertAsync(
             "Reset Settings",
             "Are you sure you want to reset all settings to default?",
             "Yes",
@@ -166,9 +188,21 @@ public partial class SettingsViewModel : ObservableObject
 
         if (!confirm) return;
 
-        Settings = new UserSettings();
+        try
+        {
+            Settings = await _settingsRepository.ResetAsync();
+            OnPropertyChanged(nameof(Settings));
+            OnPropertyChanged(nameof(LanguageIndex));
+        }
+        catch (Exception ex)
+        {
+            Debug.WriteLine($"Resetting settings failed: {ex}");
+            await Shell.Current.DisplayAlertAsync("Error", SettingsNotSaved, "OK");
+            return;
+        }
+
         ResetDisplaySettings();
-        await SaveSettingsAsync();
+        await Shell.Current.DisplayAlertAsync("Success", "Settings were reset to their defaults", "OK");
     }
 
     [RelayCommand]
