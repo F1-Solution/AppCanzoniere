@@ -19,7 +19,7 @@ internal static class LooseChords
         // A bracketed chord of the other notation is explicit evidence, so it counts as a chord, not as a loose word.
         var realChords = tokens.Count(t => t.Kind == TokenKind.Chord);
         var plainChords = tokens.Count(t => t.Kind == TokenKind.Chord && !t.Bracketed);
-        var explicitForeign = plainChords > 0 ?tokens.Where(IsExplicitForeign).ToList() : new List<SheetToken>();
+        var explicitForeign = plainChords > 0 ? tokens.Where(IsExplicitForeign).ToList() : new List<SheetToken>();
         var loose = tokens.Where(t => (t.LowerChord || t.Foreign || t.Doubtful) && !explicitForeign.Contains(t)).ToList();
         var hasRealWords = tokens.Any(t => t.Kind == TokenKind.Word && !t.LowerChord && !t.Foreign && !t.Doubtful);
         var strict = realChords + explicitForeign.Count;
@@ -33,7 +33,8 @@ internal static class LooseChords
             (foreign > 0 && strict < MinForeignAnchors) || (doubtful > 0 && strict < MinDoubtfulAnchors))
             return null;
 
-        return tokens.Select(t => t.LowerChord || t.Foreign || t.Doubtful ? ToChord(t, notation) : t).ToList();    }
+        return tokens.Select(t => t.LowerChord || t.Foreign || t.Doubtful ? ToChord(t, notation) : t).ToList();
+    }
 
     /// <summary>After a section label, two or more different lower-case note names alone are chords: the label is the evidence.</summary>
     public static IReadOnlyList<SheetToken>? PromoteAfterLabel(IReadOnlyList<SheetToken> tokens, Notation notation)
