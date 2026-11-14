@@ -56,9 +56,11 @@ internal static class SheetAnalyzer
 
     private static readonly Regex NumberedTitle = new(@"^\s*\d{1,3}[.)]\s+\S", RegexOptions.Compiled | RegexOptions.CultureInvariant);
 
+    private static readonly Regex ParenthesisedWord = new(@"\(([^()\s]+)\)", RegexOptions.Compiled | RegexOptions.CultureInvariant);
+
     private static readonly Regex TabStart = new(@"^\s*[A-Ga-g][#b]?\s?[|:]", RegexOptions.Compiled | RegexOptions.CultureInvariant);
 
-    /// <param name="otherNotationAsText">True for the final reading: a bracketed word of the other notation on a clean lyric line is text.</param>
+    /// <param name="otherNotationAsText">True for the final reading: a bracketed word of the other notation between words of a lyric line is text.</param>
     public static DocumentAnalysis Analyze(IReadOnlyList<NormalizedLine> lines, Notation notation, bool otherNotationAsText = false)
     {
         var analyzed = new List<AnalyzedLine>(lines.Count);
@@ -135,10 +137,11 @@ internal static class SheetAnalyzer
     private static bool IsNotALabel(string text, LineContext context) =>
         ContentsEntry.IsMatch(text) || (NumberedTitle.IsMatch(text) && IsAllCaps(text) && IsBlankOrMetadata(context.Below));
 
-    // Chords and annotations already in brackets are not part of the title text.
+    // Chords and annotations in brackets, and chords in parentheses as a bracket is written back, are not part of the title text.
     private static bool IsAllCaps(string text)
     {
         var plain = BracketedText.Matches(text).Where(m => BracketedText.IsKept(m.Groups[1].Value)).Aggregate(text, (t, m) => t.Replace(m.Value, string.Empty, StringComparison.Ordinal));
+        plain = ParenthesisedWord.Matches(plain).Where(m => BracketedText.IsInlineChord(m.Groups[1].Value)).Aggregate(plain, (t, m) => t.Replace(m.Value, string.Empty, StringComparison.Ordinal));
         return !plain.Any(char.IsLower) && plain.Count(char.IsUpper) >= MinTitleCapitals;
     }
 

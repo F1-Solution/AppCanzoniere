@@ -41,6 +41,8 @@ public class BracketedOtherNotationTests
     [InlineData("Vieni [e] canta 2 volte", "Vieni (e) canta 2 volte")]
     [InlineData("«Vieni [e] canta…»", "«Vieni (e) canta…»")]
     [InlineData("Vieni [e] Re dei re", "Vieni (e) Re dei re")]
+    [InlineData("E [e] tu, Signore, già lo sai", "E (e) tu, Signore, già lo sai")]
+    [InlineData("A [a] te ricorriamo", "A (a) te ricorriamo")]
     public void ItalianDocument_ReplacesBracketsOnLyricsWithShortWordsAndPunctuation(string lyric, string expected)
     {
         var result = Run("Do      Sol", "Canta il Signore", "", lyric);
@@ -67,6 +69,19 @@ public class BracketedOtherNotationTests
         Assert.Equal(Out("[C]Sing to [G]the Lord", "", expected), result.ChordPro);
     }
 
+    // Without a real word, an other-notation chord word next to the replaced bracket would make a chord line of the
+    // other notation on the second conversion, and the document could change notation.
+    [Theory]
+    [InlineData("   [E] Ami")]
+    [InlineData("   [F] E")]
+    public void BracketNextToOtherNotationChordWordsOnly_StaysAsWritten(string lyric)
+    {
+        var first = Run("Do      Sol", "Canta il Signore", "", lyric).ChordPro;
+
+        Assert.Equal(first, ChordSheetConverter.Convert(first).ChordPro);
+        Assert.Contains(lyric.Trim(), first);
+    }
+
     // The converter writes chords that do not fall on a letter after the lyric or over a wide gap;
     // a bracket in those places is read back as a chord, so the output converts to itself again.
     [Theory]
@@ -79,6 +94,17 @@ public class BracketedOtherNotationTests
         var result = Run("Do      Sol", "Canta il Signore", "", lyric);
 
         Assert.Equal(Out("[Do]Canta il [Sol]Signore", "", lyric), result.ChordPro);
+    }
+
+    // A numbered title in capitals stays a title whether its chord is in brackets or, after conversion, in parentheses;
+    // otherwise the second conversion would open a verse labelled "49.".
+    [Fact]
+    public void NumberedCapsTitleWithABracketedWord_IsStableWhenConvertedAgain()
+    {
+        var first = Run("Do      Sol", "Canta il Signore", "", "49. [e] CHIESA VIVA").ChordPro;
+
+        Assert.Contains("\n49. (e) CHIESA VIVA\n", first);
+        Assert.Equal(first, ChordSheetConverter.Convert(first).ChordPro);
     }
 
     [Fact]
