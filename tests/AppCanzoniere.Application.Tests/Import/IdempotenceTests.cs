@@ -30,6 +30,53 @@ public class IdempotenceTests
         Assert.Equal(first, ChordSheetConverter.Convert(first).ChordPro);
     }
 
+    // A lyric made only of note names ("Re Re") would read as a chord line once a chord sits over a gap or after it,
+    // so the chord line above it is written on its own line.
+    [Theory]
+    [InlineData("   Sib", "Re\tRe", "[Sib]", "Re      Re")]
+    [InlineData("              Sib", "Re\tRe", "[Sib]", "Re      Re")]
+    [InlineData("     (F#m)        (Am)", "Mi     Mi     Mi", "[F#m] [Am]", "Mi     Mi     Mi")]
+    public void LyricOfRepeatedNoteNames_KeepsTheChordLineAboveItAndIsStable(string chords, string lyric, string chordOut, string lyricOut)
+    {
+        var first = Run(chords, lyric).ChordPro;
+
+        Assert.Equal(Out(chordOut, lyricOut), first);
+        Assert.Equal(first, ChordSheetConverter.Convert(first).ChordPro);
+    }
+
+    // The chord of the other notation is written after the lyric, next to another chord: it stays a chord when read again.
+    [Fact]
+    public void ChordOfTheOtherNotationAfterALyricStartingWithADigit_IsStable()
+    {
+        var first = Run("Sib     [G]      (Lam)", "2 Gloria").ChordPro;
+
+        Assert.Equal(Out("[Sib]2 Gloria [G] [Lam]"), first);
+        Assert.Equal(first, ChordSheetConverter.Convert(first).ChordPro);
+    }
+
+    private const int MixedDocuments = 20000;
+
+    [Fact]
+    public void MixedNotationDocuments_AreStableWhenConvertedAgain()
+    {
+        var failures = new List<string>();
+        var unstable = 0;
+        foreach (var text in MixedSheets.Many(7, MixedDocuments))
+        {
+            var first = ChordSheetConverter.Convert(text).ChordPro;
+            var second = ChordSheetConverter.Convert(first).ChordPro;
+            if (first == second)
+                continue;
+
+            unstable++;
+            if (failures.Count < ReportedFailures)
+                failures.Add($"INPUT:\n{text}\nFIRST:\n{first}\nSECOND:\n{second}");
+        }
+
+        _output.WriteLine($"{unstable} of {MixedDocuments} mixed documents changed on a second conversion.");
+        Assert.True(unstable == 0, $"{unstable} unstable.\n" + string.Join("\n=====\n", failures));
+    }
+
     private const int NoisyDocuments = 40000;
     private const int ReportedFailures = 4;
     private readonly Xunit.Abstractions.ITestOutputHelper _output;
