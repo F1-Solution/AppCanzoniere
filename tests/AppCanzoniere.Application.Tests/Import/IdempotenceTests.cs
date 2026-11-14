@@ -67,6 +67,19 @@ public class IdempotenceTests
         Assert.Equal(first, ChordSheetConverter.Convert(first).ChordPro);
     }
 
+    // "[Bb]  Re" in an Italian reading has one chord of each notation: as a chord line it would count for the notation,
+    // merged it would not, and the tie between notations would break the other way on the second conversion.
+    // "(A)  (A)" is written back as "[A]  [A]", so a repeated name in brackets or parentheses must read the same way.
+    [Theory]
+    [InlineData("C   G   Am   F", "", "Dm   G7   C", "", "   [Bb]  Re", "pace la", "balla [F#m] va luce, [Fa] [Fa]")]
+    [InlineData("C   G   Am   F", "", "Dm   G7   C", "", "     (A)\t(A)", "house cielo [E] il balla    sing")]
+    public void ChordLinesWithBracketsOfBothNotations_AreStable(params string[] input)
+    {
+        var first = Run(input).ChordPro;
+
+        Assert.Equal(first, ChordSheetConverter.Convert(first).ChordPro);
+    }
+
     private const int MixedDocuments = 20000;
 
     [Fact]

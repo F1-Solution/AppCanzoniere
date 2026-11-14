@@ -121,7 +121,7 @@ internal static class LineClassifier
 
     public static LineClassification Classify(IReadOnlyList<SheetToken> tokens, Notation notation, LineContext context = default)
     {
-        // Chords already in brackets next to real words, or next to a single plain chord (a lyric with chords after it), mean the line is ChordPro already.
+        // Chords already in brackets next to real words, or a lyric with chords after it, mean the line is ChordPro already.
         if (tokens.Any(t => t.Bracketed) && (tokens.Any(t => !t.Bracketed && t.Kind == TokenKind.Word) || IsLyricWithTail(tokens)))
         {
             var chords = tokens.Count(t => t.Kind == TokenKind.Chord);
@@ -146,8 +146,9 @@ internal static class LineClassifier
         return ClassifyTokens(tokens);
     }
 
+    // One plain chord beside brackets that are no chord of the notation; merged, such a line would stop counting for the notation.
     private static bool IsLyricWithTail(IReadOnlyList<SheetToken> tokens) =>
-        tokens.Count(t => !t.Bracketed && t.Kind == TokenKind.Chord) == 1;
+        tokens.Count(t => !t.Bracketed && t.Kind == TokenKind.Chord) == 1 && tokens.Any(t => t.Bracketed && t.Kind != TokenKind.Chord);
 
     private static LineClassification ClassifyTokens(IReadOnlyList<SheetToken> tokens)
     {
@@ -192,7 +193,8 @@ internal static class LineClassifier
                 : Make(false, true, UnsureSingle, SheetWarning.AmbiguousSingleToken);
 
         var chords = tokens.Where(t => t.Kind == TokenKind.Chord).Select(t => t.Chord).ToList();
-        var sameName = chords.All(c => string.Equals(c, chords[0], StringComparison.OrdinalIgnoreCase));
+        // A repeated name alone ("Do Do") is a lyric, unless one of them is already in brackets or parentheses.
+        var sameName = chords.All(c => string.Equals(c, chords[0], StringComparison.OrdinalIgnoreCase)) && !tokens.Any(t => t.Bracketed || t.Parenthesised);
         return sameName
             ? Make(false, false, LikelyChord, SheetWarning.AmbiguousNoteWords)
             : Make(true, false, BareNamesChord);
