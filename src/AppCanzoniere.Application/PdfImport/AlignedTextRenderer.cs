@@ -59,6 +59,13 @@ public static class AlignedTextRenderer
     private static bool[] LyricRows(IReadOnlyList<TextRow> rows)
     {
         var chord = rows.Select(IsChordRow).ToArray();
+        for (var i = 1; i < rows.Count; i++)
+        {
+            // A dense row of lower-case note names right under a sparse chord row is its lyric, as "la la la" is.
+            if (chord[i] && chord[i - 1] && IsDense(rows[i]) && !IsDense(rows[i - 1]) && IsClose(rows[i - 1], rows[i]) && IsMostlyLowerCase(rows[i]))
+                chord[i] = false;
+        }
+
         return rows.Select((row, i) => !chord[i] && (IsDense(row) || (i > 0 && chord[i - 1] && IsClose(rows[i - 1], row)))).ToArray();
     }
 
@@ -71,6 +78,10 @@ public static class AlignedTextRenderer
         var share = (double)tokens.Count(IsChord) / tokens.Count;
         return share >= ChordRowShare || (share >= SparseChordRowShare && !IsDense(row));
     }
+
+    // Lyrics are written in lower case; chord symbols start with a capital, so a row like "SI- MI LA" stays chords.
+    private static bool IsMostlyLowerCase(TextRow row) =>
+        row.Words.Count(w => char.IsLower(w.Text[0])) * 2 > row.Words.Count;
 
     private static bool IsChord(string token) =>
         ChordSymbolParser.TryParse(token, Notation.Italian, out _) || ChordSymbolParser.TryParse(token, Notation.English, out _);
