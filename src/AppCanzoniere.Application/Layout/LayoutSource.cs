@@ -39,7 +39,7 @@ public sealed record LayoutSourceLine
     public string TabLabel { get; }
 
     /// <summary>Index of the line in the parsed document's lines, titles included; the position in the source when hand-built.</summary>
-    public int DocumentIndex { get; init; }
+    public int DocumentIndex { get; internal init; }
 
     /// <summary>For each chord of <see cref="Chords"/>, its index in the list the caller gave.</summary>
     internal IReadOnlyList<int> ChordOrdinals { get; }

@@ -68,7 +68,7 @@ internal static class RowRenderer
             seg.Start, splitsAWord));
     }
 
-    /// <summary>The number shares the lyric baseline unless its box would then leave the row at the top or the bottom.</summary>
+    /// <summary>The number shares the lyric baseline unless its box would leave the row; a box taller than the row is cut to the row's height.</summary>
     private static LayoutRun NumberRun(int number, double rowTop, double rowHeight, double lyricBaseline, FlowContext ctx)
     {
         var text = number.ToString(CultureInfo.InvariantCulture);
@@ -76,6 +76,6 @@ internal static class RowRenderer
         var width = ctx.WidthOf(text, TextRole.LineNumber);
         var x = ctx.Gutter - ctx.Options.GutterGap - width;
         var top = Math.Max(rowTop, Math.Min(lyricBaseline - metrics.Ascent, rowTop + rowHeight - metrics.LineHeight));
-        return new LayoutRun(RunKind.LineNumber, text, TextRole.LineNumber, x, top, width, metrics.LineHeight, x, top + metrics.Ascent, -1, false);
+        return new LayoutRun(RunKind.LineNumber, text, TextRole.LineNumber, x, top, width, Math.Min(metrics.LineHeight, rowHeight), x, top + metrics.Ascent, -1, false);
     }
 }

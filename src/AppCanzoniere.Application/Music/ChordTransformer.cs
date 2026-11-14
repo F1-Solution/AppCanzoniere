@@ -50,7 +50,7 @@ public sealed class ChordTransformer
             throw new ArgumentOutOfRangeException(nameof(options), options.Capo, $"Capo fret must be between 0 and {CapoCalculator.MaxFret}.");
     }
 
-    // More chords readable only in the other notation than in the requested one: the key is left alone with them.
+    // At least as many chords readable only in the other notation as in the requested one: the key is left alone.
     private static bool WrittenInOtherNotation(List<string>? chords, Notation input)
     {
         var other = input == Notation.English ? Notation.Italian : Notation.English;
@@ -64,7 +64,7 @@ public sealed class ChordTransformer
                 inOther++;
         }
 
-        return inOther > inInput;
+        return inOther > 0 && inOther >= inInput;
     }
 
     private static ChordSymbol? FirstChord(IEnumerable<string>? chords, Notation notation)
