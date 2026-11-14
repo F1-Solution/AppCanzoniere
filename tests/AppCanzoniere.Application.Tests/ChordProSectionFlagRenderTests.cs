@@ -79,11 +79,45 @@ public class ChordProSectionFlagRenderTests
     private static List<(ChordProLineType, bool, bool, string)> Shape(ChordProDocument document) =>
         document.Lines.Select(l => (l.Type, l.StartsSection, l.InOpenSection, l.Text)).ToList();
 
+    // Kinds of the sections a text opens, or null when one holds no lyric line and so has no kind the typed lines can carry.
+    private static List<string>? SectionKinds(string song)
+    {
+        var kinds = new List<string>();
+        string? open = null;
+        var sawLyric = false;
+        var inTab = false;
+        foreach (var line in song.Split('\n'))
+        {
+            if (inTab)
+                inTab = line != "{eot}";
+            else if (line.StartsWith("{sot"))
+                inTab = true;
+            else if (line is "{soc}" or "{sob}" or "{eoc}" or "{eob}")
+            {
+                if (open is not null && !sawLyric)
+                    return null;
+
+                open = line is "{soc}" ? "chorus" : line is "{sob}" ? "bridge" : null;
+                sawLyric = false;
+                if (open is not null)
+                    kinds.Add(open);
+            }
+            else if (line.Length > 0 && !line.StartsWith("{c:"))
+                sawLyric = true;
+        }
+
+        return open is not null && !sawLyric ? null : kinds;
+    }
+
+    private static List<string> WrittenKinds(string written) =>
+        written.Split('\n').Where(l => l.StartsWith("{start_of_")).Select(l => l["{start_of_".Length..^1]).ToList();
+
     [Fact]
     public void EditingOneLyricCharacter_KeepsEverySectionBoundary_ForGeneratedDocuments()
     {
         var random = new Random(20260514);
         var edited = 0;
+        var kindsChecked = 0;
         for (var n = 0; n < 4000; n++)
         {
             var song = RandomSong(random);
@@ -101,9 +135,16 @@ public class ChordProSectionFlagRenderTests
             var written = _parser.Render(document);
 
             Assert.True(expected.SequenceEqual(Shape(_parser.Parse(written))), $"Song:\n{song}\nWritten:\n{written}");
+            if (SectionKinds(song) is { } kinds)
+            {
+                Assert.True(kinds.SequenceEqual(WrittenKinds(written)), $"Song:\n{song}\nWritten:\n{written}");
+                kindsChecked++;
+            }
+
             edited++;
         }
 
         Assert.True(edited > 1000);
+        Assert.True(kindsChecked > 100, $"Only {kindsChecked} documents checked.");
     }
 }
