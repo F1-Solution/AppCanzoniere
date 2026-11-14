@@ -46,11 +46,11 @@ public static class ColumnSplitter
     private const double MinShareAtMargin = 0.25;
     private const int MinRowsAtMargin = 2;
 
-    // A top or bottom row whose height differs from the body's by more than this share is set apart, as a header is.
-    private const double EdgeHeightToleranceShare = 0.15;
-
-    // The word-space test for a top or bottom row needs at least this many gaps, so its median is a word space.
+    // The word-space test for a top or bottom row needs at least this many gaps, so its median is a word space...
     private const int MinEdgeLineGaps = 2;
+
+    // ...and a gap at the gutter up to this multiple of that median still counts as a word space.
+    private const double WordSpaceToleranceFactor = 1.5;
 
     // A header or footer stands further than this multiple of the usual row pitch from the next row.
     private const double EdgeApartPitchFactor = 1.4;
@@ -98,34 +98,31 @@ public static class ColumnSplitter
         return narrow && (margin is not { } m || Math.Abs(start - m) > MarginTolerancePoints || edgeLine);
     }
 
-    // Indexes of a running header or footer: the top or bottom row, set apart from the body by extra space, and set in
-    // another size or crossing the gutter with no more than its usual word space, so a word that happens to start at
-    // the right margin does not split it.
+    // Indexes of a running header or footer: the top or bottom row, set apart from the body by extra space and crossing
+    // the gutter with no more than its usual word space, so a word that happens to start at the right margin does not
+    // split it. A larger size alone does not count: two column titles start at the margin and belong to their columns.
     private static HashSet<int> EdgeLines(IReadOnlyList<TextRow> rows, double x)
     {
         var lines = new HashSet<int>();
         if (rows.Count < 2)
             return lines;
 
-        var bodyHeight = rows.Select(r => r.Height).Order().ElementAt(rows.Count / 2);
         var pitch = rows.Zip(rows.Skip(1), (a, b) => a.Baseline - b.Baseline).Order().ElementAt((rows.Count - 1) / 2);
         foreach (var (index, neighbour) in new[] { (0, 1), (rows.Count - 1, rows.Count - 2) })
         {
             var apart = Math.Abs(rows[index].Baseline - rows[neighbour].Baseline) > EdgeApartPitchFactor * pitch;
-            if (apart && (DiffersInHeight(rows[index], bodyHeight) || CrossesWithWordSpace(rows[index], x)))
+            if (apart && CrossesWithWordSpace(rows[index], x))
                 lines.Add(index);
         }
 
         return lines;
     }
 
-    private static bool DiffersInHeight(TextRow row, double bodyHeight) =>
-        Math.Abs(row.Height - bodyHeight) > EdgeHeightToleranceShare * bodyHeight;
-
     private static bool CrossesWithWordSpace(TextRow row, double x)
     {
         var gaps = row.Words.Zip(row.Words.Skip(1), (a, b) => b.Box.Left - a.Box.Right).Order().ToList();
-        return gaps.Count >= MinEdgeLineGaps && row.Left < x && row.Right > x && !Crosses(row, x) && Gap(row, x) <= gaps[gaps.Count / 2];
+        return gaps.Count >= MinEdgeLineGaps && row.Left < x && row.Right > x && !Crosses(row, x)
+            && Gap(row, x) <= WordSpaceToleranceFactor * gaps[gaps.Count / 2];
     }
 
     private static double RightStart(TextRow row, double x) => row.Words.First(w => w.Box.Left >= x).Box.Left;
