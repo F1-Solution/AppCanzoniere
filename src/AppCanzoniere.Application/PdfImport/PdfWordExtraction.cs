@@ -29,6 +29,9 @@ public sealed record PdfWordsResult(PdfExtractionStatus Status, string Reason, I
 {
     public bool IsSuccess => Status == PdfExtractionStatus.Success;
 
+    /// <summary>Technical detail of a failure, such as the parser's message, for logs only; never shown to the user.</summary>
+    public string? Detail { get; init; }
+
     public static PdfWordsResult Success(IReadOnlyList<PdfPageWords> pages) => new(PdfExtractionStatus.Success, string.Empty, pages);
 
     public static PdfWordsResult Failure(PdfExtractionStatus status, string reason, IReadOnlyList<PdfPageWords>? pages = null) =>

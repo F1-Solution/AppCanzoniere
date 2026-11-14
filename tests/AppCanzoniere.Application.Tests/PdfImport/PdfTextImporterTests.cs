@@ -76,6 +76,17 @@ public class PdfTextImporterTests
     }
 
     [Fact]
+    public async Task ImportAsync_PassesTheDetailForLogsOn()
+    {
+        var failure = PdfWordsResult.Failure(PdfExtractionStatus.Damaged, "The file is not a readable PDF.") with { Detail = "xref not found" };
+        var importer = new PdfTextImporter(new FakeExtractor(failure));
+
+        var result = await importer.ImportAsync(new MemoryStream());
+
+        Assert.Equal("xref not found", result.Detail);
+    }
+
+    [Fact]
     public async Task ImportAsync_LaysOutScannedPages_WhenTheWholeDocumentHasNoText()
     {
         var pages = new[] { new PdfPageWords(1, 595, 842, Array.Empty<PositionedWord>(), true) };

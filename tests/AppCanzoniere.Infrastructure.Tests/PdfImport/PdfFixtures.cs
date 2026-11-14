@@ -112,6 +112,60 @@ internal static class PdfFixtures
         return builder.Build();
     }
 
+    /// <summary>
+    /// One page whose content stream is Flate-compressed and unpacks to about decodedBytes bytes: a line of text
+    /// followed by comment lines, which compress to almost nothing, as a decompression bomb does.
+    /// </summary>
+    public static byte[] CompressedPage(int decodedBytes)
+    {
+        var content = new System.Text.StringBuilder("BT /F1 11 Tf 50 700 Td (canto la mia gioia) Tj ET\n");
+        while (content.Length < decodedBytes)
+            content.Append('%').Append('x', 98).Append('\n');
+
+        using var packed = new MemoryStream();
+        using (var zlib = new System.IO.Compression.ZLibStream(packed, System.IO.Compression.CompressionLevel.SmallestSize, leaveOpen: true))
+            zlib.Write(System.Text.Encoding.ASCII.GetBytes(content.ToString()));
+
+        return RawPdf(packed.ToArray(), "/Filter /FlateDecode ");
+    }
+
+    // A one-page PDF around the given content stream, with Helvetica as /F1 and a correct cross-reference table.
+    private static byte[] RawPdf(byte[] stream, string filter)
+    {
+        var objects = new[]
+        {
+            "<< /Type /Catalog /Pages 2 0 R >>",
+            "<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 5 0 R >> >> /Contents 4 0 R >>",
+            null,
+            "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>",
+        };
+        using var pdf = new MemoryStream();
+        void Write(string text) => pdf.Write(System.Text.Encoding.ASCII.GetBytes(text));
+        Write("%PDF-1.4\n");
+        var offsets = new List<long>();
+        for (var i = 0; i < objects.Length; i++)
+        {
+            offsets.Add(pdf.Position);
+            if (objects[i] is { } body)
+            {
+                Write($"{i + 1} 0 obj\n{body}\nendobj\n");
+                continue;
+            }
+
+            Write($"{i + 1} 0 obj\n<< {filter}/Length {stream.Length} >>\nstream\n");
+            pdf.Write(stream);
+            Write("\nendstream\nendobj\n");
+        }
+
+        var xref = pdf.Position;
+        Write($"xref\n0 {objects.Length + 1}\n0000000000 65535 f \n");
+        foreach (var offset in offsets)
+            Write($"{offset:D10} 00000 n \n");
+        Write($"trailer\n<< /Size {objects.Length + 1} /Root 1 0 R >>\nstartxref\n{xref}\n%%EOF\n");
+        return pdf.ToArray();
+    }
+
     /// <summary>A valid PDF whose trailer declares standard encryption with keys no password opens.</summary>
     public static byte[] Encrypted()
     {

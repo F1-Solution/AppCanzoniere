@@ -4,6 +4,9 @@ namespace AppCanzoniere.Application.PdfImport;
 public sealed record PdfTextResult(PdfExtractionStatus Status, string Reason, IReadOnlyList<PageText> Pages)
 {
     public bool IsSuccess => Status == PdfExtractionStatus.Success;
+
+    /// <summary>Technical detail of a failure, for logs only; never shown to the user.</summary>
+    public string? Detail { get; init; }
 }
 
 /// <summary>Reads a PDF on the device and returns its text page by page and column by column.</summary>
