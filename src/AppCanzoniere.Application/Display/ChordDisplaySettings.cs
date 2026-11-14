@@ -19,5 +19,10 @@ public sealed record ChordDisplaySettings(
     public static ChordDisplaySettings Default { get; } = new();
 
     /// <summary>Notation to write for a language tag, honouring an explicit choice.</summary>
-    public NotationOptions ToNotationOptions(string? languageTag) => throw new NotImplementedException();
+    public NotationOptions ToNotationOptions(string? languageTag) => Notation switch
+    {
+        NotationChoice.English => new NotationOptions(Music.Notation.English, MinorStyle),
+        NotationChoice.Italian => new NotationOptions(Music.Notation.Italian, MinorStyle),
+        _ => NotationOptions.ForLanguage(languageTag) with { MinorStyle = MinorStyle }
+    };
 }

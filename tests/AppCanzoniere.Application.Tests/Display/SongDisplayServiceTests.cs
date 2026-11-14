@@ -115,7 +115,7 @@ public class SongDisplayServiceTests
     {
         var shown = Show("{key:D}\n[D]Alleluia [A7]alleluia");
 
-        Assert.Equal(Lines("D         A7", "Alleluia alleluia"), shown.Text);
+        Assert.Equal(Lines("D        A7", "Alleluia alleluia"), shown.Text);
         Assert.Equal("D", shown.Key);
     }
 
@@ -124,7 +124,7 @@ public class SongDisplayServiceTests
     {
         var shown = Show("{key:G}\n[G]Santo [Em]Signore", steps: 2, language: "it-IT");
 
-        Assert.Equal(Lines("La     Fa#m", "Santo  Signore"), shown.Text);
+        Assert.Equal(Lines("La    Fa#m", "Santo Signore"), shown.Text);
         Assert.Equal("La", shown.Key);
     }
 
@@ -168,7 +168,7 @@ public class SongDisplayServiceTests
     {
         var shown = Show("{key:Sol}\n[Sol]Santo [Mim]Signore", steps: 2, language: "it");
 
-        Assert.Equal(Lines("La     Fa#m", "Santo  Signore"), shown.Text);
+        Assert.Equal(Lines("La    Fa#m", "Santo Signore"), shown.Text);
         Assert.Equal("La", shown.Key);
     }
 
