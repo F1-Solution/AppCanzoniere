@@ -3,9 +3,12 @@ using System.Text.RegularExpressions;
 namespace AppCanzoniere.Application.Music;
 
 /// <summary>A <c>{key}</c> value as written: compact ("Am", "Lam") or in words ("La minore", "B flat major").</summary>
-internal sealed record KeyValue(ChordSymbol Symbol, Notation Notation, KeyWords? Words)
+internal sealed record KeyValue(ChordSymbol Symbol, Notation Notation, KeyWords? Words, bool AllCaps = false)
 {
     private static readonly Regex Spaces = new(@"\s+", RegexOptions.Compiled | RegexOptions.CultureInvariant);
+
+    // In an all-caps compact key a B after the note is the flat sign and an M is the minor marker.
+    private static readonly Regex AllCapsCompact = new(@"^(?<note>SOL|DO|RE|MI|FA|LA|SI|[A-G])(?<flat>B)?(?<minor>M)?$", RegexOptions.Compiled | RegexOptions.CultureInvariant);
 
     private static readonly Regex Worded = new(
         @"^(?<note>sol|do|re|mi|fa|la|si|[a-g])(?<symbol>[#b♯♭])?(?: (?<detached>[#b♯♭])(?= ))?(?: (?<word>diesis|bemolle|sharp|flat))?(?: (?<quality>minore|minor|min\.?|maggiore|major|magg\.?|maj\.?))?$",
@@ -34,6 +37,9 @@ internal sealed record KeyValue(ChordSymbol Symbol, Notation Notation, KeyWords?
         if (trimmed.Length == 0)
             return false;
 
+        if (TryParseAllCaps(trimmed, out key))
+            return true;
+
         var other = preferred == Notation.English ? Notation.Italian : Notation.English;
         foreach (var notation in new[] { preferred, other })
         {
@@ -45,6 +51,23 @@ internal sealed record KeyValue(ChordSymbol Symbol, Notation Notation, KeyWords?
         }
 
         return TryParseWords(trimmed, out key);
+    }
+
+    private static bool TryParseAllCaps(string text, out KeyValue key)
+    {
+        key = null!;
+        var match = text.Length > 1 ? AllCapsCompact.Match(text) : Match.Empty;
+        if (!match.Success)
+            return false;
+
+        var name = match.Groups["note"].Value;
+        var notation = name.Length == 1 ? Notation.English : Notation.Italian;
+        var written = name[0] + name[1..].ToLowerInvariant() + (match.Groups["flat"].Success ? "b" : string.Empty) + (match.Groups["minor"].Success ? "m" : string.Empty);
+        if (!ChordSymbolParser.TryParse(written, notation, out var chord))
+            return false;
+
+        key = new KeyValue(chord, notation, null, AllCaps: true);
+        return true;
     }
 
     private static bool TryParseWords(string text, out KeyValue key)
@@ -100,7 +123,10 @@ internal sealed record KeyValue(ChordSymbol Symbol, Notation Notation, KeyWords?
     {
         var notation = conversion ? output.Notation : Notation;
         if (Words is null)
-            return ChordNotation.Format(shifted, new NotationOptions(notation, output.MinorStyle), keepMinorToken: !conversion);
+        {
+            var compact = ChordNotation.Format(shifted, new NotationOptions(notation, output.MinorStyle), keepMinorToken: !conversion);
+            return AllCaps ? compact.ToUpperInvariant() : compact;
+        }
 
         var root = shifted.Root;
         var name = ChordNotation.FormatNote(new Note(root.Letter, 0), notation);
