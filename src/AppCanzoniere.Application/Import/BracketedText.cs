@@ -7,6 +7,7 @@ namespace AppCanzoniere.Application.Import;
 internal static class BracketedText
 {
     private static readonly Regex Pair = new(@"\[([^\[\]]*)\]", RegexOptions.Compiled | RegexOptions.CultureInvariant);
+    private static readonly Regex Parenthesised = new(@"\(([^()\s]+)\)", RegexOptions.Compiled | RegexOptions.CultureInvariant);
 
     public static IEnumerable<Match> Matches(string text) => Pair.Matches(text);
 
@@ -28,6 +29,10 @@ internal static class BracketedText
     public static bool OtherNotationStandsBetweenWords(string text, int start, Notation notation) =>
         Matches(text).Where(m => m.Index >= start && IsInlineChord(m.Groups[1].Value) && !IsInlineChord(m.Groups[1].Value, notation))
             .All(m => StandsBetweenWords(text, start, m.Index, m.Index + m.Length));
+
+    /// <summary>True when a chord of <paramref name="notation"/> in parentheses stands between words, as a bracket written as text does.</summary>
+    public static bool HasParenthesisedChordBetweenWords(string text, Notation notation) =>
+        Parenthesised.Matches(text).Any(m => IsInlineChord(m.Groups[1].Value, notation) && StandsBetweenWords(text, 0, m.Index, m.Index + m.Length));
 
     // The converter writes a chord that misses a letter after the lyric or before a gap of three spaces, never like this.
     private static bool StandsBetweenWords(string text, int start, int index, int end) =>

@@ -105,9 +105,9 @@ public class IdempotenceTests
 
     // Without anchor lines the notation rests on one or two chord lines, and merging them can still flip it on a
     // second conversion. The limit is the count of such documents that were already unstable before brackets of the
-    // other notation were written as text (5 in the first 40,000 of seed 7); a new kind of flip pushes it over.
+    // other notation were written as text (3 in the first 40,000 of seed 7); a new kind of flip pushes it over.
     private const int AnchorlessDocuments = 40000;
-    private const int AnchorlessUnstableLimit = 5;
+    private const int AnchorlessUnstableLimit = 3;
 
     [Fact]
     public void AnchorlessMixedDocuments_StayWithinTheKnownUnstableCount()
