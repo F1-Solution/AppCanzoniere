@@ -9,7 +9,7 @@ public class KeyProgressionTests
 {
     private readonly ChordProParser _parser = new();
 
-    // Sounding key, sounding progression, hand-written shapes with capo 2.
+    // Written key, written progression, hand-written shapes with capo 2; the key line follows the first shape.
     // Shapes come out in the key lowered by two semitones; F#/Gb major is spelled with sharps.
     private static readonly string[][] Rows =
     {
@@ -46,8 +46,8 @@ public class KeyProgressionTests
 
     private static string Song(string key, string progression) => $"{{key:{key}}}\n{Chords(progression)}";
 
-    private static string Expected(string key, string capo, string progression) =>
-        $"{{key:{key}}}\n{capo}\n\n{Chords(progression)}\n";
+    private static string Expected(string capo, string progression) =>
+        $"{{key:{progression.Split(' ')[0]}}}\n{capo}\n{Chords(progression)}\n";
 
     // Test-local solfege writer so the Italian expectations do not depend on the code under test.
     private static string Solfege(string text) =>
@@ -71,7 +71,7 @@ public class KeyProgressionTests
     [MemberData(nameof(Sounding))]
     public void NoCapo_LeavesTheProgressionAsWritten(string key, string progression)
     {
-        var expected = $"{{key:{key}}}\n\n{Chords(progression)}\n";
+        var expected = $"{{key:{key}}}\n{Chords(progression)}\n";
 
         Assert.Equal(expected, Render(Song(key, progression), new ChordProRenderOptions()));
     }
@@ -82,7 +82,7 @@ public class KeyProgressionTests
     {
         var result = Render(Song(key, progression), new ChordProRenderOptions { Capo = 2 });
 
-        Assert.Equal(Expected(key, "{capo:2}", shapes), result);
+        Assert.Equal(Expected("{capo:2}", shapes), result);
     }
 
     [Theory]
@@ -93,6 +93,6 @@ public class KeyProgressionTests
 
         var result = Render(Song(key, progression), options);
 
-        Assert.Equal(Solfege(Expected(key, "{capo:2}", shapes)), result);
+        Assert.Equal(Solfege(Expected("{capo:2}", shapes)), result);
     }
 }

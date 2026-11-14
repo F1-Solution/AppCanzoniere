@@ -38,17 +38,16 @@ public class SongRenderingTests
 
         Assert.Equal(
             "{title:Acceptance Song}\n" +
-            "{key:Sol}\n" +
+            "{key:Mi}\n" +
             "{capo:3}\n" +
-            "\n" +
-            "[Mi]Morning [Rebm]light\n" +
+            "[Mi]Morning [Do#m]light\n" +
             "[La]Over the [Si7]hill\n" +
             "\n" +
             "{start_of_tab}\n" +
             "e|--1--3--|\n" +
             "Bb|---\n" +
             "{end_of_tab}\n" +
-            "[Labm]Home [Si/Mib]again\n",
+            "[Sol#m]Home [Si/Re#]again\n",
             result);
     }
 
@@ -67,17 +66,16 @@ public class SongRenderingTests
 
         Assert.Equal(
             "{title:Acceptance Song}\n" +
-            "{key:G}\n" +
+            "{key:E}\n" +
             "{capo:3}\n" +
-            "\n" +
-            "[E]Morning [Dbm]light\n" +
+            "[E]Morning [C#m]light\n" +
             "[A]Over the [B7]hill\n" +
             "\n" +
             "{start_of_tab}\n" +
             "e|--1--3--|\n" +
             "Bb|---\n" +
             "{end_of_tab}\n" +
-            "[Abm]Home [B/Eb]again\n",
+            "[G#m]Home [B/D#]again\n",
             result);
     }
 
@@ -94,8 +92,8 @@ public class SongRenderingTests
 
         var result = Render(Song, options);
 
-        Assert.Contains("[Mi]Morning [Reb-]light\n", result);
-        Assert.Contains("[Lab-]Home [Si/Mib]again\n", result);
+        Assert.Contains("[Mi]Morning [Do#-]light\n", result);
+        Assert.Contains("[Sol#-]Home [Si/Re#]again\n", result);
     }
 
     [Fact]
@@ -111,7 +109,7 @@ public class SongRenderingTests
 
         var result = Render(content, options);
 
-        Assert.Equal("{capo:2}\n\n{start_of_tab}\nE|---\nA|---\nDo|-3-\nLam\n{end_of_tab}\n", result);
+        Assert.Equal("{capo:2}\n{sot}\nE|---\nA|---\nDo|-3-\nLam\n{eot}\n", result);
     }
 
     [Fact]
@@ -122,7 +120,7 @@ public class SongRenderingTests
 
         var result = Render(content, options);
 
-        Assert.Equal("{key:Am}\n\n[Am]Casa [G/B]mia [N.C.]ferma\n", result);
+        Assert.Equal("{key:Am}\n[Am]Casa [G/B]mia [N.C.]ferma\n", result);
     }
 
     [Fact]
@@ -140,7 +138,7 @@ public class SongRenderingTests
     {
         var result = Render("{key:Db}\n[Bb]Line [C#m]two", new ChordProRenderOptions());
 
-        Assert.Equal("{key:Db}\n\n[Bb]Line [C#m]two\n", result);
+        Assert.Equal("{key:Db}\n[Bb]Line [C#m]two\n", result);
     }
 
     [Fact]
@@ -150,7 +148,7 @@ public class SongRenderingTests
 
         var result = Render("{key:C#}\n[A#]Line [D#m]two", options);
 
-        Assert.Equal("{key:Db}\n\n[Bb]Line [Ebm]two\n", result);
+        Assert.Equal("{key:Db}\n[Bb]Line [Ebm]two\n", result);
     }
 
     [Fact]
@@ -160,7 +158,7 @@ public class SongRenderingTests
 
         var result = Render("{key:C}\n[C]Line [F]two [G7]three", options);
 
-        Assert.Equal("{key:F}\n\n[F]Line [Bb]two [C7]three\n", result);
+        Assert.Equal("{key:F}\n[F]Line [Bb]two [C7]three\n", result);
     }
 
     [Fact]
@@ -174,11 +172,11 @@ public class SongRenderingTests
     [Fact]
     public void Render_CapoOverride_ReplacesTheDocumentCapo()
     {
-        // Shapes written for capo 2: G sounds as A.
+        // Shapes written for capo 2: the key and the chords move together by the capo difference.
         var doc = "{key:A}\n{capo:2}\n[G]Line";
 
-        Assert.Equal("{key:A}\n\n[A]Line\n", Render(doc, new ChordProRenderOptions { Capo = 0 }));
-        Assert.Equal("{key:A}\n{capo:4}\n\n[F]Line\n", Render(doc, new ChordProRenderOptions { Capo = 4 }));
+        Assert.Equal("{key:B}\n[A]Line\n", Render(doc, new ChordProRenderOptions { Capo = 0 }));
+        Assert.Equal("{key:G}\n{capo:4}\n[F]Line\n", Render(doc, new ChordProRenderOptions { Capo = 4 }));
     }
 
     [Fact]
@@ -186,16 +184,16 @@ public class SongRenderingTests
     {
         var result = Render("{capo:2}\n[G]Line", new ChordProRenderOptions());
 
-        Assert.Equal("{capo:2}\n\n[G]Line\n", result);
+        Assert.Equal("{capo:2}\n[G]Line\n", result);
     }
 
     [Fact]
     public void Render_AutoWithRequestedCapo_SpellsTheShapesFromTheShapeKey()
     {
-        // Sounding A with the document capo 2 and a new capo 4: shapes in F, so Bb and not A#.
+        // Written key A with the document capo 2 and a new capo 4: shapes in G, where the flat seventh is Bb and not A#.
         var result = Render("{key:A}\n{capo:2}\n[C]x", new ChordProRenderOptions { Capo = 4, Accidentals = AccidentalPreference.Auto });
 
-        Assert.Equal("{key:A}\n{capo:4}\n\n[Bb]x\n", result);
+        Assert.Equal("{key:G}\n{capo:4}\n[Bb]x\n", result);
     }
 
     [Fact]
@@ -203,16 +201,16 @@ public class SongRenderingTests
     {
         var result = Render("{key:Bb}\n{capo:3}\n[D/F#]x", new ChordProRenderOptions { Accidentals = AccidentalPreference.Auto });
 
-        Assert.Equal("{key:Bb}\n{capo:3}\n\n[D/F#]x\n", result);
+        Assert.Equal("{key:Bb}\n{capo:3}\n[D/F#]x\n", result);
     }
 
     [Fact]
     public void Render_AutoWithDocumentCapoAndTransposition_SpellsFromTheShapeKey()
     {
-        // Sounding Bb, capo 3: shapes in G; one semitone up gives Ab shapes, so Db and not C#.
+        // Written key Bb, capo 3, one semitone up: the chords are in B major, so C# and not Db.
         var result = Render("{key:Bb}\n{capo:3}\n[C]x", new ChordProRenderOptions { TransposeSteps = 1, Accidentals = AccidentalPreference.Auto });
 
-        Assert.Equal("{key:B}\n{capo:3}\n\n[Db]x\n", result);
+        Assert.Equal("{key:B}\n{capo:3}\n[C#]x\n", result);
     }
 
     [Fact]
@@ -220,7 +218,8 @@ public class SongRenderingTests
     {
         var options = new ChordProRenderOptions { TransposeSteps = 2, Capo = 2 };
 
-        Assert.Equal("{key:D}\n{capo:2}\n\n[C]Line\n", Render("{key:C}\n[C]Line", options));
+        // Two semitones up with a capo on fret 2: the written chords and key stay where they are.
+        Assert.Equal("{key:C}\n{capo:2}\n[C]Line\n", Render("{key:C}\n[C]Line", options));
     }
 
     [Theory]
@@ -251,6 +250,6 @@ public class SongRenderingTests
     {
         var result = Render("{key:Dorian}\n[C]Line", new ChordProRenderOptions { TransposeSteps = 2 });
 
-        Assert.Equal("{key:Dorian}\n\n[D]Line\n", result);
+        Assert.Equal("{key:Dorian}\n[D]Line\n", result);
     }
 }

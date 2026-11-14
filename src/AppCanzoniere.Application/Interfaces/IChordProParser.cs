@@ -31,6 +31,15 @@ public class ChordProDocument
     public string Tempo { get; set; } = string.Empty;
     public string Time { get; set; } = string.Empty;
     public List<ChordProLine> Lines { get; set; } = new();
+
+    /// <summary>True when rendering writes the parsed file's own lines back, false when it rebuilds from the typed members.</summary>
+    public bool KeepsSourceText => SourceLines is not null && Snapshot?.LinesMatch(this) == true;
+
+    /// <summary>Lines of the parsed file as written; null for a hand-built document.</summary>
+    internal IReadOnlyList<ChordProSourceLine>? SourceLines { get; set; }
+
+    /// <summary>Typed content as parsed; the source lines are used only while it still matches.</summary>
+    internal ChordProDocumentSnapshot? Snapshot { get; set; }
 }
 
 public class ChordProLine
@@ -44,6 +53,12 @@ public class ChordProLine
 
     /// <summary>Optional label of the tab block, set on its first line.</summary>
     public string TabLabel { get; set; } = string.Empty;
+
+    /// <summary>True on the first line of an explicit chorus or bridge section.</summary>
+    public bool StartsSection { get; set; }
+
+    /// <summary>True on a comment, blank line or tab line written inside an open chorus or bridge.</summary>
+    public bool InOpenSection { get; set; }
 }
 
 public class ChordPosition

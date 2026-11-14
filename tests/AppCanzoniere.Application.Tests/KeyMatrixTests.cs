@@ -13,7 +13,7 @@ public class KeyMatrixTests
 
     private readonly ChordProParser _parser = new();
 
-    // Key (sounding), Italian name, shape English with capo 2, shape Italian with capo 2.
+    // Key (written), Italian name, shape English with capo 2 (also the new key line), shape Italian with capo 2.
     private static readonly string[][] Rows =
     {
         new[] { "C", "Do", "Bb", "Sib" },
@@ -48,7 +48,7 @@ public class KeyMatrixTests
 
     public static IEnumerable<object[]> KeyAndShape => Pick(Key, ShapeEnglish);
 
-    public static IEnumerable<object[]> KeyItalianAndShapeItalian => Pick(Key, Italian, ShapeItalian);
+    public static IEnumerable<object[]> KeyAndShapeItalian => Pick(Key, ShapeItalian);
 
     private static IEnumerable<object[]> Pick(params int[] columns) =>
         Rows.Select(row => columns.Select(c => (object)row[c]).ToArray());
@@ -60,7 +60,7 @@ public class KeyMatrixTests
     [MemberData(nameof(KeyOnly))]
     public void English_NoCapo_KeepsTheKey(string key)
     {
-        Assert.Equal($"{{key:{key}}}\n\n[{key}]x\n", Render(key, new ChordProRenderOptions()));
+        Assert.Equal($"{{key:{key}}}\n[{key}]x\n", Render(key, new ChordProRenderOptions()));
     }
 
     [Theory]
@@ -69,25 +69,25 @@ public class KeyMatrixTests
     {
         var options = new ChordProRenderOptions { OutputNotation = NotationOptions.Italian };
 
-        Assert.Equal($"{{key:{italian}}}\n\n[{italian}]x\n", Render(key, options));
+        Assert.Equal($"{{key:{italian}}}\n[{italian}]x\n", Render(key, options));
     }
 
     [Theory]
     [MemberData(nameof(KeyAndShape))]
-    public void English_CapoTwo_ShowsTheShapesAndTheSoundingKey(string key, string shape)
+    public void English_CapoTwo_ShowsTheShapesAndTheKeyOfTheShapes(string key, string shape)
     {
         var options = new ChordProRenderOptions { Capo = 2 };
 
-        Assert.Equal($"{{key:{key}}}\n{{capo:2}}\n\n[{shape}]x\n", Render(key, options));
+        Assert.Equal($"{{key:{shape}}}\n{{capo:2}}\n[{shape}]x\n", Render(key, options));
     }
 
     [Theory]
-    [MemberData(nameof(KeyItalianAndShapeItalian))]
-    public void Italian_CapoTwo_ShowsTheShapesAndTheSoundingKey(string key, string italian, string shapeItalian)
+    [MemberData(nameof(KeyAndShapeItalian))]
+    public void Italian_CapoTwo_ShowsTheShapesAndTheKeyOfTheShapes(string key, string shapeItalian)
     {
         var options = new ChordProRenderOptions { Capo = 2, OutputNotation = NotationOptions.Italian };
 
-        Assert.Equal($"{{key:{italian}}}\n{{capo:2}}\n\n[{shapeItalian}]x\n", Render(key, options));
+        Assert.Equal($"{{key:{shapeItalian}}}\n{{capo:2}}\n[{shapeItalian}]x\n", Render(key, options));
     }
 
     [Theory]
