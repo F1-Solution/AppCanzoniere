@@ -18,6 +18,7 @@ var reportFolder = Path.Combine(corpus, "report");
 Directory.CreateDirectory(reportFolder);
 var utf8 = new UTF8Encoding(false);
 var songs = new List<SongSummary>();
+var totals = new CorpusSummary();
 foreach (var file in Directory.EnumerateFiles(Path.Combine(corpus, "testo"), "*.txt").Order(StringComparer.Ordinal))
 {
     var name = Path.GetFileNameWithoutExtension(file);
@@ -25,11 +26,13 @@ foreach (var file in Directory.EnumerateFiles(Path.Combine(corpus, "testo"), "*.
     var summary = new SongSummary(name, name + ".html", result);
     File.WriteAllText(Path.Combine(reportFolder, summary.PageName), SongPage.Render(name, result), utf8);
     songs.Add(summary);
+    totals.Add(name, result);
 }
 
 var index = Path.Combine(reportFolder, "index.html");
 File.WriteAllText(index, IndexPage.Render(songs), utf8);
 Console.WriteLine($"{songs.Count.ToString(CultureInfo.InvariantCulture)} brani convertiti. Rapporto: {index}");
+totals.Print();
 return 0;
 
 static string? FindCorpus(string start)
