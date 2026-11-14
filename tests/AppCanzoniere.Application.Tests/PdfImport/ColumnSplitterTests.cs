@@ -109,9 +109,9 @@ public class ColumnSplitterTests
             new[]
             {
                 "^Questa lunga strada che porta lontano dove nasce il ^giorno e finisce la sera",
-                "^tutti insieme camminiamo cantando sotto il cielo con la ^luce che ci guida",
+                "^tutti noi insieme camminiamo cantando sotto il cielo con la ^luce che ci guida",
                 "^ogni passo che facciamo ci avvicina un poco alla casa del ^padre che ci aspetta",
-                "^e la notte non fa paura a chi ha nel cuore la speranza di un ^nuovo mattino",
+                "^e la notte buia non fa paura a chi ha nel cuore la speranza di un ^nuovo mattino",
             },
             new[] { "LA-", "MI7" },
             40,

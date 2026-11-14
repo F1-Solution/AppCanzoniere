@@ -11,8 +11,21 @@ public sealed class PdfTextImporter
 {
     private readonly IPdfWordExtractor _extractor;
 
-    public PdfTextImporter(IPdfWordExtractor extractor) => _extractor = extractor;
+    public PdfTextImporter(IPdfWordExtractor extractor) =>
+        _extractor = extractor ?? throw new ArgumentNullException(nameof(extractor));
 
-    public Task<PdfTextResult> ImportAsync(Stream pdf, CancellationToken cancellationToken = default) =>
-        Task.FromResult(new PdfTextResult(PdfExtractionStatus.Damaged, string.Empty, Array.Empty<PageText>()));
+    /// <summary>Extracts and lays out every page; failures come back typed, cancellation throws.</summary>
+    public async Task<PdfTextResult> ImportAsync(Stream pdf, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(pdf);
+        var words = await _extractor.ExtractAsync(pdf, cancellationToken).ConfigureAwait(false);
+        var pages = new List<PageText>(words.Pages.Count);
+        foreach (var page in words.Pages)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            pages.Add(PdfPageLayout.Lay(page));
+        }
+
+        return new PdfTextResult(words.Status, words.Reason, pages);
+    }
 }
