@@ -37,6 +37,22 @@ internal static class CraftedPdf
     public static string Page(int contents, string entries = "") =>
         $"<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 3 0 R >> >> /Contents {contents} 0 R {entries}>>";
 
+    /// <summary>One page of text in a TrueType font whose embedded program (object 7) is the given stream.</summary>
+    public static byte[] WithFontProgram(string streamEntries, byte[] program)
+    {
+        var widths = string.Join(' ', Enumerable.Repeat(500, 95));
+        return Write(new[]
+        {
+            new Obj("<< /Type /Catalog /Pages 2 0 R >>"),
+            new Obj("<< /Type /Pages /Kids [4 0 R] /Count 1 >>"),
+            new Obj($"<< /Type /Font /Subtype /TrueType /BaseFont /Embedded /FirstChar 32 /LastChar 126 /Widths [{widths}] /FontDescriptor 6 0 R >>"),
+            new Obj(Page(5)),
+            new Obj(string.Empty, Ascii(Text)),
+            new Obj("<< /Type /FontDescriptor /FontName /Embedded /Flags 32 /FontBBox [0 0 1000 1000] /ItalicAngle 0 /Ascent 800 /Descent -200 /CapHeight 700 /StemV 80 /FontFile2 7 0 R >>"),
+            new Obj(streamEntries, program),
+        });
+    }
+
     public static byte[] Write(IReadOnlyList<Obj> objects)
     {
         using var pdf = new MemoryStream();
@@ -138,6 +154,42 @@ internal static class CraftedPdf
 
         packed.Add(128);
         return packed.ToArray();
+    }
+
+    /// <summary>
+    /// PDF LZW that writes the same byte as a literal code count times and never clears the table, so a decoder that
+    /// keeps adding entries past 4,096 grows its table with every code; the end code is optional.
+    /// </summary>
+    public static byte[] LzwLiterals(byte value, int count, bool endCode)
+    {
+        var output = new List<byte>(count * 3 / 2 + 8);
+        int buffer = 0, bits = 0, entries = 258;
+        void Emit(int code)
+        {
+            var width = entries < 511 ? 9 : entries < 1023 ? 10 : entries < 2047 ? 11 : 12;
+            buffer = (buffer << width) | code;
+            bits += width;
+            while (bits >= 8)
+            {
+                output.Add((byte)(buffer >> (bits - 8)));
+                bits -= 8;
+                buffer &= (1 << bits) - 1;
+            }
+        }
+
+        Emit(256);
+        for (var i = 0; i < count; i++)
+        {
+            Emit(value);
+            if (i > 0)
+                entries++;
+        }
+
+        if (endCode)
+            Emit(257);
+        if (bits > 0)
+            output.Add((byte)(buffer << (8 - bits)));
+        return output.ToArray();
     }
 
     /// <summary>PDF LZW (9 to 12 bit codes, early change), with a clear code whenever the table fills.</summary>
