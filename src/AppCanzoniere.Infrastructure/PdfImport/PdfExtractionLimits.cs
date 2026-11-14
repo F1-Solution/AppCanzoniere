@@ -21,8 +21,8 @@ public sealed record PdfExtractionLimits
     /// <summary>Largest unpacked content of the whole document, in bytes, checked before the first page is parsed (default 64 MB, fourteen times the corpus maximum).</summary>
     public long MaxContentBytesPerDocument { get; init; } = 64L * 1024 * 1024;
 
-    /// <summary>Most characters in the whole document (default 2,000,000, six times the corpus maximum).</summary>
-    public long MaxLettersPerDocument { get; init; } = 2_000_000;
+    /// <summary>Most characters in the whole document (default 1,000,000, three times the corpus maximum; each costs about 190 bytes while read).</summary>
+    public long MaxLettersPerDocument { get; init; } = 1_000_000;
 
     /// <summary>Largest size any single stream may unpack to while PdfPig reads it, in bytes (default 16 MB; the corpus maximum is 440 KB).</summary>
     public long MaxDecodedStreamBytes { get; init; } = 16L * 1024 * 1024;
