@@ -113,6 +113,44 @@ public class PdfContentSizeTests
         Assert.Equal(PdfExtractionStatus.TooLarge, result.Status);
     }
 
+    // Predictor rows of zero bytes, or of nonsensical samples: PdfPig's predictor never advances on a row of zero bytes.
+    public static TheoryData<string, string> EmptyPredictorRows() => new()
+    {
+        { "/FlateDecode", "/Predictor 2 /Columns 0" },
+        { "/LZWDecode", "/Predictor 2 /Columns 0" },
+        { "/FlateDecode", "/Predictor 2 /Columns 1 /BitsPerComponent 0" },
+        { "/FlateDecode", "/Predictor 2 /Colors 0" },
+        { "/FlateDecode", "/Predictor 2 /Colors -1" },
+        { "/FlateDecode", "/Predictor 12 /Columns -5" },
+        { "/LZWDecode", "/Predictor 12 /Columns 0" },
+    };
+
+    private static byte[] Packed(string filter, byte[] data) => filter == "/LZWDecode" ? Lzw(data) : Zlib(data);
+
+    [Theory]
+    [MemberData(nameof(EmptyPredictorRows))]
+    public async Task ExtractAsync_RefusesPageContent_WhosePredictorRowsHoldNoBytes(string filter, string parameters)
+    {
+        var pdf = OnePage($"/Filter {filter} /DecodeParms << {parameters} >>", Packed(filter, Ascii(Text)));
+
+        var result = await Extract(pdf, Limits with { MaxDuration = TimeSpan.FromSeconds(10) });
+
+        Assert.Equal(PdfExtractionStatus.TooLarge, result.Status);
+    }
+
+    [Theory]
+    [MemberData(nameof(EmptyPredictorRows))]
+    public async Task ExtractAsync_SkipsAFontProgram_WhosePredictorRowsHoldNoBytes(string filter, string parameters)
+    {
+        // The page measurement never sees a font program; the font is skipped, as PdfPig skips any font it cannot load.
+        var pdf = WithFontProgram($"/Filter {filter} /DecodeParms << {parameters} >>", Packed(filter, new byte[64]));
+
+        var result = await Extract(pdf, Limits with { MaxDuration = TimeSpan.FromSeconds(10) });
+
+        Assert.Equal(PdfExtractionStatus.Success, result.Status);
+        Assert.Contains(result.Pages[0].Words, w => w.Text == "gioia");
+    }
+
     [Fact]
     public async Task ExtractAsync_MeasuresTheLastPage_WhenTheTreeHasAnEmptyNodeWithoutKids()
     {
