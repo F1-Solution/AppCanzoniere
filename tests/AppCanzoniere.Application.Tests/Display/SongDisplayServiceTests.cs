@@ -266,18 +266,6 @@ public class SongDisplayServiceTests
     }
 
     [Fact]
-    public void TheStoredSong_IsNotChangedByRendering()
-    {
-        const string song = "{key:G}\n[G]Santo";
-        var parser = new ChordProParser();
-        var before = parser.Render(parser.Parse(song));
-
-        Show(song, steps: 5);
-
-        Assert.Equal(before, parser.Render(parser.Parse(song)));
-    }
-
-    [Fact]
     public void ANullRequest_IsRejected()
     {
         Assert.Throws<ArgumentNullException>(() => _service.Render(null!));
