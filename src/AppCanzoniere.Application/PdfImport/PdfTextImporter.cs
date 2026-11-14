@@ -58,7 +58,7 @@ public sealed class PdfTextImporter
         }
 
         StopIfOver(token, clock);
-        return new PdfTextResult(words.Status, words.Reason, pages);
+        return new PdfTextResult(words.Status, words.Reason, pages) { Detail = words.Detail };
     }
 
     // The clock is checked too, so a busy machine that delays the deadline timer still stops on time.
