@@ -14,8 +14,6 @@ public sealed class PdfPigWordExtractor : IPdfWordExtractor
     // The PDF format limits a page side to 14,400 default user units (ISO 32000-1, annex C).
     private const double MaxPageSidePoints = 14400;
 
-    private static readonly ParsingOptions Options = new() { UseLenientParsing = true, SkipMissingFonts = true };
-
     private readonly PdfExtractionLimits _limits;
 
     public PdfPigWordExtractor(PdfExtractionLimits? limits = null)
@@ -25,6 +23,7 @@ public sealed class PdfPigWordExtractor : IPdfWordExtractor
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(_limits.MaxPages, nameof(limits));
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(_limits.MaxLettersPerPage, nameof(limits));
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(_limits.MaxContentBytesPerPage, nameof(limits));
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(_limits.MaxDecodedStreamBytes, nameof(limits));
         ArgumentOutOfRangeException.ThrowIfLessThan(_limits.MaxDuration, TimeSpan.Zero, nameof(limits));
     }
 
@@ -57,6 +56,15 @@ public sealed class PdfPigWordExtractor : IPdfWordExtractor
 
     private PdfWordsResult TooLarge(string reason) => PdfWordsResult.Failure(PdfExtractionStatus.TooLarge, reason);
 
+    private PdfWordsResult StreamTooLarge() => TooLarge($"A part of the file unpacks to more than {_limits.MaxDecodedStreamBytes} bytes, the limit.");
+
+    // Throws when the caller cancels; a result when the time limit is used up.
+    private PdfWordsResult? Checkpoint(Stopwatch clock, CancellationToken cancellationToken)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        return clock.Elapsed >= _limits.MaxDuration ? TimedOut() : null;
+    }
+
     // Reads at most MaxBytes into a single buffer; null means the input is larger than that.
     private async Task<ReadOnlyMemory<byte>?> ReadBoundedAsync(Stream pdf, CancellationToken cancellationToken)
     {
@@ -86,10 +94,17 @@ public sealed class PdfPigWordExtractor : IPdfWordExtractor
 
     private PdfWordsResult Read(ReadOnlyMemory<byte> bytes, CancellationToken cancellationToken)
     {
+        // A provider per file: its refusals are tracked for this file only, and PdfPig may catch the exception it throws.
+        var filters = new BoundedFilterProvider(_limits.MaxDecodedStreamBytes);
         try
         {
-            using var document = PdfDocument.Open(bytes, Options);
-            return ReadPages(document, cancellationToken);
+            using var document = PdfDocument.Open(bytes, new ParsingOptions { UseLenientParsing = true, SkipMissingFonts = true, FilterProvider = filters });
+            var result = ReadPages(document, cancellationToken);
+            return filters.Tripped ? StreamTooLarge() : result;
+        }
+        catch (Exception exception) when (exception is not OperationCanceledException && (filters.Tripped || exception is DecodeLimitExceededException))
+        {
+            return StreamTooLarge();
         }
         catch (PdfDocumentEncryptedException)
         {
@@ -119,19 +134,18 @@ public sealed class PdfPigWordExtractor : IPdfWordExtractor
         if (count > _limits.MaxPages)
             return TooLarge($"The document has {count} pages, more than the limit of {_limits.MaxPages}.");
 
-        var dictionaries = PageContentSize.PageDictionaries(document, count);
+        if (ContentBudget.Check(document, _limits, count, () => Checkpoint(clock, cancellationToken)) is { } refusal)
+            return refusal;
+
         var pages = new List<PdfPageWords>(count);
         for (var number = 1; number <= count; number++)
         {
-            cancellationToken.ThrowIfCancellationRequested();
-            if (clock.Elapsed >= _limits.MaxDuration)
-                return TimedOut();
-            if (dictionaries.TryGetValue(number, out var dictionary) && PageContentSize.Exceeds(document, dictionary, _limits.MaxContentBytesPerPage))
-                return TooLarge($"Page {number} holds more than {_limits.MaxContentBytesPerPage} bytes of content, the limit.");
+            if (Checkpoint(clock, cancellationToken) is { } stop)
+                return stop;
 
             var page = document.GetPage(number);
-            if (Refuse(page) is { } refusal)
-                return refusal;
+            if (Refuse(page) is { } tooBig)
+                return tooBig;
 
             cancellationToken.ThrowIfCancellationRequested();
             pages.Add(PdfPigPage.Words(page));
