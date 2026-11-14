@@ -33,37 +33,42 @@ internal static class PdfPigPage
         var visible = new WordBox(-OffPageMarginPoints, -OffPageMarginPoints, origin.Width + OffPageMarginPoints, origin.Height + OffPageMarginPoints);
         var words = page.GetWords()
             .Where(w => w.TextOrientation == TextOrientation.Horizontal && !string.IsNullOrWhiteSpace(w.Text))
-            .Select(w => ToWord(w, origin.Left, origin.Bottom))
-            .Select(w => ClampedTo(w, visible))
-            .OfType<PositionedWord>();
+            .Select(w => (Word: ClampedTo(ToWord(w, origin.Left, origin.Bottom), visible), Pen: Pen(w, origin.Left)))
+            .Where(w => w.Word is not null)
+            .Select(w => new PenWord(w.Word!, w.Pen.Start, w.Pen.End));
         return new PdfPageWords(page.Number, page.Width, page.Height, JoinTouching(words), HasImages(page));
     }
 
     // PdfPig splits a word where the font size changes, as in small capitals; touching letters on one baseline are rejoined.
-    private static List<PositionedWord> JoinTouching(IEnumerable<PositionedWord> words)
+    private static List<PositionedWord> JoinTouching(IEnumerable<PenWord> words)
     {
-        var joined = new List<PositionedWord>();
+        var joined = new List<PenWord>();
         foreach (var word in words)
         {
             if (joined.Count > 0 && Touches(joined[^1], word))
-                joined[^1] = Join(joined[^1], word);
+                joined[^1] = new PenWord(Join(joined[^1].Word, word.Word), joined[^1].PenStart, word.PenEnd);
             else
                 joined.Add(word);
         }
 
-        return joined;
+        return joined.Select(w => w.Word).ToList();
     }
 
-    private static bool Touches(PositionedWord left, PositionedWord right)
+    // The pen decides, not the glyph boxes: an italic f overhangs its advance and nearly reaches a word a space away.
+    private static bool Touches(PenWord left, PenWord right)
     {
-        var gap = right.Box.Left - left.Box.Right;
-        var smaller = Math.Min(left.Box.Height, right.Box.Height);
-        var larger = Math.Max(left.Box.Height, right.Box.Height);
-        return char.IsLetter(left.Text[^1]) && char.IsLetter(right.Text[0])
-            && right.Box.Left > left.Box.Left
-            && gap <= TouchingGapShare * smaller
-            && Math.Abs(right.Box.Bottom - left.Box.Bottom) <= SameBaselineShare * larger;
+        var gap = right.PenStart - left.PenEnd;
+        var smaller = Math.Min(left.Word.Box.Height, right.Word.Box.Height);
+        var larger = Math.Max(left.Word.Box.Height, right.Word.Box.Height);
+        return char.IsLetter(left.Word.Text[^1]) && char.IsLetter(right.Word.Text[0])
+            && right.Word.Box.Left > left.Word.Box.Left
+            && Math.Abs(gap) <= TouchingGapShare * smaller
+            && Math.Abs(right.Word.Box.Bottom - left.Word.Box.Bottom) <= SameBaselineShare * larger;
     }
+
+    // Where the pen starts the first letter and ends the last one, in page coordinates from the crop box's left edge.
+    private static (double Start, double End) Pen(Word word, double originLeft) =>
+        (word.Letters[0].StartBaseLine.X - originLeft, word.Letters[^1].EndBaseLine.X - originLeft);
 
     private static PositionedWord Join(PositionedWord left, PositionedWord right) => new(
         left.Text + right.Text,
@@ -131,4 +136,7 @@ internal static class PdfPigPage
 
     private static string FoldLigatures(string text) =>
         text.Any(Ligatures.ContainsKey) ? string.Concat(text.Select(c => Ligatures.TryGetValue(c, out var s) ? s : c.ToString())) : text;
+
+    // A word and its pen positions, kept while touching words are rejoined.
+    private sealed record PenWord(PositionedWord Word, double PenStart, double PenEnd);
 }
