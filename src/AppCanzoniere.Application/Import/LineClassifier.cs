@@ -121,6 +121,12 @@ internal static class LineClassifier
             };
         }
 
+        if (context.AfterLabel && LooseChords.PromoteAfterLabel(tokens, notation) is { } labelled)
+        {
+            var ambiguous = labelled.Count(t => t.Ambiguous);
+            return new LineClassification(false, true, UnsureSingle, Array.Empty<SheetWarning>(), labelled, labelled.Count(t => t.Kind == TokenKind.Chord) - ambiguous, ambiguous, 0);
+        }
+
         return ClassifyTokens(tokens);
     }
 

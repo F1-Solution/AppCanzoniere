@@ -10,6 +10,11 @@ public static class ChordSheetConverter
         @"^\s*\{\s*(title|t|subtitle|st|artist|composer|lyricist|key|capo|tempo|time|comment|c|ci|cb|chorus|start_of_\w+|end_of_\w+|so[cbtv]|eo[cbtv]|define|new_song|ns|meta)\b[^}]*\}\s*$",
         RegexOptions.Compiled | RegexOptions.CultureInvariant | RegexOptions.IgnoreCase);
 
+    // Any whole line "{name}" or "{name: value}" is a directive, except the repeat marks x2, 2x, bis and ter.
+    private static readonly Regex AnyDirective = new(
+        @"^\s*\{\s*(?!(?:x\d{1,2}|\d{1,2}x|bis|ter)\s*[:}])[\p{L}\p{N}_-]+\s*(?::[^{}]*)?\}\s*$",
+        RegexOptions.Compiled | RegexOptions.CultureInvariant | RegexOptions.IgnoreCase);
+
     private const int MinAttachedLines = 2;
     private const int MinTabWidth = 1;
     private const int MaxTabWidth = 16;
@@ -80,5 +85,5 @@ public static class ChordSheetConverter
     }
 
     private static bool IsChordPro(IReadOnlyList<NormalizedLine> lines) =>
-        lines.Any(l => Directive.IsMatch(l.Text)) || lines.Count(l => BracketedText.HasAttachedChord(l.Text)) >= MinAttachedLines;
+        lines.Any(l => Directive.IsMatch(l.Text) || AnyDirective.IsMatch(l.Text)) || lines.Count(l => BracketedText.HasAttachedChord(l.Text)) >= MinAttachedLines;
 }

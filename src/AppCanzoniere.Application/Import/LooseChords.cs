@@ -3,7 +3,7 @@ using AppCanzoniere.Application.Music;
 namespace AppCanzoniere.Application.Import;
 
 /// <summary>What the rest of the document says about a line: the lyric below it and whether the document writes chords in lower case.</summary>
-internal readonly record struct LineContext(string? Below, bool LowerCaseStyle, bool OtherNotationAsText = false);
+internal readonly record struct LineContext(string? Below, bool LowerCaseStyle, bool OtherNotationAsText = false, bool AfterLabel = false);
 
 /// <summary>Promotes lower-case and other-notation chord words when the rest of the line is made of chords.</summary>
 internal static class LooseChords
@@ -34,6 +34,16 @@ internal static class LooseChords
             return null;
 
         return tokens.Select(t => t.LowerChord || t.Foreign || t.Doubtful ? ToChord(t, notation) : t).ToList();    }
+
+    /// <summary>After a section label, two or more different lower-case note names alone are chords: the label is the evidence.</summary>
+    public static IReadOnlyList<SheetToken>? PromoteAfterLabel(IReadOnlyList<SheetToken> tokens, Notation notation)
+    {
+        var lowers = tokens.Where(t => t.LowerChord && !t.Parenthesised).ToList();
+        var onlyNotes = tokens.All(t => t.Kind == TokenKind.Chord || t.LowerChord && !t.Parenthesised);
+        return lowers.Count == 0 || !onlyNotes || DistinctNames(tokens, lowers) < 2
+            ? null
+            : tokens.Select(t => t.LowerChord ? ToChord(t, notation) : t).ToList();
+    }
 
     private static bool IsExplicitForeign(SheetToken t) => t.Foreign && t.Bracketed;
 

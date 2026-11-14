@@ -34,7 +34,7 @@ internal static class ChordWords
     public static bool IsChord(string text, Notation notation) => TryParse(text, notation, out _);
 
     private static bool TryParse(string text, Notation notation, out ChordSymbol chord) =>
-        ChordSymbolParser.TryParse(text, notation, out chord) && IsBalanced(text);
+        ChordSymbolParser.TryParse(text, notation, out chord) && IsBalanced(text) && text.Length > 0 && !",;:.".Contains(text[^1]);
 
     private static bool IsBalanced(string text)
     {
@@ -51,8 +51,12 @@ internal static class ChordWords
 
     public static bool IsWordLike(string chord) => WordLike.Contains(chord);
 
-    /// <summary>True for an English root plus the bare "mi" quality (Ami, Emi): alone on a line it is a word.</summary>
-    public static bool IsMiMinor(string chord) => EnglishMiMinor.IsMatch(chord);
+    /// <summary>True for an English root plus the bare "mi" quality (Ami, Emi): alone on a line it is a word, unless it has an accidental.</summary>
+    public static bool IsMiMinor(string chord) => EnglishMiMinor.IsMatch(chord) && !HasAccidental(chord);
+
+    private static bool HasAccidental(string chord) =>
+        (ChordSymbolParser.TryParse(chord, Notation.Italian, out var italian) && italian.Root.Accidental != 0) ||
+        (ChordSymbolParser.TryParse(chord, Notation.English, out var english) && english.Root.Accidental != 0);
 
     private static bool IsDefinite(ChordSymbol chord, Notation notation)
     {

@@ -41,11 +41,12 @@ internal static class TokenGroups
         if (!inner.Any(char.IsWhiteSpace))
             return null;
 
-        var parts = Parts.Matches(inner);
-        if (parts.Count == 0 || parts.Any(p => !SheetTokenizer.TryChord(p.Value, notation)))
+        // A separator after a chord, as in "(Si, Re)", is dropped.
+        var parts = Parts.Matches(inner).Select(p => (Text: p.Value.TrimEnd(',', ';'), p.Index)).ToList();
+        if (parts.Count == 0 || parts.Any(p => !SheetTokenizer.TryChord(p.Text, notation)))
             return null;
 
-        return parts.Select(p => SheetTokenizer.Chord(p.Value, m.Index + 1 + p.Index, p.Value, notation, true)).ToList();
+        return parts.Select(p => SheetTokenizer.Chord(p.Text, m.Index + 1 + p.Index, p.Text, notation, true)).ToList();
     }
 
     private static IReadOnlyList<SheetToken>? ReadBracketed(Match m, Notation notation)
