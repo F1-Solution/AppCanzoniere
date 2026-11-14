@@ -55,7 +55,7 @@ internal static class TokenGroups
             return new[] { new SheetToken(m.Value, m.Index, TokenKind.Neutral) };
 
         var trimmed = inner.Trim();
-        if (trimmed.Length == 0 || trimmed.Any(char.IsWhiteSpace) || !SheetTokenizer.TryChord(trimmed, notation))
+        if (trimmed.Length == 0 || trimmed.Any(char.IsWhiteSpace) || !ChordWords.TryParseDefinite(trimmed, notation, out _))
             return null;
 
         var column = m.Index + 1 + (inner.Length - inner.TrimStart().Length);

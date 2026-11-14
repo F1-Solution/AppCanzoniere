@@ -21,7 +21,8 @@ internal sealed record SheetToken(
     bool LowerChord = false,
     bool Foreign = false,
     bool Doubtful = false,
-    bool HasInlineChord = false);
+    bool HasInlineChord = false,
+    bool Bracketed = false);
 
 /// <summary>Splits a line into neutral marks, words and chords (spec 3.2).</summary>
 internal static class SheetTokenizer
@@ -83,7 +84,20 @@ internal static class SheetTokenizer
             i = end;
         }
 
-        return tokens.Select(t => t.Kind == TokenKind.Word && BracketedText.ContainsInlineChord(t.Text) ? t with { HasInlineChord = true } : t).ToList();
+        return tokens.Select(Mark).ToList();
+    }
+
+    private static SheetToken Mark(SheetToken token)
+    {
+        if (token.Kind == TokenKind.Neutral)
+            return token.Text.StartsWith("[*", StringComparison.Ordinal) ? token with { Bracketed = true } : token;
+
+        var whole = token.Text.Length > 2 && token.Text[0] == '[' && token.Text[^1] == ']';
+        return token with
+        {
+            Bracketed = whole,
+            HasInlineChord = token.Kind == TokenKind.Word && BracketedText.ContainsInlineChord(token.Text)
+        };
     }
 
     // A run also ends before a chord group that follows a dash, as in "[Re]-[Sol]".

@@ -40,7 +40,7 @@ public class ExistingChordTests
             foreach (var line in first.WasChordPro ? Enumerable.Empty<string>() : ChordLines(first.ChordPro))
             {
                 lines++;
-                var again = ChordSheetConverter.Convert(line).ChordPro.TrimEnd('\n');
+                var again = ChordSheetConverter.Convert(line, new ChordSheetOptions { Notation = first.DetectedNotation }).ChordPro.TrimEnd('\n');
                 Assert.True(Chords(line).SequenceEqual(Chords(again)), $"Chords changed.\nBefore: {line}\nAfter:  {again}");
             }
         }
@@ -58,7 +58,7 @@ public class ExistingChordTests
             foreach (var line in first.WasChordPro ? Enumerable.Empty<string>() : ChordLines(first.ChordPro))
             {
                 lines++;
-                var again = ChordSheetConverter.Convert(line).ChordPro.TrimEnd('\n');
+                var again = ChordSheetConverter.Convert(line, new ChordSheetOptions { Notation = first.DetectedNotation }).ChordPro.TrimEnd('\n');
                 Assert.True(Chords(line).SequenceEqual(Chords(again)), $"Chords changed.\nBefore: {line}\nAfter:  {again}");
             }
         }

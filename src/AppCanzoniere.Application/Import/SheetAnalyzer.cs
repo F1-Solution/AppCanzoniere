@@ -21,13 +21,20 @@ internal sealed record DocumentAnalysis(Notation Notation, IReadOnlyList<Analyze
     public int DetectionCount => Lines.Count(l => l.Content is { } c && VotesForNotation(c) && !IsSingleNote(c));
 
     /// <summary>Like <see cref="DetectionCount"/> but single bare-note lines vote too; used when they are the only evidence.</summary>
-    public int DetectionCountWithSingles => Lines.Count(l => l.Content is { } c && VotesForNotation(c));
+    public int DetectionCountWithSingles => Lines.Count(l => l.Content is { } c && VotesWithSingles(c));
+
+    private static bool VotesWithSingles(ContentUnit c) =>
+        c.Kind == UnitKind.Chord ? c.Class.CountsForDetection : c.Kind == UnitKind.Inline && c.Class.Words < c.Class.ChordCount && c.Class.ChordCount >= 1;
 
     private bool VotesForNotation(ContentUnit c) =>
-        c.Kind == UnitKind.Chord ? c.Class.CountsForDetection : c.Kind == UnitKind.Inline && (c.Class.Unambiguous >= 1 || c.Class.ChordCount >= 2);
+        c.Kind == UnitKind.Chord
+            ? c.Class.CountsForDetection
+            : c.Kind == UnitKind.Inline && c.Class.Words < c.Class.ChordCount && (c.Class.Unambiguous >= 1 || c.Class.ChordCount >= 2); // Words counts chords of the other notation.
 
+    // A single bare note or ambiguous chord decides nothing, on a chord line and in the lyric it was merged into.
     private bool IsSingleNote(ContentUnit c) =>
-        c.Kind == UnitKind.Chord && c.Class.Tokens is [{ Kind: TokenKind.Chord } only] && ChordSymbolParser.TryParseNote(only.Chord, Notation, out _);
+        c.Kind != UnitKind.Lyric && c.Class.Tokens.Where(t => t.Kind == TokenKind.Chord).ToList() is [var only] &&
+        (only.Ambiguous || ChordSymbolParser.TryParseNote(only.Chord, Notation, out _));
 
     public bool HasChords => Lines.Any(l => l.Content is { } c &&
         (c.Kind == UnitKind.Inline ? c.Class.ChordCount > 0 : c.Kind == UnitKind.Chord && c.Class.Tokens.Any(t => t.Kind == TokenKind.Chord)));
@@ -127,10 +134,16 @@ internal static class SheetAnalyzer
     private static bool IsNotALabel(string text, LineContext context) =>
         ContentsEntry.IsMatch(text) || (NumberedTitle.IsMatch(text) && IsAllCaps(text) && IsBlankOrMetadata(context.Below));
 
-    private static bool IsAllCaps(string text) => !text.Any(char.IsLower) && text.Count(char.IsUpper) >= MinTitleCapitals;
+    // Chords and annotations already in brackets are not part of the title text.
+    private static bool IsAllCaps(string text)
+    {
+        var plain = BracketedText.Matches(text).Where(m => BracketedText.IsKept(m.Groups[1].Value)).Aggregate(text, (t, m) => t.Replace(m.Value, string.Empty, StringComparison.Ordinal));
+        return !plain.Any(char.IsLower) && plain.Count(char.IsUpper) >= MinTitleCapitals;
+    }
 
+    // The end of the document counts as a blank line, because blank lines at its edges are dropped.
     private static bool IsBlankOrMetadata(string? below) =>
-        below is not null && (below.Length == 0 || MetadataParser.TryParse(below.Trim()) is not null);
+        below is null || below.Length == 0 || MetadataParser.TryParse(below.Trim()) is not null;
 
     private static AnalyzedLine AnalyzeLabel(int index, NormalizedLine line, SectionLabel label, Notation notation, IReadOnlyList<SheetWarning> warnings, LineContext context)
     {

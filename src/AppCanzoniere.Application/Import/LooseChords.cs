@@ -69,7 +69,8 @@ internal static class LooseChords
     // Wide gaps count only when the chords sit over word starts of the lyric line directly below.
     private static bool HasAlignedWideGap(IReadOnlyList<SheetToken> tokens, string? below)
     {
-        if (!HasWideGap(tokens) || string.IsNullOrWhiteSpace(below))
+        // A line with bracketed chords is a merged lyric, which the line above never saw as its lyric.
+        if (!HasWideGap(tokens) || string.IsNullOrWhiteSpace(below) || BracketedText.ContainsInlineChord(below))
             return false;
 
         var lyric = below.TrimStart();

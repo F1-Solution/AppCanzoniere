@@ -47,14 +47,21 @@ internal static class LineClassifier
 
     public static ContentUnit BuildUnit(string text, int start, bool indented, Notation notation, LineContext context = default)
     {
-        var classification = Classify(SheetTokenizer.Tokenize(text, start, notation), notation, context);
+        // Classifying the text as it will be written keeps a second conversion of the output in agreement with the first.
+        var written = TextSafety.ReplaceKeepingChords(text);
+        var classification = Classify(SheetTokenizer.Tokenize(written, start, notation), notation, context);
         if (classification.IsChord)
-            return new ContentUnit(UnitKind.Chord, text, start, indented, SafeTokens(classification));
+        {
+            var warnings = classification.Warnings.Concat(Replaced(written != text)).Distinct().ToList();
+            return new ContentUnit(UnitKind.Chord, text, start, indented, classification with { Warnings = warnings });
+        }
 
-        if (InlineChords.TryConvert(text, start, notation, out var converted, out var unambiguous, out var ambiguous))
+        if (InlineChords.TryConvert(text, start, notation, out var converted, out var found, out var foreign))
         {
             var safe = TextSafety.ReplaceKeepingChords(converted);
-            var inline = new LineClassification(false, false, CertainLyric, Replaced(safe != converted), Array.Empty<SheetToken>(), unambiguous, ambiguous, 0);
+            var ambiguous = found.Count(c => SheetTokenizer.IsAmbiguous(c, notation));
+            var tokens = found.Count == 1 ? new[] { SheetTokenizer.Chord(found[0], 0, found[0], notation, false) } : Array.Empty<SheetToken>();
+            var inline = new LineClassification(false, false, CertainLyric, Replaced(safe != converted), tokens, found.Count - ambiguous, ambiguous, foreign);
             return new ContentUnit(UnitKind.Inline, safe, start, indented, inline);
         }
 
@@ -65,17 +72,15 @@ internal static class LineClassifier
 
     private static SheetWarning[] Replaced(bool changed) => changed ? new[] { SheetWarning.BracketsReplaced } : Array.Empty<SheetWarning>();
 
-    private static LineClassification SafeTokens(LineClassification classification)
-    {
-        var tokens = classification.Tokens.Select(t => t.Kind == TokenKind.Chord ? t : t with { Text = TextSafety.Replace(t.Text) }).ToList();
-        var changed = tokens.Zip(classification.Tokens).Any(p => p.First.Text != p.Second.Text);
-        return changed
-            ? classification with { Tokens = tokens, Warnings = classification.Warnings.Concat(Replaced(true)).ToList() }
-            : classification;
-    }
-
     public static LineClassification Classify(IReadOnlyList<SheetToken> tokens, Notation notation, LineContext context = default)
     {
+        // Chords already in brackets next to plain text mean the line is ChordPro already, whatever the notation.
+        if (tokens.Any(t => t.Bracketed) && tokens.Any(t => !t.Bracketed && t.Kind != TokenKind.Neutral))
+        {
+            var chords = tokens.Count(t => t.Kind == TokenKind.Chord);
+            return new LineClassification(false, false, CertainLyric, Array.Empty<SheetWarning>(), tokens, chords, 0, tokens.Count - chords);
+        }
+
         if (LooseChords.Promote(tokens, notation, context) is { } promoted && ClassifyTokens(promoted) is { IsChord: true } chordLine)
         {
             return chordLine with
@@ -99,7 +104,7 @@ internal static class LineClassifier
 
         if (u + a == 0)
         {
-            var noChord = neutral >= 1 && tokens.Any(SheetTokenizer.IsNoChord);
+            var noChord = neutral >= 1 && w == 0 && tokens.Any(SheetTokenizer.IsNoChord);
             return noChord ? Make(true, LikelyChord) : Make(false, CertainLyric);
         }
 
@@ -147,16 +152,19 @@ internal static class InlineChords
 {
     private static readonly Regex Parenthesised = new(@"\(([^()\s]+)\)", RegexOptions.Compiled | RegexOptions.CultureInvariant);
 
-    public static bool TryConvert(string text, int start, Notation notation, out string converted, out int unambiguous, out int ambiguous)
+    public static bool TryConvert(string text, int start, Notation notation, out string converted, out IReadOnlyList<string> found, out int foreign)
     {
         converted = text;
-        unambiguous = ambiguous = 0;
+        found = Array.Empty<string>();
+        foreign = 0;
         var rest = text[start..];
 
         var bracketed = BracketedText.Matches(rest).Select(m => m.Groups[1].Value).Where(BracketedText.IsKept).ToList();
         if (bracketed.Count > 0)
         {
-            Count(bracketed.Where(c => !BracketedText.IsAnnotation(c) && ChordWords.IsChord(c, notation)), notation, ref unambiguous, ref ambiguous);
+            var written = bracketed.Where(c => !BracketedText.IsAnnotation(c)).ToList();
+            found = written.Where(c => ChordWords.IsChord(c, notation)).ToList();
+            foreign = written.Count - found.Count;
             return true;
         }
 
@@ -173,18 +181,7 @@ internal static class InlineChords
         }
 
         converted = text[..start] + new string(characters);
-        Count(chords.Select(m => m.Groups[1].Value), notation, ref unambiguous, ref ambiguous);
+        found = chords.Select(m => m.Groups[1].Value).ToList();
         return true;
-    }
-
-    private static void Count(IEnumerable<string> chords, Notation notation, ref int unambiguous, ref int ambiguous)
-    {
-        foreach (var chord in chords)
-        {
-            if (SheetTokenizer.IsAmbiguous(chord, notation))
-                ambiguous++;
-            else
-                unambiguous++;
-        }
     }
 }
