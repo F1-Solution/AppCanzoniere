@@ -7,6 +7,9 @@ internal sealed partial class CorpusFolder
 {
     private const string SongMarker = "--song-";
 
+    // PDFs that fonti.md describes as two-column booklets (04 as corrected by review), independent of the app's output.
+    private static readonly string[] TwoColumnPrefixes = { "03-", "04-", "13-", "15-", "18-" };
+
     public CorpusFolder(string root)
     {
         Root = Path.GetFullPath(root);
@@ -25,6 +28,9 @@ internal sealed partial class CorpusFolder
 
     [GeneratedRegex(@"\s+")]
     private static partial Regex Whitespace();
+
+    /// <summary>True for the PDFs the corpus description lists as two-column.</summary>
+    public static bool IsTwoColumn(string pdfFile) => TwoColumnPrefixes.Any(Path.GetFileName(pdfFile).StartsWith);
 
     public IEnumerable<string> Pdfs() => Directory.EnumerateFiles(PdfFolder, "*.pdf").Order(StringComparer.Ordinal);
 
@@ -47,6 +53,13 @@ internal sealed partial class CorpusFolder
             .Where(t => t.Page > 0)
             .Select(t => LabelledText.Read(t.Text, Path.ChangeExtension(t.Text, ".chordlines"), t.Page))
             .ToList();
+    }
+
+    /// <summary>Every page of the PDF's whole pdftotext output, unlabelled; empty when there is no such file.</summary>
+    public IReadOnlyList<LabelledPage> ReferencePages(string pdfPath)
+    {
+        var whole = Path.Combine(TextFolder, Path.GetFileNameWithoutExtension(pdfPath) + ".txt");
+        return File.Exists(whole) ? LabelledText.ReadUnlabelled(whole).Pages : Array.Empty<LabelledPage>();
     }
 
     private static string Normalize(string text) => Whitespace().Replace(text, " ").Trim();

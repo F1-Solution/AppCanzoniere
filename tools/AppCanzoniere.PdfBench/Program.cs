@@ -17,7 +17,7 @@ var bench = new PdfBenchmark(new PdfTextImporter(new PdfPigWordExtractor()));
 var results = new List<PdfBenchResult>();
 foreach (var pdf in corpus.Pdfs())
 {
-    var result = await bench.RunAsync(pdf, corpus.LabelsFor(pdf), CancellationToken.None);
+    var result = await bench.RunAsync(pdf, corpus.LabelsFor(pdf), corpus.ReferencePages(pdf), CancellationToken.None);
     results.Add(result);
     Console.WriteLine(string.Create(CultureInfo.InvariantCulture, $"{result.File}: {result.Text.Status}, {result.Text.Pages.Count} pages, {result.Elapsed.TotalMilliseconds:0} ms"));
 }

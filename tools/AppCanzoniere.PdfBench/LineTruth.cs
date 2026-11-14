@@ -5,7 +5,7 @@ namespace AppCanzoniere.PdfBench;
 /// <summary>How the label of one extracted line was found.</summary>
 internal enum TruthSource
 {
-    /// <summary>No pdftotext line of the page contains the line's words.</summary>
+    /// <summary>No pdftotext line of the page contains the line's words; the strict chord pattern decided.</summary>
     Unmatched,
 
     /// <summary>The line is a whole pdftotext line, or part of a labelled chord line.</summary>
@@ -15,8 +15,12 @@ internal enum TruthSource
     Fragment
 }
 
-/// <summary>The chord-line truth of one extracted line, and how it was found.</summary>
-internal sealed record Truth(TruthSource Source, bool IsChordLine, int SourceLine = 0);
+/// <summary>The chord-line truth of one extracted line, how it was found, and where its words start in the pdftotext line.</summary>
+internal sealed record Truth(TruthSource Source, bool IsChordLine, int SourceLine = 0)
+{
+    /// <summary>Index of the first matching word in the pdftotext line, or -1 when the match was by compact text or failed.</summary>
+    public int TokenStart { get; init; } = -1;
+}
 
 /// <summary>
 /// Labels an extracted line from the hand labels of the pdftotext lines of the same page, by content:
@@ -46,16 +50,22 @@ internal static partial class LineTruth
         if (tokens.Length == 0)
             return new Truth(TruthSource.Unmatched, false);
 
-        var candidates = page.Lines.Select((l, i) => (Line: l, Index: i)).Where(c => Contains(Tokens(c.Line.Text), tokens)).ToList();
+        var candidates = page.Lines.Select((l, i) => (Line: l, Index: i)).Where(c => IndexOf(Tokens(c.Line.Text), tokens) >= 0).ToList();
         if (candidates.Count == 0 && Compact(tokens).Length >= MinCompactLength)
             candidates = page.Lines.Select((l, i) => (Line: l, Index: i)).Where(c => Compact(Tokens(c.Line.Text)).Contains(Compact(tokens), StringComparison.Ordinal)).ToList();
         if (candidates.Count == 0)
-            return new Truth(TruthSource.Unmatched, false);
+            return new Truth(TruthSource.Unmatched, IsChordLine(tokens));
 
         // Repeated lines usually share their label; otherwise the candidate nearest in page position wins.
         var nearest = candidates.MinBy(c => Math.Abs(((double)c.Index / page.Lines.Count) - relativeY));
-        return Judge(tokens, nearest.Line) with { SourceLine = nearest.Line.Number };
+        return Judge(tokens, nearest.Line) with { SourceLine = nearest.Line.Number, TokenStart = IndexOf(Tokens(nearest.Line.Text), tokens) };
     }
+
+    /// <summary>True when the words are chords only, optionally after a short label; used where no hand label applies.</summary>
+    public static bool LooksLikeChords(string line) => IsChordLine(Tokens(line));
+
+    /// <summary>True when the word is one chord or several written together.</summary>
+    public static bool IsChord(string token) => ChordToken().IsMatch(token);
 
     private static Truth Judge(string[] tokens, LabelledLine source)
     {
@@ -76,18 +86,18 @@ internal static partial class LineTruth
         return tokens.Skip(first).All(t => ChordToken().IsMatch(t) || ExtensionToken().IsMatch(t));
     }
 
-    private static string[] Tokens(string text) => text.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries);
+    public static string[] Tokens(string text) => text.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries);
 
     private static string Compact(string[] tokens) => string.Concat(tokens);
 
-    private static bool Contains(string[] haystack, string[] needle)
+    private static int IndexOf(string[] haystack, string[] needle)
     {
         for (var start = 0; start + needle.Length <= haystack.Length; start++)
         {
             if (needle.Select((t, i) => t == haystack[start + i]).All(m => m))
-                return true;
+                return start;
         }
 
-        return false;
+        return -1;
     }
 }
