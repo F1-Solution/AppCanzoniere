@@ -29,6 +29,23 @@ public class PdfPigWordExtractorTests
     }
 
     [Fact]
+    public async Task ExtractAsync_GivesEachWordTheLeftEdgeOfEveryLetter()
+    {
+        var result = await Extract(PdfFixtures.TwoColumns());
+
+        var word = result.Pages[0].Words.First(w => w.Text == "Cammina");
+        Assert.NotNull(word.LetterLefts);
+        Assert.Equal(word.Text.Length, word.LetterLefts!.Count);
+        Assert.Equal(word.Box.Left, word.LetterLefts[0], 1);
+        Assert.True(word.LetterLefts.Zip(word.LetterLefts.Skip(1)).All(p => p.Second > p.First));
+        Assert.True(word.LetterLefts[^1] < word.Box.Right);
+
+        // In Helvetica "m" is far wider than "i", so the letters are not evenly spaced.
+        var widths = word.LetterLefts.Zip(word.LetterLefts.Skip(1), (a, b) => b - a).ToList();
+        Assert.True(widths[2] > 2 * widths[4], string.Join(", ", widths));
+    }
+
+    [Fact]
     public async Task Import_ReadsTwoColumns_LeftColumnFirst_WithChordsOverTheirSyllables()
     {
         var result = await Import(PdfFixtures.TwoColumns());
