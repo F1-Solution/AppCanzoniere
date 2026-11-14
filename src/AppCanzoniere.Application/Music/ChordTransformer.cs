@@ -121,11 +121,16 @@ public sealed class ChordTransformer
     public string? WrittenKey() =>
         _documentKey is null ? null : WriteKey(_documentKeyText!.Trim(), _documentKey, _shift, _writtenPreference);
 
-    /// <summary>Key the song sounds in, named by the explicit preference (Auto when none); null without a readable key.</summary>
-    public string? SoundingKey() =>
-        _documentKey is null
-            ? null
-            : WriteKey(_documentKeyText!.Trim(), _documentKey, Note.Mod12(_transpose + _documentCapo), _options.Accidentals ?? AccidentalPreference.Auto);
+    /// <summary>Key the song sounds in; the explicit spelling preference applies only when it is transposed or has a capo; null without a readable key.</summary>
+    public string? SoundingKey()
+    {
+        if (_documentKey is null)
+            return null;
+
+        var steps = Note.Mod12(_transpose + _documentCapo);
+        var preference = steps == 0 ? AccidentalPreference.Auto : _options.Accidentals ?? AccidentalPreference.Auto;
+        return WriteKey(_documentKeyText!.Trim(), _documentKey, steps, preference);
+    }
 
     private string WriteKey(string original, KeyValue key, int steps, AccidentalPreference? preference)
     {
