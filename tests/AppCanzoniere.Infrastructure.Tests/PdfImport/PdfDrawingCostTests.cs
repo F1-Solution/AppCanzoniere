@@ -178,6 +178,25 @@ public class PdfDrawingCostTests
     }
 
     [Fact]
+    public async Task ExtractAsync_RefusesByDefaultADocumentOfMoreThanAMillionLetters()
+    {
+        // Eleven pages share one stream of 96,000 letters; the corpus's largest document has 334,000.
+        const int Pages = 11;
+        var objects = new List<Obj>
+        {
+            new("<< /Type /Catalog /Pages 2 0 R >>"),
+            new($"<< /Type /Pages /Kids [{string.Join(' ', Enumerable.Range(5, Pages).Select(n => $"{n} 0 R"))}] /Count {Pages} >>"),
+            new(Font),
+            new("/Filter /FlateDecode", Zlib(Ascii(Letters(96_000)))),
+        };
+        objects.AddRange(Enumerable.Range(0, Pages).Select(_ => new Obj(Page(4))));
+
+        var result = await new PdfPigWordExtractor().ExtractAsync(new MemoryStream(Write(objects)));
+
+        Assert.Equal(PdfExtractionStatus.TooLarge, result.Status);
+    }
+
+    [Fact]
     public void Limits_RejectNonPositiveDocumentBudgets()
     {
         Assert.Throws<ArgumentOutOfRangeException>(() => new PdfPigWordExtractor(new PdfExtractionLimits { MaxContentBytesPerDocument = 0 }));
