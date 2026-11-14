@@ -175,6 +175,33 @@ public class PdfPigWordExtractorTests
         Assert.Equal(PdfExtractionStatus.Success, result.Status);
     }
 
+    [Theory]
+    [InlineData("500000000 680")]
+    [InlineData("-500000000 680")]
+    [InlineData("50 900000000")]
+    public async Task ExtractAsync_DropsAWordPrintedFarOutsideThePage(string position)
+    {
+        // A word in a 0.01 pt font placed far off an A4 page: invisible, and on the page's grid a line of a billion spaces.
+        var content = $"BT /F1 10 Tf 1 0 0 1 50 700 Tm (canto la mia gioia) Tj /F1 0.01 Tf 1 0 0 1 {position} Tm (vento) Tj ET\n";
+
+        var result = await Extract(CraftedPdf.OnePage(string.Empty, CraftedPdf.Ascii(content)));
+
+        var words = result.Pages[0].Words;
+        Assert.Contains(words, w => w.Text == "gioia");
+        Assert.DoesNotContain(words, w => w.Text == "vento");
+    }
+
+    [Fact]
+    public async Task ExtractAsync_KeepsAWordThatRunsJustPastTheEdgeOfThePage()
+    {
+        var content = "BT /F1 10 Tf 1 0 0 1 50 700 Tm (canto la mia gioia) Tj 1 0 0 1 580 650 Tm (vento) Tj ET\n";
+
+        var result = await Extract(CraftedPdf.OnePage(string.Empty, CraftedPdf.Ascii(content)));
+
+        var word = Assert.Single(result.Pages[0].Words, w => w.Text == "vento");
+        Assert.Equal(580, word.Box.Left, 1);
+    }
+
     [Fact]
     public async Task ExtractAsync_ReportsAPasswordProtectedFile_AsEncrypted()
     {

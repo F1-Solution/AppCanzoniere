@@ -13,6 +13,12 @@ public sealed record PageText(int PageNumber, int ColumnCount, bool IsScanned, I
 /// <summary>Turns the positioned words of a page into aligned text, column by column.</summary>
 public static class PdfPageLayout
 {
+    /// <summary>Most spaces one line may hold before its words.</summary>
+    public const int MaxLineColumns = 1_000;
+
+    /// <summary>Most characters one page may lay out to.</summary>
+    public const int MaxPageCharacters = 200_000;
+
     public static PageText Lay(PdfPageWords page, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(page);

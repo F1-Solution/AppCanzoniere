@@ -15,6 +15,9 @@ public sealed class PdfTextImporter
     /// <summary>Default time limit for reading and laying out one file.</summary>
     public static readonly TimeSpan DefaultMaxDuration = TimeSpan.FromMinutes(2);
 
+    /// <summary>Most characters a whole document may lay out to.</summary>
+    public const int MaxTextCharacters = 4_000_000;
+
     private readonly IPdfWordExtractor _extractor;
     private readonly TimeSpan _maxDuration;
 
