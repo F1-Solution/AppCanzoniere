@@ -46,21 +46,20 @@ internal static class ChordProTypedRenderer
     private static bool AppendMetadata(StringBuilder sb, ChordProDocument document, ChordTransformer transformer, ChordProRenderOptions options)
     {
         var start = sb.Length;
-        if (!string.IsNullOrEmpty(document.Title))
-            sb.Append($"{{title:{document.Title}}}\n");
-        if (!string.IsNullOrEmpty(document.Artist))
-            sb.Append($"{{artist:{document.Artist}}}\n");
-        if (!string.IsNullOrEmpty(document.Key))
-            sb.Append($"{{key:{transformer.Key(document.Key)}}}\n");
-
-        var capo = options.Capo is { } fret ? (fret > 0 ? fret.ToString() : string.Empty) : document.Capo;
-        if (!string.IsNullOrEmpty(capo))
-            sb.Append($"{{capo:{capo}}}\n");
-        if (!string.IsNullOrEmpty(document.Tempo))
-            sb.Append($"{{tempo:{document.Tempo}}}\n");
-        if (!string.IsNullOrEmpty(document.Time))
-            sb.Append($"{{time:{document.Time}}}\n");
+        AppendDirective(sb, "title", document.Title);
+        AppendDirective(sb, "artist", document.Artist);
+        AppendDirective(sb, "key", transformer.Key(HeaderText.Clean(document.Key)));
+        AppendDirective(sb, "capo", options.Capo is { } fret ? (fret > 0 ? fret.ToString() : string.Empty) : document.Capo);
+        AppendDirective(sb, "tempo", document.Tempo);
+        AppendDirective(sb, "time", document.Time);
         return sb.Length > start;
+    }
+
+    private static void AppendDirective(StringBuilder sb, string name, string? value)
+    {
+        var clean = HeaderText.Clean(value);
+        if (clean.Length > 0)
+            sb.Append('{').Append(name).Append(':').Append(clean).Append("}\n");
     }
 
     // Closes and opens sections for the line at the index and returns the section that is open for it.

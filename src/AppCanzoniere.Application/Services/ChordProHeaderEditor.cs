@@ -34,7 +34,7 @@ internal static class ChordProHeaderEditor
         }
 
         var cursor = snapshot.SourceLineOf(HeaderField.Title) + 1;
-        foreach (var edit in missing.Where(e => e.Value.Trim().Length > 0))
+        foreach (var edit in missing.Where(e => HeaderText.Clean(e.Value).Length > 0))
             Insert(lines, cursor++, edit);
 
         return lines;
@@ -45,7 +45,7 @@ internal static class ChordProHeaderEditor
         if (index < 0)
             return false;
 
-        lines[index] = lines[index] with { Raw = Rewrite(lines[index].Raw, edit.Value.Trim()) };
+        lines[index] = lines[index] with { Raw = Rewrite(lines[index].Raw, HeaderText.Clean(edit.Value)) };
         return true;
     }
 
@@ -70,7 +70,7 @@ internal static class ChordProHeaderEditor
             HeaderField.Capo => ChordProSourceKind.Capo,
             _ => ChordProSourceKind.Verbatim
         };
-        var raw = "{" + name + ":" + edit.Value.Trim() + "}";
+        var raw = "{" + name + ":" + HeaderText.Clean(edit.Value) + "}";
         if (index == 0 && lines.Count > 0 && lines[0].Raw.StartsWith(Bom))
         {
             raw = Bom + raw;
