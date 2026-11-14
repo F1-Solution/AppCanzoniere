@@ -8,24 +8,12 @@ namespace AppCanzoniere.Application.Tests.Import;
 public class CorpusTests
 {
     private const double MinimumRecall = 0.95;
-    private const string CorpusFolderName = "corpus-locale";
     private readonly ITestOutputHelper _output;
 
     public CorpusTests(ITestOutputHelper output) => _output = output;
 
-    private static string? FindTextFolder()
-    {
-        var fromEnvironment = Environment.GetEnvironmentVariable("APPCANZONIERE_CORPUS");
-        var candidates = new List<string>();
-        if (!string.IsNullOrWhiteSpace(fromEnvironment))
-            candidates.Add(fromEnvironment);
-
-        for (var dir = new DirectoryInfo(AppContext.BaseDirectory); dir is not null; dir = dir.Parent)
-            candidates.Add(Path.Combine(dir.FullName, CorpusFolderName));
-
-        // Linked worktrees live under the main checkout, so the walk finds its corpus too.
-        return candidates.Select(c => Path.Combine(c, "testo")).FirstOrDefault(Directory.Exists);
-    }
+    // Linked worktrees live under the main checkout, so the shared lookup finds its corpus too.
+    private static string? FindTextFolder() => CorpusFiles.TextFolder();
 
     private static HashSet<int> ReadLabels(string path) =>
         File.ReadAllText(path)
