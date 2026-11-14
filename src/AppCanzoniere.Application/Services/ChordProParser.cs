@@ -10,7 +10,7 @@ public class ChordProParser : IChordProParser
     private static readonly Regex DirectiveRegex = new Regex(@"^\{([^:}]+)(?::(.*))?\}$", RegexOptions.Compiled | RegexOptions.CultureInvariant);
     private static readonly Regex TabEndRegex = new Regex(@"^\{\s*(?:end_of_tab|eot)\s*\}$", RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
 
-    private const char Bom = '﻿';
+    private const char Bom = (char)0xFEFF;
 
     public ChordProDocument Parse(string chordProContent)
     {

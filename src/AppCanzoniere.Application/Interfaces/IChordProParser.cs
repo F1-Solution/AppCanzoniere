@@ -32,7 +32,7 @@ public class ChordProDocument
     public string Time { get; set; } = string.Empty;
     public List<ChordProLine> Lines { get; set; } = new();
 
-    /// <summary>True when rendering writes the parsed file's own lines back: unedited, or only header values changed. False rebuilds from the typed members.</summary>
+    /// <summary>True when rendering writes the parsed file's own lines back, false when it rebuilds from the typed members.</summary>
     public bool KeepsSourceText => SourceLines is not null && Snapshot?.LinesMatch(this) == true;
 
     /// <summary>Lines of the parsed file as written; null for a hand-built document.</summary>

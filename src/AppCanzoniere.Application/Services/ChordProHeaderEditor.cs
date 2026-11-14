@@ -6,10 +6,10 @@ namespace AppCanzoniere.Application.Services;
 /// <summary>Writes edited header values into the first matching directive of the source lines, or adds the directive.</summary>
 internal static class ChordProHeaderEditor
 {
-    private const char Bom = '﻿';
+    private const char Bom = (char)0xFEFF;
 
     private static readonly Regex Directive = new(
-        @"^(?<lead>﻿?\s*\{(?<name>[^:}]*))(?::(?<value>.*))?(?<tail>\}\s*)$",
+        "^(?<lead>" + Bom + @"?\s*\{(?<name>[^:}]*))(?::(?<value>.*))?(?<tail>\}\s*)$",
         RegexOptions.Compiled | RegexOptions.CultureInvariant);
 
     private static readonly Dictionary<HeaderField, string[]> Names = new()
