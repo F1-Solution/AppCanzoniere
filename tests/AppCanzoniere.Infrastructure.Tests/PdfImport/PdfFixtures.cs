@@ -92,18 +92,17 @@ internal static class PdfFixtures
     }
 
     /// <summary>
-    /// "of Elijah" in Times Italic with a narrow but real word space: the italic f overhangs its advance, so its glyph
-    /// box nearly reaches the E, while the pen leaves a full space between the words.
+    /// "of Elijah" in Times Italic with a real space, narrowed by kerning as justified text is: the italic f overhangs
+    /// its advance past the start of the E, while the pen still leaves more than a hair between the two words.
     /// </summary>
-    public static byte[] ItalicWordsOneSpaceApart()
+    public static byte[] ItalicWordsOneSpaceApart() => CraftedPdf.Write(new[]
     {
-        var builder = new PdfDocumentBuilder();
-        var font = builder.AddStandard14Font(Standard14Font.TimesItalic);
-        var page = builder.AddPage(PageSize.A4);
-        var of = page.AddText("of", FontSize, new PdfPoint(100, 700), font);
-        page.AddText("Elijah", FontSize, new PdfPoint(of[^1].EndBaseLine.X + 2.5, 700), font);
-        return builder.Build();
-    }
+        new CraftedPdf.Obj("<< /Type /Catalog /Pages 2 0 R >>"),
+        new CraftedPdf.Obj("<< /Type /Pages /Kids [4 0 R] /Count 1 >>"),
+        new CraftedPdf.Obj("<< /Type /Font /Subtype /Type1 /BaseFont /Times-Italic >>"),
+        new CraftedPdf.Obj(CraftedPdf.Page(5)),
+        new CraftedPdf.Obj(string.Empty, CraftedPdf.Ascii("BT /F1 11 Tf 100 700 Td [(of ) 150 (Elijah)] TJ ET\n")),
+    });
 
     public static byte[] ScannedPages(int pages = 1)
     {
