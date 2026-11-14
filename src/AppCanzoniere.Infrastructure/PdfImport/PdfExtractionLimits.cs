@@ -15,6 +15,12 @@ public sealed record PdfExtractionLimits
     /// <summary>Largest unpacked content of one page, in bytes, checked before the page is parsed (default 4 MB).</summary>
     public long MaxContentBytesPerPage { get; init; } = 4L * 1024 * 1024;
 
+    /// <summary>Largest unpacked content of the whole document, in bytes, forms counted once per use.</summary>
+    public long MaxContentBytesPerDocument { get; init; } = long.MaxValue;
+
+    /// <summary>Most characters in the whole document.</summary>
+    public long MaxLettersPerDocument { get; init; } = long.MaxValue;
+
     /// <summary>Largest size any single stream of the file may unpack to, in bytes.</summary>
     public long MaxDecodedStreamBytes { get; init; } = 32L * 1024 * 1024;
 
