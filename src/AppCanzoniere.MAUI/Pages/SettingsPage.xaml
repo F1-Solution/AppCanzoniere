@@ -60,8 +60,8 @@
 
                     <VerticalStackLayout Spacing="5">
                         <Label Text="App Language" />
-                        <Picker ItemsSource="{Binding Languages}"
-                                SelectedItem="{Binding Settings.PreferredLanguage}" />
+                        <Picker ItemsSource="{Binding LanguageLabels}"
+                                SelectedIndex="{Binding LanguageIndex}" />
                     </VerticalStackLayout>
                 </VerticalStackLayout>
             </Frame>
