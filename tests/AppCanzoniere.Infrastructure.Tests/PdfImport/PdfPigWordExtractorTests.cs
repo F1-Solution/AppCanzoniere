@@ -46,6 +46,18 @@ public class PdfPigWordExtractorTests
     }
 
     [Fact]
+    public async Task ExtractAsync_KeepsAWordInSmallCapitalsWhole()
+    {
+        // Titles set in small capitals print a larger initial touching smaller capitals; it is still one word.
+        var result = await Extract(PdfFixtures.SmallCapsTitle());
+
+        var words = result.Pages[0].Words;
+        Assert.Equal(new[] { "CANTIAMO", "TE" }, words.Select(w => w.Text));
+        Assert.Equal(8, words[0].LetterLefts!.Count);
+        Assert.Equal(100, words[0].Box.Left, 1);
+    }
+
+    [Fact]
     public async Task Import_ReadsTwoColumns_LeftColumnFirst_WithChordsOverTheirSyllables()
     {
         var result = await Import(PdfFixtures.TwoColumns());

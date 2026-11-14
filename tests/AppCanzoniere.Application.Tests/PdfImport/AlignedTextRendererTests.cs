@@ -162,6 +162,24 @@ public class AlignedTextRendererTests
     }
 
     [Fact]
+    public void Render_NeverPutsABlankLineBetweenAChordRowAndItsLyric()
+    {
+        // The chords stand a little higher above this verse than the usual line pitch; they still belong to it.
+        var page = new PageBuilder { WithLetters = true }
+            .Text("prima strofa riga uno", 50, 760)
+            .Text("prima strofa riga due", 50, 748)
+            .Text("prima strofa riga tre", 50, 736)
+            .Text("prima strofa riga quattro", 50, 724);
+        page.ChordsOver("^seconda strofa ^riga", new[] { "DO", "SOL" }, 50, 670, pitch: 20);
+
+        var lines = Render(page);
+
+        Assert.Equal("seconda strofa riga", lines[^1]);
+        Assert.StartsWith("DO", lines[^2], StringComparison.Ordinal);
+        Assert.Equal(string.Empty, lines[^3]);
+    }
+
+    [Fact]
     public void Render_KeepsTheRowOfEveryTextLine_SoChordsCanLaterBePlacedByPosition()
     {
         var page = new PageBuilder().ChordsOver("^il mio ^Signore", new[] { "DO", "RE" }, 50, 700);

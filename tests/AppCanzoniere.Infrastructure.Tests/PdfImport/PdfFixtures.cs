@@ -79,6 +79,18 @@ internal static class PdfFixtures
         return builder.Build();
     }
 
+    /// <summary>A title in small capitals: a larger initial followed, touching it, by smaller capitals, then a word space.</summary>
+    public static byte[] SmallCapsTitle()
+    {
+        var builder = new PdfDocumentBuilder();
+        var font = builder.AddStandard14Font(Standard14Font.Helvetica);
+        var page = builder.AddPage(PageSize.A4);
+        var initial = page.AddText("C", 14, new PdfPoint(100, 700), font);
+        var rest = page.AddText("ANTIAMO", 10, new PdfPoint(initial[^1].EndBaseLine.X, 700), font);
+        page.AddText("TE", 14, new PdfPoint(rest[^1].EndBaseLine.X + 4, 700), font);
+        return builder.Build();
+    }
+
     public static byte[] ScannedPages(int pages = 1)
     {
         var builder = new PdfDocumentBuilder();
