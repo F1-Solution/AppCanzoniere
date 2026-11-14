@@ -8,6 +8,9 @@ internal sealed record CharacterGrid(double Left, double CharWidth)
     // Lower bound of the character width, in points, so degenerate boxes never divide by zero.
     private const double MinCharWidthPoints = 0.5;
 
+    // Column counts are clamped to this before rounding, far past any line yet well inside the range of an int.
+    internal const double ColumnArithmeticLimit = 1_000_000;
+
     public static CharacterGrid For(IReadOnlyList<TextRow> rows)
     {
         var words = rows.SelectMany(r => r.Words).ToList();
@@ -16,7 +19,10 @@ internal sealed record CharacterGrid(double Left, double CharWidth)
         return new CharacterGrid(words.Min(w => w.Box.Left), Math.Max(MinCharWidthPoints, chars == 0 ? 0 : width / chars));
     }
 
-    public int Columns(double distance) => (int)Math.Round(distance / CharWidth, MidpointRounding.AwayFromZero);
+    public int Columns(double distance) => SafeRound(distance / CharWidth);
+
+    internal static int SafeRound(double value) =>
+        double.IsNaN(value) ? 0 : (int)Math.Round(Math.Clamp(value, -ColumnArithmeticLimit, ColumnArithmeticLimit), MidpointRounding.AwayFromZero);
 
     public int ColumnOf(double x) => Math.Max(0, Columns(x - Left));
 }
@@ -29,13 +35,15 @@ internal sealed record PlacedRow(TextRow Row, IReadOnlyList<int> Starts, string 
     public static PlacedRow Natural(TextRow row, CharacterGrid grid)
     {
         var starts = new List<int>();
-        var column = grid.ColumnOf(row.Left);
+        var column = Within(grid.ColumnOf(row.Left), 0, 0);
+        var written = 0;
         for (var i = 0; i < row.Words.Count; i++)
         {
             if (i > 0)
-                column += Math.Max(1, grid.Columns(row.Words[i].Box.Left - row.Words[i - 1].Box.Right));
+                column = Within(column + Math.Max(1, grid.Columns(row.Words[i].Box.Left - row.Words[i - 1].Box.Right)), column + 1, written);
             starts.Add(column);
             column += row.Words[i].Text.Length;
+            written += row.Words[i].Text.Length + 1;
         }
 
         return new PlacedRow(row, starts, Compose(row, starts));
@@ -46,11 +54,13 @@ internal sealed record PlacedRow(TextRow Row, IReadOnlyList<int> Starts, string 
     {
         var starts = new List<int>();
         var next = 0;
+        var written = 0;
         foreach (var word in row.Words)
         {
-            var column = Math.Max(next, anchor?.ColumnAt(word.Box.Left, grid) ?? grid.ColumnOf(word.Box.Left));
+            var column = Within(anchor?.ColumnAt(word.Box.Left, grid) ?? grid.ColumnOf(word.Box.Left), next, written);
             starts.Add(column);
             next = column + word.Text.Length + 1;
+            written += word.Text.Length + 1;
         }
 
         return new PlacedRow(row, starts, Compose(row, starts));
@@ -90,7 +100,11 @@ internal sealed record PlacedRow(TextRow Row, IReadOnlyList<int> Starts, string 
         return index;
     }
 
-    private static int Round(double value) => (int)Math.Round(value, MidpointRounding.AwayFromZero);
+    private static int Round(double value) => CharacterGrid.SafeRound(value);
+
+    // A start no earlier than the earliest allowed, leaving at most MaxLineColumns spaces beyond one after each earlier word.
+    private static int Within(int column, int earliest, int written) =>
+        Math.Max(earliest, Math.Min(column, PdfPageLayout.MaxLineColumns + written));
 
     private static int Interpolate(double x, double x0, int c0, double x1, int c1) =>
         c0 + Round((x - x0) / (x1 - x0) * (c1 - c0));

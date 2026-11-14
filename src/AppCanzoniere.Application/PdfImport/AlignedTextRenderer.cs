@@ -27,7 +27,10 @@ public static class AlignedTextRenderer
     // A vertical gap larger than this multiple of the usual row pitch becomes a blank line.
     private const double BlankLinePitchFactor = 1.6;
 
-    public static IReadOnlyList<AlignedLine> Render(IReadOnlyList<TextRow> rows)
+    public static IReadOnlyList<AlignedLine> Render(IReadOnlyList<TextRow> rows) => Render(rows, TextBudget.Unlimited);
+
+    // Each composed line is charged to the budget as soon as it exists, so an oversized page stops early.
+    internal static IReadOnlyList<AlignedLine> Render(IReadOnlyList<TextRow> rows, TextBudget budget)
     {
         ArgumentNullException.ThrowIfNull(rows);
         if (rows.Count == 0)
@@ -35,12 +38,20 @@ public static class AlignedTextRenderer
 
         var grid = CharacterGrid.For(rows);
         var lyric = LyricRows(rows);
-        var placed = rows.Select((row, i) => lyric[i] ? PlacedRow.Natural(row, grid) : null).ToArray();
+        var placed = new PlacedRow?[rows.Count];
+        for (var i = 0; i < rows.Count; i++)
+            placed[i] = lyric[i] ? Charged(PlacedRow.Natural(rows[i], grid), budget) : null;
         var anchors = rows.Select((_, i) => lyric[i] ? -1 : Anchor(rows, lyric, i)).ToArray();
         for (var i = 0; i < rows.Count; i++)
-            placed[i] ??= PlacedRow.Mapped(rows[i], anchors[i] >= 0 ? placed[anchors[i]] : null, grid);
+            placed[i] ??= Charged(PlacedRow.Mapped(rows[i], anchors[i] >= 0 ? placed[anchors[i]] : null, grid), budget);
 
         return WithBlankLines(rows, placed.Select(p => p!.Text).ToList(), anchors);
+    }
+
+    private static PlacedRow Charged(PlacedRow row, TextBudget budget)
+    {
+        budget.Spend(row.Text.Length + 1);
+        return row;
     }
 
     // Rows laid out with their own spacing: dense rows that are not chords, and any row right under a chord row,

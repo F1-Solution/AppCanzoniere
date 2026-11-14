@@ -12,6 +12,9 @@ internal static class PdfPigPage
     // ...when their bottoms differ by at most this share of the larger one's height.
     private const double SameBaselineShare = 0.3;
 
+    // Words reaching no closer than this to the page box are invisible and dropped; the rest are clamped to it.
+    private const double OffPageMarginPoints = 36;
+
     // Typographic ligatures folded back to their letters, so that "ﬁne" reads "fine".
     private static readonly Dictionary<char, string> Ligatures = new()
     {
@@ -27,9 +30,12 @@ internal static class PdfPigPage
     public static PdfPageWords Words(Page page)
     {
         var origin = page.CropBox.Bounds;
+        var visible = new WordBox(-OffPageMarginPoints, -OffPageMarginPoints, origin.Width + OffPageMarginPoints, origin.Height + OffPageMarginPoints);
         var words = page.GetWords()
             .Where(w => w.TextOrientation == TextOrientation.Horizontal && !string.IsNullOrWhiteSpace(w.Text))
-            .Select(w => ToWord(w, origin.Left, origin.Bottom));
+            .Select(w => ToWord(w, origin.Left, origin.Bottom))
+            .Select(w => ClampedTo(w, visible))
+            .OfType<PositionedWord>();
         return new PdfPageWords(page.Number, page.Width, page.Height, JoinTouching(words), HasImages(page));
     }
 
@@ -63,6 +69,25 @@ internal static class PdfPigPage
         left.Text + right.Text,
         new WordBox(left.Box.Left, Math.Min(left.Box.Bottom, right.Box.Bottom), Math.Max(left.Box.Right, right.Box.Right), Math.Max(left.Box.Top, right.Box.Top)),
         left.LetterLefts is { } a && right.LetterLefts is { } b ? a.Concat(b).ToList() : null);
+
+    // The word cut to the visible area, or null when it lies wholly outside it or its box is not a number.
+    private static PositionedWord? ClampedTo(PositionedWord word, WordBox visible)
+    {
+        var box = word.Box;
+        var finite = double.IsFinite(box.Left) && double.IsFinite(box.Right) && double.IsFinite(box.Bottom) && double.IsFinite(box.Top);
+        if (!finite || box.Right < visible.Left || box.Left > visible.Right || box.Top < visible.Bottom || box.Bottom > visible.Top)
+            return null;
+
+        var clamped = new WordBox(
+            Math.Max(box.Left, visible.Left),
+            Math.Max(box.Bottom, visible.Bottom),
+            Math.Min(box.Right, visible.Right),
+            Math.Min(box.Top, visible.Top));
+        if (clamped == box)
+            return word;
+        var lefts = word.LetterLefts?.Select(x => double.IsFinite(x) ? Math.Clamp(x, clamped.Left, clamped.Right) : clamped.Left).ToList();
+        return new PositionedWord(word.Text, clamped, lefts);
+    }
 
     private static PositionedWord ToWord(Word word, double originLeft, double originBottom)
     {

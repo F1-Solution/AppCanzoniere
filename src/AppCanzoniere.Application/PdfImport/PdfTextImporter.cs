@@ -15,7 +15,7 @@ public sealed class PdfTextImporter
     /// <summary>Default time limit for reading and laying out one file.</summary>
     public static readonly TimeSpan DefaultMaxDuration = TimeSpan.FromMinutes(2);
 
-    /// <summary>Most characters a whole document may lay out to.</summary>
+    /// <summary>Most characters a whole document may lay out to (the longest corpus document has 323,410).</summary>
     public const int MaxTextCharacters = 4_000_000;
 
     private readonly IPdfWordExtractor _extractor;
@@ -44,6 +44,10 @@ public sealed class PdfTextImporter
         {
             return new PdfTextResult(PdfExtractionStatus.TimedOut, TimedOutReason(_maxDuration), Array.Empty<PageText>());
         }
+        catch (PageTextTooLargeException tooLarge)
+        {
+            return new PdfTextResult(PdfExtractionStatus.TooLarge, tooLarge.Message, Array.Empty<PageText>());
+        }
     }
 
     /// <summary>The readable reason given when reading takes longer than the limit.</summary>
@@ -54,10 +58,15 @@ public sealed class PdfTextImporter
     {
         var words = await _extractor.ExtractAsync(pdf, token).ConfigureAwait(false);
         var pages = new List<PageText>(words.Pages.Count);
+        long characters = 0;
         foreach (var page in words.Pages)
         {
             StopIfOver(token, clock);
-            pages.Add(PdfPageLayout.Lay(page, token));
+            var text = PdfPageLayout.Lay(page, token);
+            characters += text.Blocks.Sum(b => b.Lines.Sum(l => (long)l.Text.Length + 1));
+            if (characters > MaxTextCharacters)
+                return new PdfTextResult(PdfExtractionStatus.TooLarge, $"The document lays out to more than {MaxTextCharacters} characters, the limit.", Array.Empty<PageText>());
+            pages.Add(text);
         }
 
         StopIfOver(token, clock);
