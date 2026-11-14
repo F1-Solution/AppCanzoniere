@@ -154,7 +154,7 @@ public partial class SettingsViewModel : ObservableObject
         catch (Exception ex)
         {
             Debug.WriteLine($"Loading settings failed: {ex}");
-            await Shell.Current.DisplayAlert("Error", SettingsNotLoaded, "OK");
+            await Shell.Current.DisplayAlertAsync("Error", SettingsNotLoaded, "OK");
         }
     }
 
@@ -170,17 +170,17 @@ public partial class SettingsViewModel : ObservableObject
         catch (Exception ex)
         {
             Debug.WriteLine($"Saving settings failed: {ex}");
-            await Shell.Current.DisplayAlert("Error", SettingsNotSaved, "OK");
+            await Shell.Current.DisplayAlertAsync("Error", SettingsNotSaved, "OK");
             return;
         }
 
-        await Shell.Current.DisplayAlert("Success", "Settings saved successfully", "OK");
+        await Shell.Current.DisplayAlertAsync("Success", "Settings saved successfully", "OK");
     }
 
     [RelayCommand]
     private async Task ResetSettingsAsync()
     {
-        bool confirm = await Shell.Current.DisplayAlert(
+        bool confirm = await Shell.Current.DisplayAlertAsync(
             "Reset Settings",
             "Are you sure you want to reset all settings to default?",
             "Yes",
@@ -197,12 +197,12 @@ public partial class SettingsViewModel : ObservableObject
         catch (Exception ex)
         {
             Debug.WriteLine($"Resetting settings failed: {ex}");
-            await Shell.Current.DisplayAlert("Error", SettingsNotSaved, "OK");
+            await Shell.Current.DisplayAlertAsync("Error", SettingsNotSaved, "OK");
             return;
         }
 
         ResetDisplaySettings();
-        await Shell.Current.DisplayAlert("Success", "Settings were reset to their defaults", "OK");
+        await Shell.Current.DisplayAlertAsync("Success", "Settings were reset to their defaults", "OK");
     }
 
     [RelayCommand]
