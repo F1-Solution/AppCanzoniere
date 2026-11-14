@@ -19,15 +19,15 @@ public class PdfLayoutBoundsTests
     private static Task<PdfTextResult> Import(params PdfPageWords[] pages) =>
         new PdfTextImporter(new FakeExtractor(PdfWordsResult.Success(pages))).ImportAsync(new MemoryStream());
 
-    // A wide page whose rows each hold one word at the left edge and one at the right: every line is mostly spaces.
+    // Rows of two half-point letters at the two edges of an A4 page: on a grid that fine every line is mostly spaces.
     private static PdfPageWords WideRows(int rows, int number = 1)
     {
         var words = Enumerable.Range(0, rows).SelectMany(r => new[]
         {
-            new PositionedWord("a", new WordBox(0, 830 - (r * 2), 6, 831 - (r * 2))),
-            new PositionedWord("b", new WordBox(14_394, 830 - (r * 2), 14_400, 831 - (r * 2))),
+            new PositionedWord("a", new WordBox(0, 830 - (r * 2), 0.5, 831 - (r * 2))),
+            new PositionedWord("b", new WordBox(594.5, 830 - (r * 2), 595, 831 - (r * 2))),
         });
-        return new PdfPageWords(number, 14_400, 842, words.ToList(), false);
+        return new PdfPageWords(number, 595, 842, words.ToList(), false);
     }
 
     [Theory]
