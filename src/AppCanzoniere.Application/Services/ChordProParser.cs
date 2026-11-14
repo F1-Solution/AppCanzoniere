@@ -24,12 +24,13 @@ public class ChordProParser : IChordProParser
         var lines = SplitLines(chordProContent);
         for (var i = 0; i < lines.Length; i++)
         {
+            state.Line = i;
             var kind = ParseLine(i == 0 ? lines[i].TrimStart(Bom) : lines[i], document, state);
             source.Add(new ChordProSourceLine(kind, lines[i]));
         }
 
         document.SourceLines = source.AsReadOnly();
-        document.Snapshot = ChordProDocumentSnapshot.Of(document);
+        document.Snapshot = ChordProDocumentSnapshot.Of(document, state.HeaderLines);
         return document;
     }
 
@@ -96,6 +97,7 @@ public class ChordProParser : IChordProParser
             case "key" when string.IsNullOrWhiteSpace(value):
                 break; // An empty value never erases an earlier one.
             case "title" or "t":
+                state.HeaderLines[(int)HeaderField.Title] = state.Line;
                 document.Title = value;
                 document.Lines.Add(new ChordProLine { Type = ChordProLineType.Title, Text = value });
                 break;
@@ -129,18 +131,23 @@ public class ChordProParser : IChordProParser
         switch (name)
         {
             case "artist" or "subtitle" or "st":
+                state.HeaderLines[(int)HeaderField.Artist] = state.Line;
                 document.Artist = value;
                 break;
             case "key":
+                state.HeaderLines[(int)HeaderField.Key] = state.Line;
                 document.Key = value;
                 break;
             case "capo":
+                state.HeaderLines[(int)HeaderField.Capo] = state.Line;
                 document.Capo = value.Trim();
                 break;
             case "tempo":
+                state.HeaderLines[(int)HeaderField.Tempo] = state.Line;
                 document.Tempo = value;
                 break;
             case "time":
+                state.HeaderLines[(int)HeaderField.Time] = state.Line;
                 document.Time = value;
                 break;
             case "start_of_chorus" or "soc":
@@ -174,6 +181,10 @@ public class ChordProParser : IChordProParser
         public ChordProLineType Section { get; set; } = ChordProLineType.Verse;
 
         public bool InTab { get; set; }
+
+        public int Line { get; set; }
+
+        public int[] HeaderLines { get; } = Enumerable.Repeat(-1, 6).ToArray();
 
         private bool _sectionStartPending;
 
@@ -215,7 +226,7 @@ public class ChordProParser : IChordProParser
         if (document.KeepsSourceText)
         {
             var edits = document.Snapshot!.HeaderEdits(document);
-            var lines = edits.Count == 0 ? document.SourceLines! : ChordProHeaderEditor.Apply(document.SourceLines!, edits);
+            var lines = edits.Count == 0 ? document.SourceLines! : ChordProHeaderEditor.Apply(document.SourceLines!, edits, document.Snapshot!);
             return ChordProSourceRenderer.Render(lines, transformer, options.Capo);
         }
 

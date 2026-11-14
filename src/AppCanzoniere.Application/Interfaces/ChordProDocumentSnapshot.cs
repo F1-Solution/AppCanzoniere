@@ -5,15 +5,21 @@ internal sealed class ChordProDocumentSnapshot
 {
     private readonly string?[] _fields;
     private readonly LineCopy[] _lines;
+    private readonly int[] _sourceLines;
 
-    private ChordProDocumentSnapshot(string?[] fields, LineCopy[] lines)
+    private ChordProDocumentSnapshot(string?[] fields, LineCopy[] lines, int[] sourceLines)
     {
         _fields = fields;
         _lines = lines;
+        _sourceLines = sourceLines;
     }
 
-    public static ChordProDocumentSnapshot Of(ChordProDocument document) =>
-        new(Fields(document), (document.Lines ?? new List<ChordProLine>()).Select(LineCopy.Of).ToArray());
+    /// <param name="sourceLines">Per header field, the index of the source line the parser kept its value from, or -1.</param>
+    public static ChordProDocumentSnapshot Of(ChordProDocument document, int[] sourceLines) =>
+        new(Fields(document), (document.Lines ?? new List<ChordProLine>()).Select(LineCopy.Of).ToArray(), sourceLines);
+
+    /// <summary>Index of the source line a header value was read from, or -1 when the file had no such directive.</summary>
+    public int SourceLineOf(HeaderField field) => _sourceLines[(int)field];
 
     /// <summary>True when the document still holds exactly the copied content.</summary>
     public bool Matches(ChordProDocument document) =>

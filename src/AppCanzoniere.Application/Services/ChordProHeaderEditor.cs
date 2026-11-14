@@ -22,52 +22,31 @@ internal static class ChordProHeaderEditor
         [HeaderField.Time] = new[] { "time" }
     };
 
-    public static IReadOnlyList<ChordProSourceLine> Apply(IReadOnlyList<ChordProSourceLine> source, IReadOnlyList<HeaderEdit> edits)
+    /// <param name="snapshot">Tells which source line the parser kept each value from.</param>
+    public static IReadOnlyList<ChordProSourceLine> Apply(IReadOnlyList<ChordProSourceLine> source, IReadOnlyList<HeaderEdit> edits, ChordProDocumentSnapshot snapshot)
     {
         var lines = source.ToList();
         var missing = new List<HeaderEdit>();
         foreach (var edit in edits.OrderBy(e => e.Field))
         {
-            if (!TryReplace(lines, edit))
+            if (!TryReplace(lines, edit, snapshot.SourceLineOf(edit.Field)))
                 missing.Add(edit);
         }
 
-        var cursor = Math.Max(0, IndexOfLine(lines, HeaderField.Title) + 1);
+        var cursor = snapshot.SourceLineOf(HeaderField.Title) + 1;
         foreach (var edit in missing.Where(e => e.Value.Trim().Length > 0))
             Insert(lines, cursor++, edit);
 
         return lines;
     }
 
-    private static bool TryReplace(List<ChordProSourceLine> lines, HeaderEdit edit)
+    private static bool TryReplace(List<ChordProSourceLine> lines, HeaderEdit edit, int index)
     {
-        var index = IndexOfLine(lines, edit.Field);
         if (index < 0)
             return false;
 
         lines[index] = lines[index] with { Raw = Rewrite(lines[index].Raw, edit.Value.Trim()) };
         return true;
-    }
-
-    // Title and key lines with an empty value are ignored by the parser, so they are not the line to edit.
-    private static int IndexOfLine(List<ChordProSourceLine> lines, HeaderField field)
-    {
-        for (var i = 0; i < lines.Count; i++)
-        {
-            if (lines[i].Kind is ChordProSourceKind.Lyrics or ChordProSourceKind.Tab)
-                continue;
-
-            var match = Directive.Match(lines[i].Raw);
-            if (!match.Success || Array.IndexOf(Names[field], match.Groups["name"].Value.Trim().ToLowerInvariant()) < 0)
-                continue;
-
-            if (field is HeaderField.Title or HeaderField.Key && match.Groups["value"].Value.Trim().Length == 0)
-                continue;
-
-            return i;
-        }
-
-        return -1;
     }
 
     private static string Rewrite(string raw, string value)
