@@ -162,6 +162,20 @@ public class AlignedTextRendererTests
     }
 
     [Fact]
+    public void Render_AnchorsChords_ThatStandThreeTextHeightsAboveTheirLyric()
+    {
+        // One booklet leaves a whole blank line between each chord row and its lyric.
+        var page = new PageBuilder { WithLetters = true }.Text("una riga sopra senza accordi", 50, 760);
+        page.ChordsOver("se poi credi n^on possa ba^stare", new[] { "SI-", "MI" }, 50, 700, pitch: 3 * PageBuilder.TextHeight);
+
+        var lines = Render(page);
+
+        var lyric = lines[^1];
+        Assert.Equal(lyric.IndexOf("on possa", StringComparison.Ordinal), lines[^2].IndexOf("SI-", StringComparison.Ordinal));
+        Assert.Equal(lyric.IndexOf("stare", StringComparison.Ordinal), lines[^2].IndexOf("MI", StringComparison.Ordinal));
+    }
+
+    [Fact]
     public void Render_NeverPutsABlankLineBetweenAChordRowAndItsLyric()
     {
         // The chords stand a little higher above this verse than the usual line pitch; they still belong to it.
