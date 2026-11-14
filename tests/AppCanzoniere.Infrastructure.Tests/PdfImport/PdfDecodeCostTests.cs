@@ -56,4 +56,17 @@ public class PdfDecodeCostTests
         Assert.Contains(result.Pages[0].Words, w => w.Text == "gioia");
         Assert.InRange(allocated, 0, ReadingAllocationBytes);
     }
+
+    [Fact]
+    public async Task ExtractAsync_DoesNotGrowAnLzwTable_ForAFontProgramWithAPredictor()
+    {
+        // Readable LZW of 3 MB with a predictor: running PdfPig's filter to apply the predictor would grow its table.
+        var pdf = WithFontProgram("/Filter /LZWDecode /DecodeParms << /Predictor 2 /Columns 1 >>", LzwLiterals(0, 3_000_000, endCode: true));
+
+        var (result, allocated) = await ExtractMeasured(pdf);
+
+        Assert.Equal(PdfExtractionStatus.Success, result.Status);
+        Assert.Contains(result.Pages[0].Words, w => w.Text == "gioia");
+        Assert.InRange(allocated, 0, ReadingAllocationBytes);
+    }
 }
