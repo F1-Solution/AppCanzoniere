@@ -106,12 +106,15 @@ internal static class SectionPlanner
                 return false;
 
             var line = _lines[index];
-            var next = index + 1 < _lines.Count ? _lines[index + 1] : null;
-            if (line.StartsSection || next is { StartsSection: true })
+            if (line.StartsSection)
                 return false;
 
             if (line.InOpenSection)
                 return true;
+
+            var next = index + 1 < _lines.Count ? _lines[index + 1] : null;
+            if (next is { StartsSection: true })
+                return false;
 
             var type = _current.Kind == SectionKind.Chorus ? ChordProLineType.Chorus : ChordProLineType.Bridge;
             return index > 0 && next is not null && _lines[index - 1].Type == type && next.Type == type;
