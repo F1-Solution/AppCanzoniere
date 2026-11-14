@@ -84,7 +84,7 @@ internal static class LineClassifier
 
         var written = TextSafety.Replace(WithoutChordBrackets(kept));
         var plain = SheetTokenizer.Tokenize(written, start, notation);
-        // A real word keeps the line a lyric in both notations, so the replaced bracket cannot change the notation vote.
+        // A real word keeps this line a lyric in both notations; a note line above it reads the replaced bracket as it read the bracket.
         return plain.Any(IsRealWord) &&
                plain.All(t => t.Kind == TokenKind.Neutral || IsBracketOnly(t) || IsPunctuation(t) || IsLyricWord(t));
     }

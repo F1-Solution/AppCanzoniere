@@ -14,7 +14,7 @@ public sealed record ChordSheetOptions
     /// <summary>Tab stop width used to expand tab characters.</summary>
     public int TabWidth { get; init; } = 8;
 
-    /// <summary>Max columns a chord that falls on a space is moved right to reach a word start.</summary>
+    /// <summary>Max columns a chord that falls on a space is moved right to reach a word start; at least 1.</summary>
     public int SnapColumns { get; init; } = 2;
 }
 

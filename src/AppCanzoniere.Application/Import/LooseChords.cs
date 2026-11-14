@@ -85,14 +85,18 @@ internal static class LooseChords
     // Wide gaps count only when the chords sit over word starts of the lyric line directly below.
     private static bool HasAlignedWideGap(IReadOnlyList<SheetToken> tokens, string? below, Notation notation)
     {
-        // A merged lyric, which the line above never saw as its lyric, holds chords of the notation; other brackets may be written back as text.
-        if (!HasWideGap(tokens) || string.IsNullOrWhiteSpace(below) || BracketedText.Matches(below).Any(m => BracketedText.IsInlineChord(m.Groups[1].Value, notation)))
+        // A lyric with a chord of the notation, bracketed or written back as text between words, may be merged output, so its word starts prove nothing.
+        if (!HasWideGap(tokens) || string.IsNullOrWhiteSpace(below) || HoldsChordOfTheNotation(below, notation))
             return false;
 
         var lyric = below.TrimStart();
         var columns = tokens.Select(t => t.Column - tokens[0].Column).ToList();
         return columns[^1] < lyric.Length && columns.Count(c => NearWordStart(lyric, c)) * 2 >= columns.Count;
     }
+
+    private static bool HoldsChordOfTheNotation(string lyric, Notation notation) =>
+        BracketedText.Matches(lyric).Any(m => BracketedText.IsInlineChord(m.Groups[1].Value, notation)) ||
+        BracketedText.HasParenthesisedChordBetweenWords(lyric, notation);
 
     private static bool NearWordStart(string text, int column)
     {

@@ -103,6 +103,33 @@ public class IdempotenceTests
         Assert.True(unstable == 0, $"{unstable} unstable.\n" + string.Join("\n=====\n", failures));
     }
 
+    // Without anchor lines the notation rests on one or two chord lines, and merging them can still flip it on a
+    // second conversion. The limit is the count of such documents that were already unstable before brackets of the
+    // other notation were written as text (3 in the first 40,000 of seed 7); a new kind of flip pushes it over.
+    private const int AnchorlessDocuments = 40000;
+    private const int AnchorlessUnstableLimit = 3;
+
+    [Fact]
+    public void AnchorlessMixedDocuments_StayWithinTheKnownUnstableCount()
+    {
+        var failures = new List<string>();
+        var unstable = 0;
+        foreach (var text in MixedSheets.Many(7, AnchorlessDocuments, anchored: false))
+        {
+            var first = ChordSheetConverter.Convert(text).ChordPro;
+            var second = ChordSheetConverter.Convert(first).ChordPro;
+            if (first == second)
+                continue;
+
+            unstable++;
+            if (failures.Count < ReportedFailures)
+                failures.Add($"INPUT:\n{text}\nFIRST:\n{first}\nSECOND:\n{second}");
+        }
+
+        _output.WriteLine($"{unstable} of {AnchorlessDocuments} anchor-less documents changed on a second conversion.");
+        Assert.True(unstable <= AnchorlessUnstableLimit, $"{unstable} unstable, limit {AnchorlessUnstableLimit}.\n" + string.Join("\n=====\n", failures));
+    }
+
     private const int NoisyDocuments = 40000;
     private const int ReportedFailures = 4;
     private readonly Xunit.Abstractions.ITestOutputHelper _output;
