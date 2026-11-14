@@ -11,7 +11,7 @@ public class ThirdReviewLowFindingsTests
     [InlineData("{album: X}")]
     [InlineData("{columns: 2}")]
     [InlineData("  {sorttitle}  ")]
-    [InlineData("{my-meta_1: a b}")]
+    [InlineData("{x_my-meta_1: a b}")]
     public void WholeLineDirective_MakesTheTextChordPro(string directive)
     {
         var result = Run(directive, "[C] Sing", "[G] Lord");

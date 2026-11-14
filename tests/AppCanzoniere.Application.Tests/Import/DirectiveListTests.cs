@@ -21,9 +21,6 @@ public class DirectiveListTests
     [InlineData("{tris}", "(tris)")]
     [InlineData("{2v}", "(2v)")]
     [InlineData("{x100}", "(x100)")]
-    [InlineData("{Re}", "(Re)")]
-    [InlineData("{Do}", "(Do)")]
-    [InlineData("{Lam}", "(Lam)")]
     [InlineData("{x2}", "(x2)")]
     [InlineData("{bis}", "(bis)")]
     public void SongbookBraceLine_DoesNotMarkTheTextAsChordPro(string braceLine, string expectedText)
@@ -32,6 +29,19 @@ public class DirectiveListTests
 
         Assert.False(result.WasChordPro);
         Assert.Contains(expectedText, result.ChordPro);
+        Assert.DoesNotContain("{", result.ChordPro);
+    }
+
+    // A lone chord name in braces is read as a chord line, as a lone bracketed one is.
+    [Theory]
+    [InlineData("{Re}")]
+    [InlineData("{Do}")]
+    [InlineData("{Lam}")]
+    public void ChordNameInBraces_DoesNotMarkTheTextAsChordPro(string braceLine)
+    {
+        var result = Run("Do   Sol", "Santo ascolta", "", braceLine, "", "Lam   Re", "Ti lodo Signore");
+
+        Assert.False(result.WasChordPro);
         Assert.DoesNotContain("{", result.ChordPro);
     }
 
