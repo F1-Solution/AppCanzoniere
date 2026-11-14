@@ -26,17 +26,18 @@ internal static class MixedSheets
     private static readonly string[] LowerNotes = { "do", "fa", "sol", "re", "la", "mi" };
     private static readonly string[] Leads = { "2", "1.", "«", "(bis)", "x2", "3)" };
 
-    public static IEnumerable<string> Many(int seed, int count)
+    /// <summary>Documents of the seed; without anchors the notation rests on the generated chord lines alone.</summary>
+    public static IEnumerable<string> Many(int seed, int count, bool anchored = true)
     {
         var random = new Random(seed);
         for (var i = 0; i < count; i++)
-            yield return Create(random);
+            yield return Create(random, anchored);
     }
 
-    public static string Create(Random r)
+    public static string Create(Random r, bool anchored = true)
     {
         var italian = r.Next(2) == 0;
-        var lines = new List<string>(Anchors(italian));
+        var lines = anchored ? new List<string>(Anchors(italian)) : new List<string>();
         var blocks = r.Next(1, 4);
         for (var b = 0; b < blocks; b++)
         {
