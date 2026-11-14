@@ -11,6 +11,9 @@ public sealed class PdfPigWordExtractor : IPdfWordExtractor
 {
     private const int CopyBufferBytes = 81920;
 
+    // The PDF format limits a page side to 14,400 default user units (ISO 32000-1, annex C).
+    private const double MaxPageSidePoints = 14400;
+
     private static readonly ParsingOptions Options = new() { UseLenientParsing = true, SkipMissingFonts = true };
 
     private readonly PdfExtractionLimits _limits;
@@ -48,7 +51,7 @@ public sealed class PdfPigWordExtractor : IPdfWordExtractor
     }
 
     private PdfWordsResult TimedOut() =>
-        PdfWordsResult.Failure(PdfExtractionStatus.TimedOut, $"Reading the file took longer than the limit of {_limits.MaxDuration.TotalSeconds:0.#} seconds.");
+        PdfWordsResult.Failure(PdfExtractionStatus.TimedOut, PdfTextImporter.TimedOutReason(_limits.MaxDuration));
 
     // Copies at most MaxBytes; null means the input is larger than that.
     private async Task<byte[]?> ReadBoundedAsync(Stream pdf, CancellationToken cancellationToken)
@@ -87,7 +90,11 @@ public sealed class PdfPigWordExtractor : IPdfWordExtractor
                 cancellationToken.ThrowIfCancellationRequested();
                 if (clock.Elapsed >= _limits.MaxDuration)
                     return TimedOut();
-                pages.Add(PdfPigPage.Words(document.GetPage(number)));
+
+                var page = document.GetPage(number);
+                if (page.Width > MaxPageSidePoints || page.Height > MaxPageSidePoints)
+                    return PdfWordsResult.Failure(PdfExtractionStatus.Damaged, $"Page {number} is larger than the PDF format allows.");
+                pages.Add(PdfPigPage.Words(page));
             }
 
             return Classify(pages);

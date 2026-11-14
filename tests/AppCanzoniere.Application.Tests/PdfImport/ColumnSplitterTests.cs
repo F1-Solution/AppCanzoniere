@@ -125,7 +125,7 @@ public class ColumnSplitterTests
     }
 
     [Fact]
-    public void Split_FinishesQuickly_OnAPageClaimingAnAbsurdWidth()
+    public async Task Split_FinishesQuickly_OnAPageClaimingAnAbsurdWidth()
     {
         // A crafted page box a billion points wide, with text near both sides of its centre, used to make the gutter
         // search try hundreds of millions of positions.
@@ -134,7 +134,7 @@ public class ColumnSplitterTests
 
         var split = Task.Run(() => ColumnSplitter.Split(words, width));
 
-        Assert.True(split.Wait(TimeSpan.FromSeconds(5)), "the layout did not finish within 5 seconds");
+        await split.WaitAsync(TimeSpan.FromSeconds(5));
     }
 
     [Fact]

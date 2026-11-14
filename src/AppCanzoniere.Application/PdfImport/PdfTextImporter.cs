@@ -9,21 +9,49 @@ public sealed record PdfTextResult(PdfExtractionStatus Status, string Reason, IR
 /// <summary>Reads a PDF on the device and returns its text page by page and column by column.</summary>
 public sealed class PdfTextImporter
 {
+    /// <summary>Default time limit for reading and laying out one file.</summary>
+    public static readonly TimeSpan DefaultMaxDuration = TimeSpan.FromMinutes(2);
+
     private readonly IPdfWordExtractor _extractor;
+    private readonly TimeSpan _maxDuration;
 
-    public PdfTextImporter(IPdfWordExtractor extractor, TimeSpan? maxDuration = null) =>
+    /// <summary>Creates an importer; maxDuration bounds extraction and layout together (default two minutes).</summary>
+    public PdfTextImporter(IPdfWordExtractor extractor, TimeSpan? maxDuration = null)
+    {
         _extractor = extractor ?? throw new ArgumentNullException(nameof(extractor));
+        _maxDuration = maxDuration ?? DefaultMaxDuration;
+        ArgumentOutOfRangeException.ThrowIfLessThan(_maxDuration, TimeSpan.Zero, nameof(maxDuration));
+    }
 
-    /// <summary>Extracts and lays out every page; failures come back typed, cancellation throws.</summary>
+    /// <summary>Extracts and lays out every page; failures and the time limit come back typed, cancellation throws.</summary>
     public async Task<PdfTextResult> ImportAsync(Stream pdf, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(pdf);
-        var words = await _extractor.ExtractAsync(pdf, cancellationToken).ConfigureAwait(false);
+        using var deadline = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        deadline.CancelAfter(_maxDuration);
+        try
+        {
+            return await ImportWithinAsync(pdf, deadline.Token).ConfigureAwait(false);
+        }
+        catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
+        {
+            return new PdfTextResult(PdfExtractionStatus.TimedOut, TimedOutReason(_maxDuration), Array.Empty<PageText>());
+        }
+    }
+
+    /// <summary>The readable reason given when reading takes longer than the limit.</summary>
+    public static string TimedOutReason(TimeSpan limit) =>
+        string.Create(System.Globalization.CultureInfo.InvariantCulture, $"Reading the file took longer than the limit of {limit.TotalSeconds:0.#} seconds.");
+
+    private async Task<PdfTextResult> ImportWithinAsync(Stream pdf, CancellationToken token)
+    {
+        var words = await _extractor.ExtractAsync(pdf, token).ConfigureAwait(false);
+        token.ThrowIfCancellationRequested();
         var pages = new List<PageText>(words.Pages.Count);
         foreach (var page in words.Pages)
         {
-            cancellationToken.ThrowIfCancellationRequested();
-            pages.Add(PdfPageLayout.Lay(page));
+            token.ThrowIfCancellationRequested();
+            pages.Add(PdfPageLayout.Lay(page, token));
         }
 
         return new PdfTextResult(words.Status, words.Reason, pages);

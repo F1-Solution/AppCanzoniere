@@ -46,12 +46,10 @@ public static class ColumnSplitter
     private const double MinShareAtMargin = 0.25;
     private const int MinRowsAtMargin = 2;
 
-    // Candidate gutter positions are tried every this many points.
-    private const double GutterStepPoints = 1.0;
-
     public static IReadOnlyList<LayoutRegion> Split(IReadOnlyList<PositionedWord> words, double pageWidth, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(words);
+        cancellationToken.ThrowIfCancellationRequested();
         if (words.Count == 0)
             return Array.Empty<LayoutRegion>();
 
@@ -62,7 +60,11 @@ public static class ColumnSplitter
         var centre = pageWidth / 2;
         var from = Math.Max(left + minColumnWidth, centre - (CentreZoneShare * pageWidth));
         var to = Math.Min(right - minColumnWidth, centre + (CentreZoneShare * pageWidth));
-        var gutter = FindGutter(rows, from, to, minColumnWidth);
+
+        // A position crossed by words in more rows than this leaves too few rows for the bands to win.
+        var maxCrossed = rows.Count - (int)Math.Ceiling(MinBandRowShare * rows.Count);
+        var candidates = GutterCandidates.Between(rows, from, to, maxCrossed);
+        var gutter = FindGutter(rows, candidates, minColumnWidth, cancellationToken);
         return gutter is { } x ? Regions(rows, x, minColumnWidth) : new[] { new LayoutRegion(0, 1, rows) };
     }
 
@@ -90,23 +92,32 @@ public static class ColumnSplitter
 
     private static double Gap(TextRow row, double x) => RightStart(row, x) - row.Words.Last(w => w.Box.Right <= x).Box.Right;
 
-    // The x whose two-column bands hold most rows; ties go to the middle of the widest run of such x.
-    private static double? FindGutter(IReadOnlyList<TextRow> rows, double from, double to, double minColumnWidth)
+    // The x whose two-column bands hold most rows; ties go to the middle of the longest run of adjacent such x.
+    private static double? FindGutter(IReadOnlyList<TextRow> rows, IReadOnlyList<GutterCandidate> candidates, double minColumnWidth, CancellationToken cancellationToken)
     {
-        int bestScore = 0, bestRun = 0, run = 0;
-        double bestX = 0;
-        for (var x = from; x <= to; x += GutterStepPoints)
+        int bestScore = 0, bestRun = 0, run = 0, lastStep = int.MinValue;
+        double bestX = 0, runStart = 0;
+        foreach (var (x, step) in candidates)
         {
+            cancellationToken.ThrowIfCancellationRequested();
             var score = Bands(rows, Spanning(rows, x)).Where(b => IsTwoColumnBand(b, x, minColumnWidth)).Sum(b => b.Count);
+            var adjacent = step == lastStep + 1;
+            lastStep = step;
             if (score > bestScore)
             {
-                (bestScore, bestRun, run, bestX) = (score, 1, 1, x);
+                (bestScore, bestRun, run, bestX, runStart) = (score, 1, 1, x, x);
                 continue;
             }
 
-            run = score == bestScore ? run + 1 : 0;
-            if (score == bestScore && score > 0 && run > bestRun)
-                (bestRun, bestX) = (run, x - ((run - 1) * GutterStepPoints / 2));
+            if (score != bestScore)
+            {
+                run = 0;
+                continue;
+            }
+
+            (run, runStart) = adjacent && run > 0 ? (run + 1, runStart) : (1, x);
+            if (score > 0 && run > bestRun)
+                (bestRun, bestX) = (run, (runStart + x) / 2);
         }
 
         return bestScore > 0 && bestScore >= MinBandRowShare * rows.Count ? bestX : null;

@@ -9,6 +9,6 @@ public sealed record PdfExtractionLimits
     /// <summary>Largest accepted page count (default 2000).</summary>
     public int MaxPages { get; init; } = 2000;
 
-    /// <summary>Longest time spent reading one file (default 2 minutes).</summary>
-    public TimeSpan MaxDuration { get; init; } = TimeSpan.FromMinutes(2);
+    /// <summary>Longest time spent reading one file (default 2 minutes, the importer's default).</summary>
+    public TimeSpan MaxDuration { get; init; } = AppCanzoniere.Application.PdfImport.PdfTextImporter.DefaultMaxDuration;
 }
