@@ -173,14 +173,25 @@ internal sealed class SheetWriter
     private bool NextHasContent(int i) =>
         i + 1 < _lines.Count && _lines[i + 1].Kind is not (SheetLineKind.Blank or SheetLineKind.SectionLabel or SheetLineKind.Tab);
 
-    // A lyric made only of marks, numbers or note names of either notation ("Re Re") would read as a chord line again once chords are put into it.
+    // A lyric made only of marks, numbers or note names ("Re Re") takes the chords only when each one lands on a letter, else it would read as a chord line again.
     private bool NextIsLyric(int i) =>
         i + 1 < _lines.Count && _lines[i + 1].Content is { Kind: UnitKind.Lyric } next &&
-        HasWordInBothNotations(next) && next.Text.Any(char.IsLetterOrDigit) &&
+        next.Class.Tokens.Any(t => t.Kind != TokenKind.Neutral) && next.Text.Any(char.IsLetterOrDigit) &&
+        (HasWordInBothNotations(next) || EveryChordLandsOnALetter(_lines[i].Content!, next)) &&
         MetadataParser.TryParse(next.Text.Trim()) is null;
 
     private static bool HasWordInBothNotations(ContentUnit lyric) =>
         new[] { Music.Notation.Italian, Music.Notation.English }.All(n => SheetTokenizer.Tokenize(lyric.Text, lyric.Start, n).Any(t => t.Kind == TokenKind.Word));
+
+    // A chord line that already holds brackets is left apart, since merging would hide them from the second reading.
+    private bool EveryChordLandsOnALetter(ContentUnit chords, ContentUnit lyric)
+    {
+        if (chords.Class.Tokens.Any(t => t.Bracketed))
+            return false;
+
+        var merged = ChordMerger.Merge(chords, lyric, _snapColumns).Line;
+        return BracketedText.Matches(merged).All(m => m.Index + m.Length < merged.Length && char.IsLetter(merged[m.Index + m.Length]));
+    }
 
     private bool NextIsInline(int i) =>
         i + 1 < _lines.Count && _lines[i + 1].Content is { Kind: UnitKind.Inline };

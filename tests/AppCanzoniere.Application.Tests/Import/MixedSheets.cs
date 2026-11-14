@@ -24,7 +24,7 @@ internal static class MixedSheets
     private static readonly string[] OtherWords = { "e", "a", "E", "Am", "la", "si", "Do", "mi", "Re", "G", "C", "Fa" };
     private static readonly string[] LongWords = { "Vieni", "Signore", "gloria", "Cantate", "Alleluia" };
     private static readonly string[] LowerNotes = { "do", "fa", "sol", "re", "la", "mi" };
-    private static readonly string[] Leads ={ "2", "1.", "«", "(bis)", "x2", "3)" };
+    private static readonly string[] Leads = { "2", "1.", "«", "(bis)", "x2", "3)" };
 
     public static IEnumerable<string> Many(int seed, int count)
     {
