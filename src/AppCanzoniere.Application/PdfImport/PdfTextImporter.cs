@@ -22,7 +22,7 @@ public sealed class PdfTextImporter
     private readonly TimeSpan _maxDuration;
 
     /// <summary>Creates an importer; maxDuration bounds extraction and layout together (default two minutes).</summary>
-    public PdfTextImporter(IPdfWordExtractor extractor, TimeSpan? maxDuration = null)
+    public PdfTextImporter(IPdfWordExtractor extractor, TimeSpan? maxDuration = null, TimeProvider? timeProvider = null)
     {
         _extractor = extractor ?? throw new ArgumentNullException(nameof(extractor));
         _maxDuration = maxDuration ?? DefaultMaxDuration;

@@ -332,6 +332,13 @@ public class PdfPigWordExtractorTests
         Assert.Throws<ArgumentOutOfRangeException>(() => new PdfPigWordExtractor(new PdfExtractionLimits { MaxContentBytesPerPage = 0 }));
     }
 
+    [Fact]
+    public void Limits_RejectATimeLimitLongerThanATimerCanWait()
+    {
+        Assert.Throws<ArgumentOutOfRangeException>(() => new PdfPigWordExtractor(new PdfExtractionLimits { MaxDuration = TimeSpan.FromDays(60) }));
+        _ = new PdfPigWordExtractor(new PdfExtractionLimits { MaxDuration = TimeSpan.FromDays(49) });
+    }
+
     private sealed class UnseekableStream : MemoryStream
     {
         public UnseekableStream(byte[] bytes)
