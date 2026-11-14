@@ -15,6 +15,9 @@ public sealed record PdfExtractionLimits
     /// <summary>Largest unpacked content of one page, in bytes, checked before the page is parsed (default 4 MB).</summary>
     public long MaxContentBytesPerPage { get; init; } = 4L * 1024 * 1024;
 
+    /// <summary>Largest size any single stream of the file may unpack to, in bytes.</summary>
+    public long MaxDecodedStreamBytes { get; init; } = 32L * 1024 * 1024;
+
     /// <summary>Longest time spent reading one file (default 2 minutes, the importer's default).</summary>
     public TimeSpan MaxDuration { get; init; } = AppCanzoniere.Application.PdfImport.PdfTextImporter.DefaultMaxDuration;
 }
