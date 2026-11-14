@@ -1,8 +1,8 @@
 namespace AppCanzoniere.Infrastructure.PdfImport;
 
 /// <summary>
-/// LZW as PdfPig 0.1.16 decodes it (9 to 12 bit codes, most significant bit first), writing at most a cap of bytes.
-/// Running out of data before the end code, or a code PdfPig cannot look up, is unreadable as it is for PdfPig.
+/// LZW as PdfPig 0.1.16 decodes it (9 to 12 bit codes, most significant bit first) up to a cap of bytes, unreadable
+/// where PdfPig fails too: data that ends before the end code, or a code PdfPig cannot look up.
 /// </summary>
 internal static class LzwDecoder
 {

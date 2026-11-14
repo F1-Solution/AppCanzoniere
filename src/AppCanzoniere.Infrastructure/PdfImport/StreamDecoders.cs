@@ -23,8 +23,8 @@ internal readonly record struct Decoded(DecodeStatus Status, ReadOnlyMemory<byte
 }
 
 /// <summary>
-/// Decoders for the PDF filters PdfPig 0.1.16 decodes, producing the same bytes as PdfPig but never more than a cap,
-/// so a compression bomb is stopped after cap bytes. A failure where PdfPig would also fail is reported as unreadable.
+/// Decoders for the PDF filters PdfPig 0.1.16 decodes, giving PdfPig's bytes but never more than a cap so a compression
+/// bomb stops after cap bytes, and reporting as unreadable the inputs on which PdfPig fails too.
 /// </summary>
 internal static class StreamDecoders
 {

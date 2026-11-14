@@ -98,9 +98,8 @@ public static class ColumnSplitter
         return narrow && (margin is not { } m || Math.Abs(start - m) > MarginTolerancePoints || edgeLine);
     }
 
-    // Indexes of a running header or footer: the top or bottom row, set apart from the body by extra space and crossing
-    // the gutter with no more than its usual word space, so a word that happens to start at the right margin does not
-    // split it. A larger size alone does not count: two column titles start at the margin and belong to their columns.
+    // Indexes of a running header or footer: the top or bottom row, set apart by extra space and crossing the gutter with
+    // about its usual word space, whatever its size, since two larger column titles starting at the margin are not one.
     private static HashSet<int> EdgeLines(IReadOnlyList<TextRow> rows, double x)
     {
         var lines = new HashSet<int>();

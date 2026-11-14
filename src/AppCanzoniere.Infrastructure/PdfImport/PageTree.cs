@@ -47,7 +47,7 @@ internal static class PageTree
         return pages;
     }
 
-    // A /Type decides; without one, a node with no kids array is a page. PdfPig reads an unresolvable kid as an empty page.
+    // A /Type decides, and without one a node with no kids array is a page (an unresolvable kid reads as an empty page).
     private static bool IsPage(PdfDocument document, DictionaryToken node) =>
         PdfObjects.Get<NameToken>(document, node, NameToken.Type) is { } type
             ? type.Equals(NameToken.Page)

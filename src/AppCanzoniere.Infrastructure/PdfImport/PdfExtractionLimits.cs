@@ -1,8 +1,8 @@
 namespace AppCanzoniere.Infrastructure.PdfImport;
 
 /// <summary>
-/// Bounds applied to an untrusted PDF before and while it is read. The defaults leave a wide margin over the songbook
-/// corpus: its largest page holds 215 KB of content and 4,798 characters, its largest document 4.4 MB and 334,000 characters.
+/// Bounds applied to an untrusted PDF before and while it is read, with defaults well above the songbook corpus, whose
+/// largest page holds 215 KB of content and 4,798 characters and largest document 4.4 MB and 334,000 characters.
 /// </summary>
 public sealed record PdfExtractionLimits
 {

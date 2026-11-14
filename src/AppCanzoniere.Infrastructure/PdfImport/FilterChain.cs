@@ -24,8 +24,8 @@ internal static class FilterChain
     }
 
     /// <summary>
-    /// One filter stage: the bytes PdfPig's filter would give, or OverCap when they or the buffers PdfPig would allocate
-    /// pass cap. Image filters are unreadable here (PdfPig refuses them) except CCITT, whose output size is set by the file.
+    /// One filter stage: the bytes PdfPig's filter would give, OverCap when they or PdfPig's buffers would pass cap, and
+    /// unreadable for the image filters PdfPig refuses, except CCITT, whose output size the file itself sets (OverCap).
     /// </summary>
     public static Decoded Stage(string name, ReadOnlyMemory<byte> input, DictionaryToken dictionary, int index, int cap)
     {

@@ -23,9 +23,8 @@ internal readonly record struct Cost(long Bytes, long Letters, bool Unmeasurable
 }
 
 /// <summary>
-/// Costs what each page draws before PdfPig parses it: its own content plus every form it calls, once per call,
-/// nested forms multiplied through. Forms are costed once per resource context; a form that ends up calling itself
-/// (which PdfPig would follow until the stack overflows) or nests deeper than any real file is unmeasurable.
+/// Costs what each page draws before PdfPig parses it, its own content plus every form once per call with nested calls
+/// multiplied, and reports as unmeasurable a form that calls itself (PdfPig would overflow the stack) or nests too deep.
 /// </summary>
 internal sealed class DrawingCost(PdfDocument document, long maxBytes, long maxLetters)
 {
