@@ -24,6 +24,7 @@ public static class MauiProgram
             {
                 fonts.AddFont("OpenSans-Regular.ttf", "OpenSansRegular");
                 fonts.AddFont("OpenSans-Semibold.ttf", "OpenSansSemibold");
+                fonts.AddFont("JetBrainsMono-Regular.ttf", "JetBrainsMono");
             });
 
 #if DEBUG
@@ -46,6 +47,7 @@ public static class MauiProgram
         builder.Services.AddSingleton<IChordProParser, ChordProParser>();
         builder.Services.AddSingleton<IChordTransposer, ChordTransposer>();
         builder.Services.AddSingleton<ISongDisplayService, SongDisplayService>();
+        builder.Services.AddSingleton<SongScreenPresenter>();
         builder.Services.AddSingleton<IPreferenceStorage, PreferencesStorage>();
         builder.Services.AddSingleton<IChordDisplaySettingsStore, ChordDisplaySettingsStore>();
 

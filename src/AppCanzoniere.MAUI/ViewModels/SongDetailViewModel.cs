@@ -13,10 +13,12 @@ namespace AppCanzoniere.MAUI.ViewModels;
 public partial class SongDetailViewModel : ObservableObject
 {
     private readonly ISongRepository _songRepository;
-    private readonly ISongDisplayService _songDisplay;
+    private readonly SongScreenPresenter _presenter;
     private readonly IChordDisplaySettingsStore _displaySettings;
+    private readonly IUserSettingsRepository _userSettings;
     private string _errorMessage = string.Empty;
     private string _capoText = string.Empty;
+    private string? _appLanguage;
 
     [ObservableProperty]
     private Song? _song;
@@ -24,11 +26,27 @@ public partial class SongDetailViewModel : ObservableObject
     [ObservableProperty]
     private string _displayedContent = string.Empty;
 
+    /// <summary>The song text one string per row, so no label ever has to wrap or truncate.</summary>
+    [ObservableProperty]
+    private IReadOnlyList<string> _displayedLines = Array.Empty<string>();
+
     [ObservableProperty]
     private int _currentTranspose;
 
-    [ObservableProperty]
     private string _currentKey = string.Empty;
+
+    /// <summary>The sounding key; empty when the song file has none.</summary>
+    public string CurrentKey
+    {
+        get => _currentKey;
+        private set
+        {
+            if (SetProperty(ref _currentKey, value))
+                OnPropertyChanged(nameof(HasKey));
+        }
+    }
+
+    public bool HasKey => _currentKey.Length > 0;
 
     [ObservableProperty]
     private bool _isEditMode;
@@ -61,12 +79,14 @@ public partial class SongDetailViewModel : ObservableObject
 
     public SongDetailViewModel(
         ISongRepository songRepository,
-        ISongDisplayService songDisplay,
-        IChordDisplaySettingsStore displaySettings)
+        SongScreenPresenter presenter,
+        IChordDisplaySettingsStore displaySettings,
+        IUserSettingsRepository userSettings)
     {
         _songRepository = songRepository;
-        _songDisplay = songDisplay;
+        _presenter = presenter;
         _displaySettings = displaySettings;
+        _userSettings = userSettings;
     }
 
     partial void OnSongChanged(Song? value)
@@ -108,39 +128,39 @@ public partial class SongDetailViewModel : ObservableObject
         UpdateDisplayedContent();
     }
 
-    // First display and every transpose step both come through here.
+    /// <summary>Shows the song again with the current settings and language, keeping the transposition.</summary>
+    public async Task RefreshDisplayAsync()
+    {
+        try
+        {
+            var stored = await _userSettings.GetAsync();
+            _appLanguage = stored?.PreferredLanguage;
+        }
+        catch (Exception ex)
+        {
+            Debug.WriteLine($"Reading the app language failed: {ex}");
+        }
+
+        UpdateDisplayedContent();
+    }
+
+    // First display, every transpose step and every refresh come through here.
     private void UpdateDisplayedContent()
     {
         if (Song == null) return;
 
-        var chordPro = Song.ChordProContent;
-        if (string.IsNullOrEmpty(chordPro))
-        {
-            CurrentKey = Song.OriginalKey;
-            CapoText = string.Empty;
-            ErrorMessage = string.Empty;
-            DisplayedContent = Song.MusicXmlContent ?? Song.JsonContent ?? "No content available";
-            return;
-        }
-
-        try
-        {
-            var request = new SongDisplayRequest(
-                chordPro, CurrentTranspose, _displaySettings.Load(), CultureInfo.CurrentUICulture.Name, Song.OriginalKey);
-            var shown = _songDisplay.Render(request);
-            DisplayedContent = shown.Text;
-            CurrentKey = string.IsNullOrEmpty(shown.Key) ? Song.OriginalKey : shown.Key;
-            CapoText = shown.Capo > 0 ? $"Capo {shown.Capo}" : string.Empty;
-            ErrorMessage = string.Empty;
-        }
-        catch (Exception ex)
-        {
-            Debug.WriteLine($"Song display failed: {ex}");
-            DisplayedContent = chordPro;
-            CurrentKey = Song.OriginalKey;
-            CapoText = string.Empty;
-            ErrorMessage = "The chords could not be laid out, so the song is shown as stored.";
-        }
+        var screen = _presenter.Present(new SongScreenRequest(
+            Song.ChordProContent,
+            Song.MusicXmlContent ?? Song.JsonContent,
+            CurrentTranspose,
+            _displaySettings.Load(),
+            _appLanguage,
+            CultureInfo.CurrentUICulture.Name));
+        DisplayedContent = screen.Text;
+        DisplayedLines = screen.Text.Split('\n').Select(l => l.Length == 0 ? " " : l).ToArray();
+        CurrentKey = screen.Key;
+        CapoText = screen.Capo;
+        ErrorMessage = screen.Error;
     }
 
     [RelayCommand]

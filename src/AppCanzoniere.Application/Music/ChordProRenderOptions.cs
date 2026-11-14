@@ -17,4 +17,7 @@ public sealed record ChordProRenderOptions
 
     /// <summary>Capo fret 0-11 to show shapes for; null leaves the document's capo untouched.</summary>
     public int? Capo { get; init; }
+
+    /// <summary>When true a chord that only the other notation reads is transposed and written in the output notation too.</summary>
+    public bool ReadBothNotations { get; init; }
 }
