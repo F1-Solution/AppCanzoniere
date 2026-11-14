@@ -29,7 +29,7 @@ public class BracketedChordLineTests
     {
         var result = Run("[Re] Lam Sol", "Canta il Signore");
 
-        Assert.Equal(Out("[Re]Cant[Lam]a il [Sol]Signore"), result.ChordPro);
+        Assert.Equal(Out("[Re]Canta [Lam]il [Sol]Signore"), result.ChordPro);
     }
 
     [Fact]

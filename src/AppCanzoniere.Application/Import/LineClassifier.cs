@@ -74,8 +74,8 @@ internal static class LineClassifier
 
     public static LineClassification Classify(IReadOnlyList<SheetToken> tokens, Notation notation, LineContext context = default)
     {
-        // Chords already in brackets next to plain text mean the line is ChordPro already, whatever the notation.
-        if (tokens.Any(t => t.Bracketed) && tokens.Any(t => !t.Bracketed && t.Kind != TokenKind.Neutral))
+        // Chords already in brackets next to real words, or next to a single plain chord (a lyric with chords after it), mean the line is ChordPro already.
+        if (tokens.Any(t => t.Bracketed) && (tokens.Any(t => !t.Bracketed && t.Kind == TokenKind.Word) || IsLyricWithTail(tokens)))
         {
             var chords = tokens.Count(t => t.Kind == TokenKind.Chord);
             return new LineClassification(false, false, CertainLyric, Array.Empty<SheetWarning>(), tokens, chords, 0, tokens.Count - chords);
@@ -92,6 +92,9 @@ internal static class LineClassifier
 
         return ClassifyTokens(tokens);
     }
+
+    private static bool IsLyricWithTail(IReadOnlyList<SheetToken> tokens) =>
+        tokens.Count(t => !t.Bracketed && t.Kind == TokenKind.Chord) == 1;
 
     private static LineClassification ClassifyTokens(IReadOnlyList<SheetToken> tokens)
     {

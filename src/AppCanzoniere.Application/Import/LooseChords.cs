@@ -16,10 +16,14 @@ internal static class LooseChords
     /// <summary>The tokens with loose chords turned into chords, or null when the line does not qualify.</summary>
     public static IReadOnlyList<SheetToken>? Promote(IReadOnlyList<SheetToken> tokens, Notation notation, LineContext context)
     {
-        var loose = tokens.Where(t => t.LowerChord || t.Foreign || t.Doubtful).ToList();
+        // A bracketed chord of the other notation is explicit evidence, so it counts as a chord, not as a loose word.
+        var realChords = tokens.Count(t => t.Kind == TokenKind.Chord);
+        var plainChords = tokens.Count(t => t.Kind == TokenKind.Chord && !t.Bracketed);
+        var explicitForeign = plainChords > 0 ?tokens.Where(IsExplicitForeign).ToList() : new List<SheetToken>();
+        var loose = tokens.Where(t => (t.LowerChord || t.Foreign || t.Doubtful) && !explicitForeign.Contains(t)).ToList();
         var hasRealWords = tokens.Any(t => t.Kind == TokenKind.Word && !t.LowerChord && !t.Foreign && !t.Doubtful);
-        var strict = tokens.Count(t => t.Kind == TokenKind.Chord);
-        if (loose.Count == 0 || hasRealWords || strict + loose.Count < 2)
+        var strict = realChords + explicitForeign.Count;
+        if (loose.Count + explicitForeign.Count == 0 || hasRealWords || strict + loose.Count < 2)
             return null;
 
         var lowers = loose.Where(t => t.LowerChord).ToList();
@@ -29,8 +33,9 @@ internal static class LooseChords
             (foreign > 0 && strict < MinForeignAnchors) || (doubtful > 0 && strict < MinDoubtfulAnchors))
             return null;
 
-        return tokens.Select(t => t.LowerChord || t.Foreign || t.Doubtful ? ToChord(t, notation) : t).ToList();
-    }
+        return tokens.Select(t => t.LowerChord || t.Foreign || t.Doubtful ? ToChord(t, notation) : t).ToList();    }
+
+    private static bool IsExplicitForeign(SheetToken t) => t.Foreign && t.Bracketed;
 
     /// <summary>True when the line shows lower-case chord evidence by itself: a chord feature or wide gaps; used to see the document's style.</summary>
     public static bool IsStyleEvidence(IReadOnlyList<SheetToken> tokens, Notation notation)
@@ -93,6 +98,7 @@ internal static class LooseChords
         token with
         {
             Kind = TokenKind.Chord,
+            Parenthesised = token.Parenthesised && !token.Bracketed,
             Chord = token.Parenthesised ? token.Text[1..^1] : token.Text,
             Ambiguous = token.LowerChord && SheetTokenizer.IsAmbiguous(token.Parenthesised ? token.Text[1..^1] : token.Text, notation),
             LowerChord = false,
