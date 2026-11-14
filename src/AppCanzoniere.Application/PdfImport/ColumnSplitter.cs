@@ -46,12 +46,19 @@ public static class ColumnSplitter
     private const double MinShareAtMargin = 0.25;
     private const int MinRowsAtMargin = 2;
 
-    // Candidate gutter positions are tried every this many points.
-    private const double GutterStepPoints = 1.0;
+    // A top or bottom row whose height differs from the body's by more than this share is set apart, as a header is.
+    private const double EdgeHeightToleranceShare = 0.15;
 
-    public static IReadOnlyList<LayoutRegion> Split(IReadOnlyList<PositionedWord> words, double pageWidth)
+    // The word-space test for a top or bottom row needs at least this many gaps, so its median is a word space.
+    private const int MinEdgeLineGaps = 2;
+
+    // A header or footer stands further than this multiple of the usual row pitch from the next row.
+    private const double EdgeApartPitchFactor = 1.4;
+
+    public static IReadOnlyList<LayoutRegion> Split(IReadOnlyList<PositionedWord> words, double pageWidth, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(words);
+        cancellationToken.ThrowIfCancellationRequested();
         if (words.Count == 0)
             return Array.Empty<LayoutRegion>();
 
@@ -62,7 +69,11 @@ public static class ColumnSplitter
         var centre = pageWidth / 2;
         var from = Math.Max(left + minColumnWidth, centre - (CentreZoneShare * pageWidth));
         var to = Math.Min(right - minColumnWidth, centre + (CentreZoneShare * pageWidth));
-        var gutter = FindGutter(rows, from, to, minColumnWidth);
+
+        // A position crossed by words in more rows than this leaves too few rows for the bands to win.
+        var maxCrossed = rows.Count - (int)Math.Ceiling(MinBandRowShare * rows.Count);
+        var candidates = GutterCandidates.Between(rows, from, to, maxCrossed);
+        var gutter = FindGutter(rows, candidates, minColumnWidth, cancellationToken);
         return gutter is { } x ? Regions(rows, x, minColumnWidth) : new[] { new LayoutRegion(0, 1, rows) };
     }
 
@@ -73,40 +84,80 @@ public static class ColumnSplitter
     private static bool[] Spanning(IReadOnlyList<TextRow> rows, double x)
     {
         var margin = RightMargin(rows.Where(r => !Crosses(r, x) && r.Right > x).Select(r => RightStart(r, x)).ToList());
-        return rows.Select(r => Crosses(r, x) || IsBridged(r, x, margin)).ToArray();
+        var edges = EdgeLines(rows, x);
+        return rows.Select((r, i) => Crosses(r, x) || IsBridged(r, x, margin, edges.Contains(i))).ToArray();
     }
 
-    private static bool IsBridged(TextRow row, double x, double? margin)
+    private static bool IsBridged(TextRow row, double x, double? margin, bool edgeLine)
     {
         if (row.Left >= x || row.Right <= x)
             return false;
 
         var start = RightStart(row, x);
         var narrow = Gap(row, x) < MinGutterGapInHeights * row.Height;
-        return narrow && (margin is not { } m || Math.Abs(start - m) > MarginTolerancePoints);
+        return narrow && (margin is not { } m || Math.Abs(start - m) > MarginTolerancePoints || edgeLine);
+    }
+
+    // Indexes of a running header or footer: the top or bottom row, set apart from the body by extra space, and set in
+    // another size or crossing the gutter with no more than its usual word space, so a word that happens to start at
+    // the right margin does not split it.
+    private static HashSet<int> EdgeLines(IReadOnlyList<TextRow> rows, double x)
+    {
+        var lines = new HashSet<int>();
+        if (rows.Count < 2)
+            return lines;
+
+        var bodyHeight = rows.Select(r => r.Height).Order().ElementAt(rows.Count / 2);
+        var pitch = rows.Zip(rows.Skip(1), (a, b) => a.Baseline - b.Baseline).Order().ElementAt((rows.Count - 1) / 2);
+        foreach (var (index, neighbour) in new[] { (0, 1), (rows.Count - 1, rows.Count - 2) })
+        {
+            var apart = Math.Abs(rows[index].Baseline - rows[neighbour].Baseline) > EdgeApartPitchFactor * pitch;
+            if (apart && (DiffersInHeight(rows[index], bodyHeight) || CrossesWithWordSpace(rows[index], x)))
+                lines.Add(index);
+        }
+
+        return lines;
+    }
+
+    private static bool DiffersInHeight(TextRow row, double bodyHeight) =>
+        Math.Abs(row.Height - bodyHeight) > EdgeHeightToleranceShare * bodyHeight;
+
+    private static bool CrossesWithWordSpace(TextRow row, double x)
+    {
+        var gaps = row.Words.Zip(row.Words.Skip(1), (a, b) => b.Box.Left - a.Box.Right).Order().ToList();
+        return gaps.Count >= MinEdgeLineGaps && row.Left < x && row.Right > x && !Crosses(row, x) && Gap(row, x) <= gaps[gaps.Count / 2];
     }
 
     private static double RightStart(TextRow row, double x) => row.Words.First(w => w.Box.Left >= x).Box.Left;
 
     private static double Gap(TextRow row, double x) => RightStart(row, x) - row.Words.Last(w => w.Box.Right <= x).Box.Right;
 
-    // The x whose two-column bands hold most rows; ties go to the middle of the widest run of such x.
-    private static double? FindGutter(IReadOnlyList<TextRow> rows, double from, double to, double minColumnWidth)
+    // The x whose two-column bands hold most rows; ties go to the middle of the longest run of adjacent such x.
+    private static double? FindGutter(IReadOnlyList<TextRow> rows, IReadOnlyList<GutterCandidate> candidates, double minColumnWidth, CancellationToken cancellationToken)
     {
-        int bestScore = 0, bestRun = 0, run = 0;
-        double bestX = 0;
-        for (var x = from; x <= to; x += GutterStepPoints)
+        int bestScore = 0, bestRun = 0, run = 0, lastStep = int.MinValue;
+        double bestX = 0, runStart = 0;
+        foreach (var (x, step) in candidates)
         {
+            cancellationToken.ThrowIfCancellationRequested();
             var score = Bands(rows, Spanning(rows, x)).Where(b => IsTwoColumnBand(b, x, minColumnWidth)).Sum(b => b.Count);
+            var adjacent = step == lastStep + 1;
+            lastStep = step;
             if (score > bestScore)
             {
-                (bestScore, bestRun, run, bestX) = (score, 1, 1, x);
+                (bestScore, bestRun, run, bestX, runStart) = (score, 1, 1, x, x);
                 continue;
             }
 
-            run = score == bestScore ? run + 1 : 0;
-            if (score == bestScore && score > 0 && run > bestRun)
-                (bestRun, bestX) = (run, x - ((run - 1) * GutterStepPoints / 2));
+            if (score != bestScore)
+            {
+                run = 0;
+                continue;
+            }
+
+            (run, runStart) = adjacent && run > 0 ? (run + 1, runStart) : (1, x);
+            if (score > 0 && run > bestRun)
+                (bestRun, bestX) = (run, (runStart + x) / 2);
         }
 
         return bestScore > 0 && bestScore >= MinBandRowShare * rows.Count ? bestX : null;

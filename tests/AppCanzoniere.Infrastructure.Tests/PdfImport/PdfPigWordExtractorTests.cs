@@ -29,6 +29,35 @@ public class PdfPigWordExtractorTests
     }
 
     [Fact]
+    public async Task ExtractAsync_GivesEachWordTheLeftEdgeOfEveryLetter()
+    {
+        var result = await Extract(PdfFixtures.TwoColumns());
+
+        var word = result.Pages[0].Words.First(w => w.Text == "Cammina");
+        Assert.NotNull(word.LetterLefts);
+        Assert.Equal(word.Text.Length, word.LetterLefts!.Count);
+        Assert.Equal(word.Box.Left, word.LetterLefts[0], 1);
+        Assert.True(word.LetterLefts.Zip(word.LetterLefts.Skip(1)).All(p => p.Second > p.First));
+        Assert.True(word.LetterLefts[^1] < word.Box.Right);
+
+        // In Helvetica "m" is far wider than "i", so the letters are not evenly spaced.
+        var widths = word.LetterLefts.Zip(word.LetterLefts.Skip(1), (a, b) => b - a).ToList();
+        Assert.True(widths[2] > 2 * widths[4], string.Join(", ", widths));
+    }
+
+    [Fact]
+    public async Task ExtractAsync_KeepsAWordInSmallCapitalsWhole()
+    {
+        // Titles set in small capitals print a larger initial touching smaller capitals; it is still one word.
+        var result = await Extract(PdfFixtures.SmallCapsTitle());
+
+        var words = result.Pages[0].Words;
+        Assert.Equal(new[] { "CANTIAMO", "TE" }, words.Select(w => w.Text));
+        Assert.Equal(8, words[0].LetterLefts!.Count);
+        Assert.Equal(100, words[0].Box.Left, 1);
+    }
+
+    [Fact]
     public async Task Import_ReadsTwoColumns_LeftColumnFirst_WithChordsOverTheirSyllables()
     {
         var result = await Import(PdfFixtures.TwoColumns());
@@ -126,6 +155,26 @@ public class PdfPigWordExtractorTests
         Assert.Empty(result.Pages);
     }
 
+    [Theory]
+    [InlineData(1e7, 842)]
+    [InlineData(595, 1e7)]
+    public async Task ExtractAsync_ReportsAPageLargerThanPdfAllows_AsDamaged(double width, double height)
+    {
+        // The PDF format limits a page side to 14,400 units; a bigger page box is crafted or broken.
+        var result = await Extract(PdfFixtures.PageOfSize(width, height));
+
+        Assert.Equal(PdfExtractionStatus.Damaged, result.Status);
+        Assert.Empty(result.Pages);
+    }
+
+    [Fact]
+    public async Task ExtractAsync_AcceptsALargeButValidPage()
+    {
+        var result = await Extract(PdfFixtures.PageOfSize(14400, 14400));
+
+        Assert.Equal(PdfExtractionStatus.Success, result.Status);
+    }
+
     [Fact]
     public async Task ExtractAsync_ReportsAPasswordProtectedFile_AsEncrypted()
     {
@@ -161,6 +210,56 @@ public class PdfPigWordExtractorTests
 
         Assert.Equal(PdfExtractionStatus.TooLarge, result.Status);
         Assert.Contains("5", result.Reason, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task ExtractAsync_RefusesAPageWithMoreLettersThanTheLimit()
+    {
+        var result = await Extract(PdfFixtures.ManyPages(2), new PdfExtractionLimits { MaxLettersPerPage = 5 });
+
+        Assert.Equal(PdfExtractionStatus.TooLarge, result.Status);
+        Assert.Contains("5", result.Reason, StringComparison.Ordinal);
+        Assert.Empty(result.Pages);
+    }
+
+    [Fact]
+    public async Task ExtractAsync_RefusesAPageWhoseContentIsOverTheLimit()
+    {
+        var result = await Extract(PdfFixtures.ManyPages(1), new PdfExtractionLimits { MaxContentBytesPerPage = 10 });
+
+        Assert.Equal(PdfExtractionStatus.TooLarge, result.Status);
+        Assert.Contains("10", result.Reason, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task ExtractAsync_RefusesAPageWhoseCompressedContentUnpacksOverTheLimit()
+    {
+        // About 2 MB of content packed into a few kilobytes: the size that counts is the unpacked one.
+        var pdf = PdfFixtures.CompressedPage(2_000_000);
+        Assert.True(pdf.Length < 50_000, $"the fixture should be small, it is {pdf.Length} bytes");
+
+        var result = await Extract(pdf, new PdfExtractionLimits { MaxContentBytesPerPage = 1_000_000 });
+
+        Assert.Equal(PdfExtractionStatus.TooLarge, result.Status);
+    }
+
+    [Fact]
+    public async Task ExtractAsync_ReadsACompressedPageWithinTheLimit()
+    {
+        var result = await Extract(PdfFixtures.CompressedPage(20_000));
+
+        Assert.Equal(PdfExtractionStatus.Success, result.Status);
+        Assert.Contains(result.Pages[0].Words, w => w.Text == "gioia");
+    }
+
+    [Fact]
+    public async Task ExtractAsync_GivesAReadableReasonForDamagedInput_AndKeepsTheParserDetailForLogs()
+    {
+        var result = await Extract(System.Text.Encoding.ASCII.GetBytes("%PDF-1.7\n%%EOF\n"));
+
+        Assert.Equal(PdfExtractionStatus.Damaged, result.Status);
+        Assert.Equal("The file is not a readable PDF.", result.Reason);
+        Assert.False(string.IsNullOrWhiteSpace(result.Detail));
     }
 
     [Fact]
@@ -202,6 +301,8 @@ public class PdfPigWordExtractorTests
         Assert.Throws<ArgumentOutOfRangeException>(() => new PdfPigWordExtractor(new PdfExtractionLimits { MaxBytes = 0 }));
         Assert.Throws<ArgumentOutOfRangeException>(() => new PdfPigWordExtractor(new PdfExtractionLimits { MaxPages = 0 }));
         Assert.Throws<ArgumentOutOfRangeException>(() => new PdfPigWordExtractor(new PdfExtractionLimits { MaxDuration = TimeSpan.FromSeconds(-1) }));
+        Assert.Throws<ArgumentOutOfRangeException>(() => new PdfPigWordExtractor(new PdfExtractionLimits { MaxLettersPerPage = 0 }));
+        Assert.Throws<ArgumentOutOfRangeException>(() => new PdfPigWordExtractor(new PdfExtractionLimits { MaxContentBytesPerPage = 0 }));
     }
 
     private sealed class UnseekableStream : MemoryStream

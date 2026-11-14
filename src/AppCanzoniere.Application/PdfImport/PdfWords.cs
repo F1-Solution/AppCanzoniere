@@ -8,8 +8,8 @@ public sealed record WordBox(double Left, double Bottom, double Right, double To
     public double Height => Top - Bottom;
 }
 
-/// <summary>A word as the PDF places it: its text and its bounding box.</summary>
-public sealed record PositionedWord(string Text, WordBox Box);
+/// <summary>A word as the PDF places it: its text, its bounding box and, when known, the left x of each character of Text.</summary>
+public sealed record PositionedWord(string Text, WordBox Box, IReadOnlyList<double>? LetterLefts = null);
 
 /// <summary>The positioned words of one page; HasImages tells a scanned page from a blank one.</summary>
 public sealed record PdfPageWords(int PageNumber, double Width, double Height, IReadOnlyList<PositionedWord> Words, bool HasImages)

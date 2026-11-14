@@ -91,6 +91,51 @@ public class ColumnSplitterTests
     }
 
     [Fact]
+    public void Split_KeepsARunningHeaderWhole_WhenOneOfItsWordsHappensToStartAtTheRightColumnsMargin()
+    {
+        // A booklet's running header crosses the gutter with an ordinary word space, and by chance a word starts
+        // exactly where the right column starts; it is still one line.
+        var page = TwoColumns(top: 740);
+        const string before = "CANZONIERE BRANCA E/G GRUPPO SCOUT";
+        var x = 310 - PageBuilder.SpaceWidth - PageBuilder.Width(before.Replace(" ", string.Empty)) - (before.Count(c => c == ' ') * PageBuilder.SpaceWidth);
+        page.Text(before + " AGESCI MAZARA DEL VALLO", x, 800);
+
+        var regions = ColumnSplitter.Split(page.Words, PageBuilder.PageWidth);
+
+        Assert.Equal(new[] { (0, 1), (0, 2), (1, 2) }, regions.Select(r => (r.ColumnIndex, r.ColumnCount)));
+        Assert.Equal(new[] { "CANZONIERE", "BRANCA", "E/G", "GRUPPO", "SCOUT", "AGESCI", "MAZARA", "DEL", "VALLO" }, TextOf(regions[0]));
+    }
+
+    [Fact]
+    public void Split_KeepsAFooterWhole_WhenItCrossesTheGutterWithAWordSpace()
+    {
+        var page = TwoColumns();
+        const string before = "Raccolta di canti per la";
+        var x = 310 - PageBuilder.SpaceWidth - PageBuilder.Width(before.Replace(" ", string.Empty)) - (before.Count(c => c == ' ') * PageBuilder.SpaceWidth);
+        page.Text(before + " comunita parrocchiale di quartiere", x, 60);
+
+        var regions = ColumnSplitter.Split(page.Words, PageBuilder.PageWidth);
+
+        Assert.Equal(new[] { (0, 2), (1, 2), (0, 1) }, regions.Select(r => (r.ColumnIndex, r.ColumnCount)));
+        Assert.Equal("Raccolta", TextOf(regions[2])[0]);
+    }
+
+    [Fact]
+    public void Split_StillSplitsEveryBodyRow_AcrossAGutterNoWiderThanAWordSpace()
+    {
+        // One booklet leaves about three points between its columns, as wide as its word spaces.
+        var widest = LeftLyrics.Max(l => PageBuilder.Width(l.Replace("^", string.Empty).Replace(" ", string.Empty)) + l.Count(c => c == ' ') * PageBuilder.SpaceWidth);
+        const double rightX = 302;
+        var page = TwoColumns(leftX: rightX - 3 - widest, rightX: rightX, top: 740).Text("CANTI DELLA SERA E DEL MATTINO", 200, 800);
+
+        var regions = ColumnSplitter.Split(page.Words, PageBuilder.PageWidth);
+
+        Assert.Equal(new[] { (0, 1), (0, 2), (1, 2) }, regions.Select(r => (r.ColumnIndex, r.ColumnCount)));
+        Assert.Equal(8, regions[1].Rows.Count);
+        Assert.Equal(8, regions[2].Rows.Count);
+    }
+
+    [Fact]
     public void Split_PutsAFullWidthParagraphBelowTheColumns_AfterBothColumns()
     {
         var page = TwoColumns().Text("una riga conclusiva che attraversa tutta la larghezza del foglio da un lato all'altro", 40, 120);
@@ -122,6 +167,36 @@ public class ColumnSplitterTests
         Assert.Single(regions);
         Assert.Equal((0, 1), (regions[0].ColumnIndex, regions[0].ColumnCount));
         Assert.Equal(8, regions[0].Rows.Count);
+    }
+
+    [Fact]
+    public async Task Split_FinishesQuickly_OnAPageClaimingAnAbsurdWidth()
+    {
+        // A crafted page box a billion points wide, with text near both sides of its centre, used to make the gutter
+        // search try hundreds of millions of positions.
+        const double width = 1e9;
+        var words = TwoColumns(leftX: 40, rightX: (width / 2) + 100).Words;
+
+        var split = Task.Run(() => ColumnSplitter.Split(words, width));
+
+        await split.WaitAsync(TimeSpan.FromSeconds(5));
+    }
+
+    [Fact]
+    public void Split_StopsWithCancellation_WhenTheTokenIsCancelled()
+    {
+        using var source = new CancellationTokenSource();
+        source.Cancel();
+
+        Assert.ThrowsAny<OperationCanceledException>(() => ColumnSplitter.Split(TwoColumns().Words, PageBuilder.PageWidth, source.Token));
+    }
+
+    [Fact]
+    public void Split_StillFindsTheGutter_OnAPageSlightlyWiderThanTheText()
+    {
+        var regions = ColumnSplitter.Split(TwoColumns().Words, PageBuilder.PageWidth + 20);
+
+        Assert.Equal(new[] { (0, 2), (1, 2) }, regions.Select(r => (r.ColumnIndex, r.ColumnCount)));
     }
 
     [Fact]

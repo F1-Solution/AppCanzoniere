@@ -14,10 +14,15 @@ internal sealed record LabelledText(string Name, string Text, IReadOnlySet<int> 
     private const char FormFeed = '\f';
 
     /// <summary>Reads a .txt and its .chordlines; firstPage numbers the first page of the text within the PDF.</summary>
-    public static LabelledText Read(string textPath, string labelPath, int firstPage)
+    public static LabelledText Read(string textPath, string labelPath, int firstPage) =>
+        Parse(Path.GetFileNameWithoutExtension(textPath), File.ReadAllText(textPath), ReadLabels(labelPath), firstPage);
+
+    /// <summary>Reads a whole-PDF .txt without labels, as the column reference of every page.</summary>
+    public static LabelledText ReadUnlabelled(string textPath) =>
+        Parse(Path.GetFileNameWithoutExtension(textPath), File.ReadAllText(textPath), new HashSet<int>(), 1);
+
+    private static LabelledText Parse(string name, string text, HashSet<int> labels, int firstPage)
     {
-        var text = File.ReadAllText(textPath);
-        var labels = ReadLabels(labelPath);
         var pages = new List<LabelledPage>();
         var current = new List<LabelledLine>();
         var page = firstPage;
@@ -37,7 +42,7 @@ internal sealed record LabelledText(string Name, string Text, IReadOnlySet<int> 
         }
 
         pages.Add(new LabelledPage(page, current));
-        return new LabelledText(Path.GetFileNameWithoutExtension(textPath), text, labels, pages.Where(p => p.Lines.Any(l => l.Text.Trim().Length > 0)).ToList());
+        return new LabelledText(name, text, labels, pages.Where(p => p.Lines.Any(l => l.Text.Trim().Length > 0)).ToList());
     }
 
     private static HashSet<int> ReadLabels(string path) =>

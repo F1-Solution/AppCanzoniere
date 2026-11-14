@@ -11,6 +11,9 @@ public sealed class PdfPigWordExtractor : IPdfWordExtractor
 {
     private const int CopyBufferBytes = 81920;
 
+    // The PDF format limits a page side to 14,400 default user units (ISO 32000-1, annex C).
+    private const double MaxPageSidePoints = 14400;
+
     private static readonly ParsingOptions Options = new() { UseLenientParsing = true, SkipMissingFonts = true };
 
     private readonly PdfExtractionLimits _limits;
@@ -20,6 +23,8 @@ public sealed class PdfPigWordExtractor : IPdfWordExtractor
         _limits = limits ?? new PdfExtractionLimits();
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(_limits.MaxBytes, nameof(limits));
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(_limits.MaxPages, nameof(limits));
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(_limits.MaxLettersPerPage, nameof(limits));
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(_limits.MaxContentBytesPerPage, nameof(limits));
         ArgumentOutOfRangeException.ThrowIfLessThan(_limits.MaxDuration, TimeSpan.Zero, nameof(limits));
     }
 
@@ -28,33 +33,43 @@ public sealed class PdfPigWordExtractor : IPdfWordExtractor
         ArgumentNullException.ThrowIfNull(pdf);
         cancellationToken.ThrowIfCancellationRequested();
         var bytes = await ReadBoundedAsync(pdf, cancellationToken).ConfigureAwait(false);
-        if (bytes is null)
+        if (bytes is not { } content)
             return PdfWordsResult.Failure(PdfExtractionStatus.TooLarge, $"The file is larger than the limit of {_limits.MaxBytes} bytes.");
-        if (bytes.Length == 0)
+        if (content.Length == 0)
             return PdfWordsResult.Failure(PdfExtractionStatus.Empty, "The file is empty.");
 
         using var stop = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-        var work = Task.Run(() => Read(bytes, stop.Token), stop.Token);
+        var work = Task.Run(() => Read(content, stop.Token), stop.Token);
         try
         {
             return await work.WaitAsync(_limits.MaxDuration, cancellationToken).ConfigureAwait(false);
         }
         catch (TimeoutException)
         {
-            // The parser cannot be aborted mid-page; cancelling makes it stop at the next page boundary.
+            // PdfPig cannot be interrupted inside one page, so the background work stops at its next check, not at once.
             await stop.CancelAsync().ConfigureAwait(false);
             return TimedOut();
         }
     }
 
     private PdfWordsResult TimedOut() =>
-        PdfWordsResult.Failure(PdfExtractionStatus.TimedOut, $"Reading the file took longer than the limit of {_limits.MaxDuration.TotalSeconds:0.#} seconds.");
+        PdfWordsResult.Failure(PdfExtractionStatus.TimedOut, PdfTextImporter.TimedOutReason(_limits.MaxDuration));
 
-    // Copies at most MaxBytes; null means the input is larger than that.
-    private async Task<byte[]?> ReadBoundedAsync(Stream pdf, CancellationToken cancellationToken)
+    private PdfWordsResult TooLarge(string reason) => PdfWordsResult.Failure(PdfExtractionStatus.TooLarge, reason);
+
+    // Reads at most MaxBytes into a single buffer; null means the input is larger than that.
+    private async Task<ReadOnlyMemory<byte>?> ReadBoundedAsync(Stream pdf, CancellationToken cancellationToken)
     {
-        if (pdf.CanSeek && pdf.Length - pdf.Position > _limits.MaxBytes)
-            return null;
+        if (pdf.CanSeek)
+        {
+            var remaining = pdf.Length - pdf.Position;
+            if (remaining > _limits.MaxBytes || remaining > Array.MaxLength)
+                return null;
+
+            var exact = new byte[remaining];
+            var count = await pdf.ReadAtLeastAsync(exact, exact.Length, throwOnEndOfStream: false, cancellationToken).ConfigureAwait(false);
+            return exact.AsMemory(0, count);
+        }
 
         using var copy = new MemoryStream();
         var buffer = new byte[CopyBufferBytes];
@@ -66,31 +81,15 @@ public sealed class PdfPigWordExtractor : IPdfWordExtractor
             copy.Write(buffer, 0, read);
         }
 
-        return copy.ToArray();
+        return copy.GetBuffer().AsMemory(0, (int)copy.Length);
     }
 
-    private PdfWordsResult Read(byte[] bytes, CancellationToken cancellationToken)
+    private PdfWordsResult Read(ReadOnlyMemory<byte> bytes, CancellationToken cancellationToken)
     {
-        var clock = Stopwatch.StartNew();
         try
         {
             using var document = PdfDocument.Open(bytes, Options);
-            var count = document.NumberOfPages;
-            if (count == 0)
-                return PdfWordsResult.Failure(PdfExtractionStatus.Empty, "The document has no pages.");
-            if (count > _limits.MaxPages)
-                return PdfWordsResult.Failure(PdfExtractionStatus.TooLarge, $"The document has {count} pages, more than the limit of {_limits.MaxPages}.");
-
-            var pages = new List<PdfPageWords>(count);
-            for (var number = 1; number <= count; number++)
-            {
-                cancellationToken.ThrowIfCancellationRequested();
-                if (clock.Elapsed >= _limits.MaxDuration)
-                    return TimedOut();
-                pages.Add(PdfPigPage.Words(document.GetPage(number)));
-            }
-
-            return Classify(pages);
+            return ReadPages(document, cancellationToken);
         }
         catch (PdfDocumentEncryptedException)
         {
@@ -100,11 +99,56 @@ public sealed class PdfPigWordExtractor : IPdfWordExtractor
         {
             throw;
         }
+        catch (OutOfMemoryException exception)
+        {
+            return TooLarge("The file needs more memory than the device can give.") with { Detail = exception.Message };
+        }
         catch (Exception exception)
         {
-            // Untrusted input: any parser failure is reported, never thrown.
-            return PdfWordsResult.Failure(PdfExtractionStatus.Damaged, $"The file is not a readable PDF ({exception.Message}).");
+            // Untrusted input: any parser failure is reported, never thrown; the parser's words are for logs only.
+            return PdfWordsResult.Failure(PdfExtractionStatus.Damaged, "The file is not a readable PDF.") with { Detail = $"{exception.GetType().Name}: {exception.Message}" };
         }
+    }
+
+    private PdfWordsResult ReadPages(PdfDocument document, CancellationToken cancellationToken)
+    {
+        var clock = Stopwatch.StartNew();
+        var count = document.NumberOfPages;
+        if (count == 0)
+            return PdfWordsResult.Failure(PdfExtractionStatus.Empty, "The document has no pages.");
+        if (count > _limits.MaxPages)
+            return TooLarge($"The document has {count} pages, more than the limit of {_limits.MaxPages}.");
+
+        var dictionaries = PageContentSize.PageDictionaries(document, count);
+        var pages = new List<PdfPageWords>(count);
+        for (var number = 1; number <= count; number++)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            if (clock.Elapsed >= _limits.MaxDuration)
+                return TimedOut();
+            if (dictionaries.TryGetValue(number, out var dictionary) && PageContentSize.Exceeds(document, dictionary, _limits.MaxContentBytesPerPage))
+                return TooLarge($"Page {number} holds more than {_limits.MaxContentBytesPerPage} bytes of content, the limit.");
+
+            var page = document.GetPage(number);
+            if (Refuse(page) is { } refusal)
+                return refusal;
+
+            cancellationToken.ThrowIfCancellationRequested();
+            pages.Add(PdfPigPage.Words(page));
+        }
+
+        return Classify(pages);
+    }
+
+    // A parsed page too big to lay out: a page box larger than PDF allows, or more characters than the limit.
+    private PdfWordsResult? Refuse(Page page)
+    {
+        if (page.Width > MaxPageSidePoints || page.Height > MaxPageSidePoints)
+            return PdfWordsResult.Failure(PdfExtractionStatus.Damaged, $"Page {page.Number} is larger than the PDF format allows.");
+
+        return page.Letters.Count > _limits.MaxLettersPerPage
+            ? TooLarge($"Page {page.Number} has more than {_limits.MaxLettersPerPage} characters, the limit.")
+            : null;
     }
 
     private static PdfWordsResult Classify(IReadOnlyList<PdfPageWords> pages)

@@ -16,6 +16,9 @@ internal sealed class PageBuilder
 
     private readonly List<PositionedWord> _words = new();
 
+    /// <summary>When true, every word carries the x of each of its letters, as words read from a real PDF do.</summary>
+    public bool WithLetters { get; init; }
+
     public IReadOnlyList<PositionedWord> Words => _words;
 
     public static double Width(char c) => c switch
@@ -43,7 +46,8 @@ internal sealed class PageBuilder
     /// <summary>Adds one word with its left edge at x.</summary>
     public PageBuilder Word(string text, double x, double baseline)
     {
-        _words.Add(new PositionedWord(text, new WordBox(x, baseline, x + Width(text), baseline + TextHeight)));
+        var letters = WithLetters ? text.Select((_, i) => x + Width(text[..i])).ToList() : null;
+        _words.Add(new PositionedWord(text, new WordBox(x, baseline, x + Width(text), baseline + TextHeight), letters));
         return this;
     }
 

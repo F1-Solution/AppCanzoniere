@@ -13,4 +13,8 @@
     <ProjectReference Include="..\..\src\AppCanzoniere.Infrastructure\AppCanzoniere.Infrastructure.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <PackageReference Include="PdfPig" />
+  </ItemGroup>
+
 </Project>

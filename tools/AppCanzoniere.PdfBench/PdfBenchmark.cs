@@ -7,11 +7,11 @@ namespace AppCanzoniere.PdfBench;
 /// <summary>Scores of one labelled text: the pdftotext baseline and the in-app extraction of the same pages.</summary>
 internal sealed record ExtractScore(string Name, IReadOnlyList<int> Pages, Score Baseline, Score Extracted, int Lines, int Unmatched, int Fragments)
 {
-    /// <summary>Non-blank pdftotext lines of the labelled pages.</summary>
-    public int SourceLines { get; init; }
+    /// <summary>In-app score over lines whose label is a hand label.</summary>
+    public Score Human { get; init; } = Score.None;
 
-    /// <summary>pdftotext lines whose words went to both columns in the app.</summary>
-    public int MixedSourceLines { get; init; }
+    /// <summary>In-app score over fragment and unmatched lines, whose label comes from the strict chord pattern.</summary>
+    public Score Pattern { get; init; } = Score.None;
 
     /// <summary>Scored lines where the converter and the label disagree.</summary>
     public IReadOnlyList<Disagreement> Disagreements { get; init; } = Array.Empty<Disagreement>();
@@ -27,7 +27,12 @@ internal sealed record Disagreement(int Page, string Line, bool Labelled, TruthS
 internal sealed record ScoredLine(int Page, int Column, string Text, Truth Truth, bool Predicted);
 
 /// <summary>Everything measured for one PDF.</summary>
-internal sealed record PdfBenchResult(string File, PdfTextResult Text, TimeSpan Elapsed, IReadOnlyList<ExtractScore> Extracts);
+internal sealed record PdfBenchResult(string File, PdfTextResult Text, TimeSpan Elapsed, IReadOnlyList<ExtractScore> Extracts)
+{
+    public SplitResult Split { get; init; } = SplitResult.None;
+
+    public AlignmentScore Alignment { get; init; } = AlignmentScore.None;
+}
 
 /// <summary>Runs one PDF through extraction, layout and the chord sheet converter, and scores it against the labels.</summary>
 internal sealed class PdfBenchmark
@@ -36,7 +41,7 @@ internal sealed class PdfBenchmark
 
     public PdfBenchmark(PdfTextImporter importer) => _importer = importer;
 
-    public async Task<PdfBenchResult> RunAsync(string pdfPath, IReadOnlyList<LabelledText> labels, CancellationToken cancellationToken)
+    public async Task<PdfBenchResult> RunAsync(string pdfPath, IReadOnlyList<LabelledText> labels, IReadOnlyList<LabelledPage> reference, CancellationToken cancellationToken)
     {
         var clock = Stopwatch.StartNew();
         PdfTextResult text;
@@ -45,7 +50,11 @@ internal sealed class PdfBenchmark
         clock.Stop();
 
         var extracts = labels.Select(l => ScoreExtract(l, text)).ToList();
-        return new PdfBenchResult(Path.GetFileName(pdfPath), text, clock.Elapsed, extracts);
+        return new PdfBenchResult(Path.GetFileName(pdfPath), text, clock.Elapsed, extracts)
+        {
+            Split = SplitCheck.Measure(text, reference, TwoColumnPages(pdfPath, labels)),
+            Alignment = ChordAlignment.Measure(pdfPath, text),
+        };
     }
 
     private static ExtractScore ScoreExtract(LabelledText labelled, PdfTextResult text)
@@ -57,24 +66,32 @@ internal sealed class PdfBenchmark
             .Select(p => ScorePage(p.Labels, p.Page!))
             .ToList();
         var all = scored.SelectMany(s => s).ToList();
-        var truth = all.Where(s => s.Truth.Source != TruthSource.Unmatched).ToList();
-        var extracted = Score.Of(truth.Select(t => t.Truth.IsChordLine).ToList(), truth.Select(t => t.Predicted).ToList());
-        var mixed = truth.Where(t => t.Column >= 0).GroupBy(t => (t.Page, t.Truth.SourceLine)).Count(g => g.Select(t => t.Column).Distinct().Count() > 1);
+        var human = all.Where(s => s.Truth.Source == TruthSource.Label).ToList();
+        var pattern = all.Where(s => s.Truth.Source != TruthSource.Label).ToList();
         return new ExtractScore(
             labelled.Name,
             labelled.Pages.Select(p => p.PageNumber).ToList(),
             baseline,
-            extracted,
+            Of(all),
             all.Count,
             all.Count(s => s.Truth.Source == TruthSource.Unmatched),
             all.Count(s => s.Truth.Source == TruthSource.Fragment))
         {
-            SourceLines = labelled.Pages.Sum(p => p.Lines.Count(l => l.Text.Trim().Length > 0)),
-            MixedSourceLines = mixed,
+            Human = Of(human),
+            Pattern = Of(pattern),
             UnmatchedLines = all.Where(s => s.Truth.Source == TruthSource.Unmatched).Select(s => $"p{s.Page}: {s.Text.Trim()}").ToList(),
-            Disagreements = truth.Where(t => t.Truth.IsChordLine != t.Predicted).Select(t => new Disagreement(t.Page, t.Text, t.Truth.IsChordLine, t.Truth.Source)).ToList(),
+            Disagreements = all.Where(t => t.Truth.IsChordLine != t.Predicted).Select(t => new Disagreement(t.Page, t.Text, t.Truth.IsChordLine, t.Truth.Source)).ToList(),
         };
     }
+
+    // Labelled pages of the PDFs the corpus description lists as two-column.
+    private static HashSet<int> TwoColumnPages(string pdfPath, IReadOnlyList<LabelledText> labels) =>
+        CorpusFolder.IsTwoColumn(pdfPath)
+            ? labels.SelectMany(l => l.Pages).Select(p => p.PageNumber).ToHashSet()
+            : new HashSet<int>();
+
+    private static Score Of(IReadOnlyList<ScoredLine> lines) =>
+        Score.Of(lines.Select(l => l.Truth.IsChordLine).ToList(), lines.Select(l => l.Predicted).ToList());
 
     // The converter on the labelled pdftotext text, scored by physical line number as the corpus tests do.
     private static Score BaselineScore(LabelledText labelled)

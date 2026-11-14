@@ -72,6 +72,69 @@ public class AlignedTextRendererTests
     }
 
     [Fact]
+    public void Render_AnchorsChords_OnALyricThatStartsWithAVerseNumberFarFromItsText()
+    {
+        // As in a real booklet, the verse number "3" stands more than a text height before its verse; the chords above
+        // still belong to that verse, not to the line above it.
+        var page = new PageBuilder { WithLetters = true }
+            .Text("questa riga sta sopra e non porta accordi", 50, 724)
+            .Word("3", 50, 700);
+        page.ChordsOver("i potenti rovescio dai ^troni il Si^gnor", new[] { "LA-", "MI" }, 50 + PageBuilder.Width("3") + 12, 700);
+
+        var lines = Render(page);
+
+        var lyric = lines.Single(l => l.Contains("troni", StringComparison.Ordinal));
+        var chords = lines[lines.ToList().IndexOf(lyric) - 1];
+        Assert.Equal(lyric.IndexOf("troni", StringComparison.Ordinal), chords.IndexOf("LA-", StringComparison.Ordinal));
+        Assert.Equal(lyric.IndexOf("gnor", StringComparison.Ordinal), chords.IndexOf("MI", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void Render_AnchorsChords_OnTheLyricBelow_EvenWhenItsSyllablesAreSpreadApart()
+    {
+        // Psalm sheets pull syllables apart to make room for the chords ("fo   ssa"); such a lyric is still the anchor.
+        var page = new PageBuilder { WithLetters = true }.Text("verso il tuo tempio santo o Signor", 50, 724);
+        var x = 50.0;
+        foreach (var (word, gap) in new[] { ("nella", 3.0), ("fo", 25.0), ("ssa", 25.0), ("o", 3.0), ("Signor", 0.0) })
+        {
+            page.Word(word, x, 700);
+            x += PageBuilder.Width(word) + gap;
+        }
+
+        var ssa = 50 + PageBuilder.Width("nella") + 3 + PageBuilder.Width("fo") + 25;
+        page.Word("RE", ssa, 712).Word("SOL", x - PageBuilder.Width("Signor"), 712);
+
+        var lines = Render(page);
+
+        Assert.Equal(lines[2].IndexOf("ssa", StringComparison.Ordinal), lines[1].IndexOf("RE", StringComparison.Ordinal));
+        Assert.Equal(lines[2].IndexOf("Signor", StringComparison.Ordinal), lines[1].IndexOf("SOL", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void Render_PlacesEveryChordOverItsLetter_WhenChordsArePackedLikeWords()
+    {
+        // Chords close together look like a line of words by spacing alone; they must still follow the lyric below.
+        var page = new PageBuilder { WithLetters = true }.ChordsOver("^mamma ^mia ^vieni ^qui", new[] { "DO", "RE", "SOL", "LA" }, 50, 700);
+
+        var lines = Render(page);
+
+        Assert.Equal(lines[1].IndexOf("mia", StringComparison.Ordinal), lines[0].IndexOf("RE", StringComparison.Ordinal));
+        Assert.Equal(lines[1].IndexOf("vieni", StringComparison.Ordinal), lines[0].IndexOf("SOL", StringComparison.Ordinal));
+        Assert.Equal(lines[1].IndexOf("qui", StringComparison.Ordinal), lines[0].IndexOf("LA", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void Render_PutsAChordOverTheLetterUnderIt_FromTheLettersOwnPositions()
+    {
+        // Wide letters first, narrow letters after: an average letter width would put the chord two letters too far right.
+        var page = new PageBuilder { WithLetters = true }.ChordsOver("mmmmi^iiii ok", new[] { "FA" }, 50, 700);
+
+        var lines = Render(page);
+
+        Assert.Equal(5, lines[0].IndexOf("FA", StringComparison.Ordinal));
+    }
+
+    [Fact]
     public void Render_IndentsLinesThatStartFurtherRight()
     {
         var page = new PageBuilder().Text("prima riga del canto", 50, 700).Text("rientrata", 50 + (4 * PageBuilder.Width("e")), 688);
@@ -96,6 +159,38 @@ public class AlignedTextRendererTests
         Assert.Equal(6, lines.Count);
         Assert.Equal(string.Empty, lines[3]);
         Assert.Null(AlignedTextRenderer.Render(TextRows.Group(page.Words))[3].Row);
+    }
+
+    [Fact]
+    public void Render_AnchorsChords_ThatStandThreeTextHeightsAboveTheirLyric()
+    {
+        // One booklet leaves a whole blank line between each chord row and its lyric.
+        var page = new PageBuilder { WithLetters = true }.Text("una riga sopra senza accordi", 50, 760);
+        page.ChordsOver("se poi credi n^on possa ba^stare", new[] { "SI-", "MI" }, 50, 700, pitch: 3 * PageBuilder.TextHeight);
+
+        var lines = Render(page);
+
+        var lyric = lines[^1];
+        Assert.Equal(lyric.IndexOf("on possa", StringComparison.Ordinal), lines[^2].IndexOf("SI-", StringComparison.Ordinal));
+        Assert.Equal(lyric.IndexOf("stare", StringComparison.Ordinal), lines[^2].IndexOf("MI", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void Render_NeverPutsABlankLineBetweenAChordRowAndItsLyric()
+    {
+        // The chords stand a little higher above this verse than the usual line pitch; they still belong to it.
+        var page = new PageBuilder { WithLetters = true }
+            .Text("prima strofa riga uno", 50, 760)
+            .Text("prima strofa riga due", 50, 748)
+            .Text("prima strofa riga tre", 50, 736)
+            .Text("prima strofa riga quattro", 50, 724);
+        page.ChordsOver("^seconda strofa ^riga", new[] { "DO", "SOL" }, 50, 670, pitch: 20);
+
+        var lines = Render(page);
+
+        Assert.Equal("seconda strofa riga", lines[^1]);
+        Assert.StartsWith("DO", lines[^2], StringComparison.Ordinal);
+        Assert.Equal(string.Empty, lines[^3]);
     }
 
     [Fact]

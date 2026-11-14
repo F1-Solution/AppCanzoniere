@@ -13,16 +13,21 @@ public sealed record PageText(int PageNumber, int ColumnCount, bool IsScanned, I
 /// <summary>Turns the positioned words of a page into aligned text, column by column.</summary>
 public static class PdfPageLayout
 {
-    public static PageText Lay(PdfPageWords page)
+    public static PageText Lay(PdfPageWords page, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(page);
+        cancellationToken.ThrowIfCancellationRequested();
         var words = page.Words.Where(w => !string.IsNullOrWhiteSpace(w.Text) && w.Box.Width > 0).ToList();
         if (words.Count == 0)
             return new PageText(page.PageNumber, 0, page.HasImages, Array.Empty<TextBlock>());
 
-        var blocks = ColumnSplitter.Split(words, page.Width)
-            .Select(r => new TextBlock(r.ColumnIndex, r.ColumnCount, AlignedTextRenderer.Render(r.Rows)))
-            .ToList();
+        var blocks = new List<TextBlock>();
+        foreach (var region in ColumnSplitter.Split(words, page.Width, cancellationToken))
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            blocks.Add(new TextBlock(region.ColumnIndex, region.ColumnCount, AlignedTextRenderer.Render(region.Rows)));
+        }
+
         return new PageText(page.PageNumber, blocks.Max(b => b.ColumnCount), false, blocks);
     }
 }
