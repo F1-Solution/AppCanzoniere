@@ -27,6 +27,7 @@ public sealed class PdfPigWordExtractor : IPdfWordExtractor
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(_limits.MaxContentBytesPerDocument, nameof(limits));
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(_limits.MaxLettersPerDocument, nameof(limits));
         ArgumentOutOfRangeException.ThrowIfLessThan(_limits.MaxDuration, TimeSpan.Zero, nameof(limits));
+        ArgumentOutOfRangeException.ThrowIfGreaterThan(_limits.MaxDuration, PdfTextImporter.MaxSupportedDuration, nameof(limits));
     }
 
     public async Task<PdfWordsResult> ExtractAsync(Stream pdf, CancellationToken cancellationToken = default)
