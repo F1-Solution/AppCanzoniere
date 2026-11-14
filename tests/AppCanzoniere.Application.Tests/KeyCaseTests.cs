@@ -49,10 +49,43 @@ public class KeyCaseTests
         Assert.Equal($"{{key:{expected}}}", RenderKey(value, options));
     }
 
-    [Fact]
-    public void CompactUpperCaseAB_StaysAsTheCompactParserReadsIt()
+    [Theory]
+    [InlineData("AB", 1, "A")]
+    [InlineData("AB", 2, "BB")]
+    [InlineData("AB", 3, "B")]
+    [InlineData("EB", 1, "E")]
+    [InlineData("BB", 1, "B")]
+    [InlineData("SIB", 2, "DO")]
+    [InlineData("MIB", 1, "MI")]
+    [InlineData("LAB", 1, "LA")]
+    [InlineData("REB", 1, "RE")]
+    [InlineData("SOLB", 1, "SOL")]
+    [InlineData("EBM", 2, "FM")]
+    [InlineData("SIBM", 2, "DOM")]
+    [InlineData("ABM", 1, "AM")]
+    public void CompactAllCapsKey_ReadsBAfterANoteAsAFlatSign_AndKeepsTheAllCapsStyle(string value, int steps, string expected)
     {
-        Assert.Equal("{key:BB}", RenderKey("AB", Steps(2)));
+        Assert.Equal($"{{key:{expected}}}", RenderKey(value, Steps(steps, AccidentalPreference.Auto)));
+    }
+
+    [Theory]
+    [InlineData("AM", 2, "BM")]
+    [InlineData("EM", 1, "FM")]
+    [InlineData("BM", 1, "CM")]
+    public void CompactAllCapsKey_ReadsAnUpperCaseMAfterTheNoteOrFlatAsMinor_AndKeepsIt(string value, int steps, string expected)
+    {
+        Assert.Equal($"{{key:{expected}}}", RenderKey(value, Steps(steps, AccidentalPreference.Auto)));
+    }
+
+    [Theory]
+    [InlineData("Ab", 2, "Bb")]
+    [InlineData("Bb", 1, "B")]
+    [InlineData("Sib", 2, "Do")]
+    [InlineData("Am", 2, "Bm")]
+    [InlineData("C", 10, "Bb")]
+    public void MixedCaseCompactKeys_AreUnchanged(string value, int steps, string expected)
+    {
+        Assert.Equal($"{{key:{expected}}}", RenderKey(value, Steps(steps, AccidentalPreference.Auto)));
     }
 
     [Theory]
