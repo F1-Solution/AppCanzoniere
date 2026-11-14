@@ -65,9 +65,14 @@ internal static class FilterChain
             return decoded;
 
         var colors = Math.Min(Int(parameters, NameToken.Colors, 1), 32);
-        var rowBytes = unchecked(((Int(parameters, NameToken.Columns, 1) * (colors * Int(parameters, NameToken.BitsPerComponent, 8))) + 7) / 8);
-        if (rowBytes < 0 || decoded.Bytes.Length + (3L * rowBytes) > cap)
-            return rowBytes < 0 ? Decoded.Unreadable : Decoded.OverCap;
+        var bits = Int(parameters, NameToken.BitsPerComponent, 8);
+        var rowBytes = ((Int(parameters, NameToken.Columns, 1) * (long)colors * bits) + 7) / 8;
+
+        // PdfPig's predictor never advances on a row of zero bytes, so such rows and nonsensical samples are unreadable.
+        if (colors < 1 || bits is not (1 or 2 or 4 or 8 or 16) || rowBytes <= 0)
+            return Decoded.Unreadable;
+        if (decoded.Bytes.Length + (3 * rowBytes) > cap)
+            return Decoded.OverCap;
 
         var filter = DefaultFilterProvider.Instance.GetNamedFilters(new[] { NameToken.Create(name) })[0];
         return new Decoded(DecodeStatus.Decoded, filter.Decode(input.ToArray(), dictionary, DefaultFilterProvider.Instance, index));
