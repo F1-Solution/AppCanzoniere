@@ -1,4 +1,3 @@
-using System.Diagnostics;
 using AppCanzoniere.Application.Interfaces;
 using AppCanzoniere.Application.Music;
 using AppCanzoniere.Application.Services;
@@ -130,17 +129,23 @@ public class ChordProEditedDocumentTests
     [Fact]
     public void ChecksOnALargeDocument_StayLinear()
     {
-        var song = string.Concat(Enumerable.Repeat("[C]Some [G]words here\n", 100_000));
-        var document = _parser.Parse(song);
-
-        var watch = Stopwatch.StartNew();
-        var unedited = _parser.Render(document);
-        document.Lines[^1].Text += "!";
-        var edited = _parser.Render(document);
-        watch.Stop();
-
-        Assert.Equal(song, unedited);
-        Assert.NotEqual(song, edited);
-        Assert.True(watch.Elapsed < TimeSpan.FromSeconds(10), $"Rendering took {watch.Elapsed}.");
+        // Quadratic checks would cost 16x for 4x the lines, above the 8x allowed by the scaling check.
+        ScalingAssert.StaysLinear(
+            lines =>
+            {
+                var song = string.Concat(Enumerable.Repeat("[C]Some [G]words here\n", lines));
+                var document = _parser.Parse(song);
+                return () =>
+                {
+                    var last = document.Lines[^1];
+                    var unedited = _parser.Render(document);
+                    last.Text += "!";
+                    var edited = _parser.Render(document);
+                    last.Text = last.Text[..^1];
+                    Assert.Equal(song, unedited);
+                    Assert.NotEqual(song, edited);
+                };
+            },
+            10_000);
     }
 }

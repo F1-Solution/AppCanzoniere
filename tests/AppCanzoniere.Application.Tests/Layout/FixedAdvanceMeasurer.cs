@@ -21,12 +21,15 @@ internal sealed class FixedAdvanceMeasurer : ITextMeasurer
 
     public int TotalCalls { get; private set; }
 
+    public long TotalCharacters { get; private set; }
+
     public IReadOnlyDictionary<(string Text, TextRole Role), int> Calls => _calls;
 
     public TextMetrics Measure(string text, TextRole role)
     {
         var (advance, lineHeight, ascent) = Table[role];
         TotalCalls++;
+        TotalCharacters += text.Length;
         _calls[(text, role)] = _calls.GetValueOrDefault((text, role)) + 1;
         return new TextMetrics(text.Length * advance, lineHeight, ascent);
     }

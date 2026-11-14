@@ -1,4 +1,3 @@
-using System.Diagnostics;
 using AppCanzoniere.Application.Interfaces;
 using AppCanzoniere.Application.Music;
 using AppCanzoniere.Application.Services;
@@ -203,15 +202,15 @@ public class ChordProHandBuiltTests
     [Fact]
     public void LargeDocument_RendersInLinearTime()
     {
-        var document = new ChordProDocument();
-        for (var i = 0; i < 100_000; i++)
-            document.Lines.Add(Line(ChordProLineType.Verse, "Some words here", ("C", 0), ("G", 5)));
-
-        var watch = Stopwatch.StartNew();
-        var text = Render(document);
-        watch.Stop();
-
-        Assert.True(text.Length > 1_000_000);
-        Assert.True(watch.Elapsed < TimeSpan.FromSeconds(10), $"Rendering took {watch.Elapsed}.");
+        // Quadratic rendering would cost 16x for 4x the lines, above the 8x allowed by the scaling check.
+        ScalingAssert.StaysLinear(
+            lines =>
+            {
+                var document = new ChordProDocument();
+                for (var i = 0; i < lines; i++)
+                    document.Lines.Add(Line(ChordProLineType.Verse, "Some words here", ("C", 0), ("G", 5)));
+                return () => Assert.True(Render(document).Length > 10 * lines);
+            },
+            10_000);
     }
 }
