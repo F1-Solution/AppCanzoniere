@@ -52,6 +52,18 @@ public class CommentBetweenSectionsTests
         Assert.Equal(new[] { false, true, true, false }, section.Lines.Select(l => l.IsComment));
     }
 
+    [Theory]
+    [InlineData("{soc}\n[C]a\n{c: x2}\n{eoc}\n{soc}\n[C]b\n{eoc}")]
+    [InlineData("{soc}\n[C]a\n{c: x2}\n{eoc}\n{sob}\n[C]b\n{eob}")]
+    public void ACommentEndingASection_IsNotTheLabelOfTheNextSectionThatStartsAtOnce(string song)
+    {
+        var flow = Flow(song);
+
+        Assert.Equal(new[] { false, true }, flow.Sections[0].Lines.Select(l => l.IsComment));
+        Assert.Equal(new string?[] { null, null }, flow.Sections.Select(s => s.Label));
+        Assert.Equal(2, flow.Sections.Count);
+    }
+
     [Fact]
     public void ACommentRightAfterTheStartOfAChorus_LabelsIt()
     {
