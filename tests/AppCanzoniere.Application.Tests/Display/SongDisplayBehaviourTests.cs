@@ -269,6 +269,33 @@ public class SongDisplayBehaviourTests
     }
 
     [Fact]
+    public void AnEarlierComment_DoesNotSuppressTheLabelOfALaterChorus()
+    {
+        var shown = Show("[G]x\n{c: x2}\n\n{soc}\n[C]y\n{eoc}");
+
+        Assert.Equal(1, CountOf(shown.Text, "Chorus"));
+    }
+
+    [Fact]
+    public void AChorusRecallRightAfterAComment_IsNotLabelledTwice()
+    {
+        var shown = Show("{c: Rit.}\n{chorus}");
+
+        Assert.Equal(1, CountOf(shown.Text, "Rit."));
+        Assert.Equal(0, CountOf(shown.Text, "Chorus"));
+    }
+
+    [Fact]
+    public void AChorusRecallAfterAnEarlierComment_StillGetsItsLabel()
+    {
+        var shown = Show("{c: Rit.}\n\n[G]x\n{chorus}");
+
+        Assert.Equal(1, CountOf(shown.Text, "Chorus"));
+    }
+
+    private static int CountOf(string text, string word) => text.Split(word).Length - 1;
+
+    [Fact]
     public void AChorusThatAlreadyHasACommentLabel_IsNotMarkedTwice()
     {
         Assert.Equal(Lines("Rit.", "G", "due"), Show("{comment: Rit.}\n{soc}\n[G]due\n{eoc}").Text);
