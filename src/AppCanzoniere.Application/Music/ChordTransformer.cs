@@ -93,7 +93,10 @@ public sealed class ChordTransformer
         return foreign;
     }
 
+    // Notation or minor style differs, so chords are rewritten.
     private bool Conversion => _options.InputNotation != _options.OutputNotation;
+
+    private bool NotationChanges => _options.InputNotation.Notation != _options.OutputNotation.Notation;
 
     /// <summary>Tonic and mode the chords are spelled against after the shift: the key, else the first chord; null when neither reads.</summary>
     internal (int Tonic, bool Minor)? ReferenceKey => _reference;
@@ -138,7 +141,7 @@ public sealed class ChordTransformer
             return original;
 
         var reference = (Note.Mod12(key.Symbol.Root.PitchClass + steps), key.Symbol.IsMinor);
-        return key.Write(Shifted(key.Symbol, steps, reference, preference), _options.OutputNotation, Conversion);
+        return key.Write(Shifted(key.Symbol, steps, reference, preference), _options.OutputNotation, NotationChanges, Conversion);
     }
 
     private static bool IsUntouched(int steps, AccidentalPreference? preference) =>

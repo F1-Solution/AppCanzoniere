@@ -2,13 +2,10 @@ using AppCanzoniere.Application.Music;
 
 namespace AppCanzoniere.Application.Display;
 
-/// <summary>Tells which notation a song's chords are written in, and whether their minor marker contradicts the wanted style.</summary>
+/// <summary>Tells which notation a song's chords are written in and whether a minor marker contradicts the wanted style.</summary>
 internal static class ChordNotationDetector
 {
-    /// <summary>
-    /// The notation more chords read in; on a tie the first chord that only one notation reads decides; English when none does.
-    /// The minor style is set to differ from <paramref name="wanted"/> exactly when a minor chord is written another way, so it gets rewritten.
-    /// </summary>
+    /// <summary>The notation more chords read in (on a tie the first chord only one notation reads, else English), with a minor style that differs from <paramref name="wanted"/> exactly when a minor chord is written another way.</summary>
     public static NotationOptions Detect(IEnumerable<string> chords, MinorStyle wanted)
     {
         var list = chords.ToList();
