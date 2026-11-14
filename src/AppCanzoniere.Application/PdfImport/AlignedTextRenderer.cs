@@ -21,8 +21,8 @@ public static class AlignedTextRenderer
     // ...and no gap between words wider than this many row heights.
     private const double MaxDenseGapInHeights = 1.0;
 
-    // A row is mapped onto a lyric row at most this many of its heights away.
-    private const double MaxAnchorDistanceInHeights = 2.5;
+    // A row is mapped onto a lyric row at most this many of its heights away; some booklets leave a blank line between.
+    private const double MaxAnchorDistanceInHeights = 3.5;
 
     // A vertical gap larger than this multiple of the usual row pitch becomes a blank line.
     private const double BlankLinePitchFactor = 1.6;
