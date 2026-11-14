@@ -5,13 +5,13 @@ using Xunit.Abstractions;
 
 namespace AppCanzoniere.Infrastructure.Tests.PdfImport;
 
-// Regression checks on the local, git-ignored corpus of real booklets; they pass with a message when it is missing.
+// Local-only checks on the git-ignored corpus of real booklets; without it they return early and pass, as the converter's corpus tests do (xUnit 2 has no runtime skip).
 public class PdfCorpusTests
 {
     private const string CorpusFolderName = "corpus-locale";
 
     // Booklets the corpus description lists as two-column, and booklets that are single-column throughout.
-    private static readonly string[] TwoColumnBooklets = { "03-", "13-", "15-", "18-" };
+    private static readonly string[] TwoColumnBooklets = { "03-", "04-", "13-", "15-", "18-" };
     private static readonly string[] SingleColumnBooklets = { "14-", "16-" };
 
     // Share of text pages that must be read as two columns, or may be, for the two groups.
@@ -51,7 +51,7 @@ public class PdfCorpusTests
     }
 
     [Fact]
-    public async Task EveryCorpusPdf_ComesBackTyped_AndScansAreReportedAsScans()
+    public async Task LocalCorpus_EveryPdf_ComesBackTyped_AndScansAreReportedAsScans()
     {
         var folder = PdfFolder();
         if (folder is null)
@@ -71,7 +71,7 @@ public class PdfCorpusTests
     }
 
     [Fact]
-    public async Task TwoColumnBooklets_AreReadColumnByColumn_OnNearlyEveryTextPage()
+    public async Task LocalCorpus_TwoColumnBooklets_AreReadColumnByColumn_OnNearlyEveryTextPage()
     {
         var folder = PdfFolder();
         if (folder is null)
@@ -89,7 +89,7 @@ public class PdfCorpusTests
     }
 
     [Fact]
-    public async Task SingleColumnBooklets_AreRarelySplit()
+    public async Task LocalCorpus_SingleColumnBooklets_AreRarelySplit()
     {
         var folder = PdfFolder();
         if (folder is null)
