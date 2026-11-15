@@ -24,6 +24,7 @@ public sealed class PdfPigWordExtractor : IPdfWordExtractor
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(_limits.MaxLettersPerPage, nameof(limits));
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(_limits.MaxContentBytesPerPage, nameof(limits));
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(_limits.MaxDecodedStreamBytes, nameof(limits));
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(_limits.MaxDecodedBytesPerDocument, nameof(limits));
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(_limits.MaxContentBytesPerDocument, nameof(limits));
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(_limits.MaxLettersPerDocument, nameof(limits));
         ArgumentOutOfRangeException.ThrowIfLessThan(_limits.MaxDuration, TimeSpan.Zero, nameof(limits));
@@ -59,7 +60,9 @@ public sealed class PdfPigWordExtractor : IPdfWordExtractor
 
     private PdfWordsResult TooLarge(string reason) => PdfWordsResult.Failure(PdfExtractionStatus.TooLarge, reason);
 
-    private PdfWordsResult StreamTooLarge() => TooLarge($"A part of the file unpacks to more than {_limits.MaxDecodedStreamBytes} bytes, the limit.");
+    private PdfWordsResult DecodeTooLarge(DecodeRefusal refusal) => refusal == DecodeRefusal.Document
+        ? TooLarge($"The file unpacks to more than {_limits.MaxDecodedBytesPerDocument} bytes in total, the limit.")
+        : TooLarge($"A part of the file unpacks to more than {_limits.MaxDecodedStreamBytes} bytes, the limit.");
 
     // Throws when the caller cancels; a result when the time limit is used up.
     private PdfWordsResult? Checkpoint(Stopwatch clock, CancellationToken cancellationToken)
@@ -98,16 +101,16 @@ public sealed class PdfPigWordExtractor : IPdfWordExtractor
     private PdfWordsResult Read(ReadOnlyMemory<byte> bytes, CancellationToken cancellationToken)
     {
         // A provider per file: its refusals are tracked for this file only, and PdfPig may catch the exception it throws.
-        var filters = new BoundedFilterProvider(_limits.MaxDecodedStreamBytes);
+        var filters = new BoundedFilterProvider(_limits.MaxDecodedStreamBytes, _limits.MaxDecodedBytesPerDocument);
         try
         {
             using var document = PdfDocument.Open(bytes, new ParsingOptions { UseLenientParsing = true, SkipMissingFonts = true, FilterProvider = filters });
-            var result = ReadPages(document, cancellationToken);
-            return filters.Tripped ? StreamTooLarge() : result;
+            var result = ReadPages(document, filters, cancellationToken);
+            return filters.Refusal != DecodeRefusal.None ? DecodeTooLarge(filters.Refusal) : result;
         }
-        catch (Exception exception) when (exception is not OperationCanceledException && (filters.Tripped || exception is DecodeLimitExceededException))
+        catch (Exception exception) when (exception is not OperationCanceledException && (filters.Refusal != DecodeRefusal.None || exception is DecodeLimitExceededException))
         {
-            return StreamTooLarge();
+            return DecodeTooLarge(filters.Refusal);
         }
         catch (PdfDocumentEncryptedException)
         {
@@ -128,7 +131,7 @@ public sealed class PdfPigWordExtractor : IPdfWordExtractor
         }
     }
 
-    private PdfWordsResult ReadPages(PdfDocument document, CancellationToken cancellationToken)
+    private PdfWordsResult ReadPages(PdfDocument document, BoundedFilterProvider filters, CancellationToken cancellationToken)
     {
         var clock = Stopwatch.StartNew();
         var count = document.NumberOfPages;
@@ -148,6 +151,8 @@ public sealed class PdfPigWordExtractor : IPdfWordExtractor
                 return stop;
 
             var page = document.GetPage(number);
+            if (filters.Refusal != DecodeRefusal.None)
+                return DecodeTooLarge(filters.Refusal);
             if (Refuse(page) is { } tooBig)
                 return tooBig;
             letters += page.Letters.Count;
