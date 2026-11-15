@@ -5,7 +5,7 @@ using UglyToad.PdfPig.Tokens;
 namespace AppCanzoniere.Infrastructure.PdfImport;
 
 /// <summary>A leaf of the page tree and the resource dictionaries it can draw from: its own and its ancestors'.</summary>
-internal sealed record PageNode(DictionaryToken Dictionary, IReadOnlyList<DictionaryToken> Resources);
+internal sealed record PageNode(DictionaryToken Dictionary, ResourceChain Resources);
 
 /// <summary>Walks the page tree with PdfPig 0.1.16's rules, so the pages found are the pages PdfPig will parse.</summary>
 internal static class PageTree
@@ -21,8 +21,8 @@ internal static class PageTree
         var visited = new HashSet<IndirectReference>();
         if (catalog.TryGet(NameToken.Pages, out var rootEntry) && rootEntry is IndirectReferenceToken rootReference)
             visited.Add(rootReference.Data);
-        var pending = new Stack<(DictionaryToken Node, IReadOnlyList<DictionaryToken> Resources)>();
-        pending.Push((root, Array.Empty<DictionaryToken>()));
+        var pending = new Stack<(DictionaryToken Node, ResourceChain Resources)>();
+        pending.Push((root, ResourceChain.Empty()));
         var nodes = 0;
         while (pending.Count > 0)
         {
@@ -62,6 +62,6 @@ internal static class PageTree
         return IsPage(document, kid) || visited.Add(reference.Data) ? kid : null;
     }
 
-    private static IReadOnlyList<DictionaryToken> WithOwn(PdfDocument document, DictionaryToken node, IReadOnlyList<DictionaryToken> inherited) =>
-        PdfObjects.Get<DictionaryToken>(document, node, NameToken.Resources) is { } own ? inherited.Append(own).ToArray() : inherited;
+    private static ResourceChain WithOwn(PdfDocument document, DictionaryToken node, ResourceChain inherited) =>
+        PdfObjects.Get<DictionaryToken>(document, node, NameToken.Resources) is { } own ? inherited.With(own) : inherited;
 }

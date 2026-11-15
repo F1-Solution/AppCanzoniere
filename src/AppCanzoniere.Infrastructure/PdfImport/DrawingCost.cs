@@ -28,13 +28,20 @@ internal readonly record struct Cost(long Bytes, long Letters, bool Unmeasurable
 /// </summary>
 internal sealed class DrawingCost(PdfDocument document, long maxBytes, long maxLetters)
 {
+    /// <summary>Most named calls costed in one document, each a scan of the resources (the corpus maximum is 116).</summary>
+    public const int MaxNamedCalls = 100_000;
+
     // Real songbooks nest forms two or three deep; PdfPig recurses once per level, so the depth must stay small.
     private const int MaxFormNesting = 32;
 
     private readonly Dictionary<IndirectReference, DrawnContent> _contents = new();
-    private readonly Dictionary<(IndirectReference Form, string Name, string Context), Cost> _forms = new();
+    private readonly Dictionary<(IndirectReference Form, string Name, ResourceChain Context), Cost> _forms = new();
+    private readonly Dictionary<IndirectReference, FormBody?> _bodies = new();
     private readonly HashSet<IndirectReference> _drawing = new();
-    private readonly Dictionary<DictionaryToken, int> _ids = new(ReferenceEqualityComparer.Instance);
+    private int _namedCalls;
+
+    /// <summary>True once the document has made more named calls than the limit; the costs then read as unmeasurable.</summary>
+    public bool TooManyNamedCalls => _namedCalls > MaxNamedCalls;
 
     private int Cap => (int)Math.Min(maxBytes, Array.MaxLength);
 
@@ -63,13 +70,15 @@ internal sealed class DrawingCost(PdfDocument document, long maxBytes, long maxL
     }
 
     // The content's own cost plus each call times the cost of the XObject the name resolves to.
-    private Cost WithCalls(DrawnContent content, IReadOnlyList<DictionaryToken> resources, int depth, Caller? caller)
+    private Cost WithCalls(DrawnContent content, ResourceChain resources, int depth, Caller? caller)
     {
         var total = new Cost(content.Bytes, content.Letters);
         foreach (var (name, calls) in content.Calls)
         {
             if (total.Exceeds(maxBytes, maxLetters))
                 return total;
+            if (++_namedCalls > MaxNamedCalls)
+                return Cost.Unknown;
             if (DropsCallToItself(caller, name) || Target(resources, name) is not { } target)
                 continue;
             total = total.Plus(Form(target, name, resources, depth + 1).Times(calls));
@@ -78,38 +87,48 @@ internal sealed class DrawingCost(PdfDocument document, long maxBytes, long maxL
         return total;
     }
 
-    private Cost Form(IndirectReference reference, string name, IReadOnlyList<DictionaryToken> resources, int depth)
+    private Cost Form(IndirectReference reference, string name, ResourceChain resources, int depth)
     {
-        if (PdfObjects.Resolve(document, new IndirectReferenceToken(reference)) is not StreamToken stream
-            || PdfObjects.Get<NameToken>(document, stream.StreamDictionary, NameToken.Subtype) is not { } subtype
-            || !subtype.Equals(NameToken.Form))
+        if (Body(reference) is not { } body)
             return new Cost(0, 0);
         if (depth > MaxFormNesting || _drawing.Contains(reference))
             return Cost.Unknown;
 
-        var own = PdfObjects.Get<DictionaryToken>(document, stream.StreamDictionary, NameToken.Resources);
-        var context = own is null ? resources : resources.Append(own).ToArray();
-        var key = (reference, name, ContextKey(context));
+        var context = body.Own is null ? resources : resources.With(body.Own);
+        var key = (reference, name, context);
         if (_forms.TryGetValue(key, out var known))
             return known;
-
-        var decoded = FilterChain.Decode(document, stream, Cap);
-        if (!decoded.IsDecoded)
-            return decoded.Status == DecodeStatus.OverCap ? new Cost(long.MaxValue, 0) : Cost.Unknown;
+        if (body.Content is not { } content)
+            return body.Status == DecodeStatus.OverCap ? new Cost(long.MaxValue, 0) : Cost.Unknown;
 
         _drawing.Add(reference);
-        var cost = WithCalls(DrawnContent.Of(decoded.Bytes), context, depth, new Caller(name, DirectXObjects(own)));
+        var cost = WithCalls(content, context, depth, new Caller(name, DirectXObjects(body.Own)));
         _drawing.Remove(reference);
         return _forms[key] = cost;
     }
 
+    // A form's resources and parsed content, read once however many names and contexts call it; null when not a form.
+    private FormBody? Body(IndirectReference reference)
+    {
+        if (_bodies.TryGetValue(reference, out var known))
+            return known;
+        if (PdfObjects.Resolve(document, new IndirectReferenceToken(reference)) is not StreamToken stream
+            || PdfObjects.Get<NameToken>(document, stream.StreamDictionary, NameToken.Subtype) is not { } subtype
+            || !subtype.Equals(NameToken.Form))
+            return _bodies[reference] = null;
+
+        var own = PdfObjects.Get<DictionaryToken>(document, stream.StreamDictionary, NameToken.Resources);
+        var decoded = FilterChain.Decode(document, stream, Cap);
+        return _bodies[reference] = new FormBody(own, decoded.IsDecoded ? DrawnContent.Of(decoded.Bytes) : null, decoded.Status);
+    }
+
     // PdfPig's resource stack: the nearest dictionary that names the XObject wins, the form's or page's own on top.
-    private IndirectReference? Target(IReadOnlyList<DictionaryToken> resources, string name)
+    private IndirectReference? Target(ResourceChain resources, string name)
     {
         var key = NameToken.Create(name);
-        for (var i = resources.Count - 1; i >= 0; i--)
+        foreach (var dictionary in resources.TopDown())
         {
-            if (PdfObjects.Get<DictionaryToken>(document, resources[i], NameToken.Xobject) is { } xobjects && xobjects.TryGet(key, out var entry))
+            if (PdfObjects.Get<DictionaryToken>(document, dictionary, NameToken.Xobject) is { } xobjects && xobjects.TryGet(key, out var entry))
                 return entry is IndirectReferenceToken target ? target.Data : null;
         }
 
@@ -132,9 +151,9 @@ internal sealed class DrawingCost(PdfDocument document, long maxBytes, long maxL
     private static DictionaryToken? DirectXObjects(DictionaryToken? resources) =>
         resources is not null && resources.TryGet(NameToken.Xobject, out var entry) ? entry as DictionaryToken : null;
 
-    private string ContextKey(IReadOnlyList<DictionaryToken> resources) =>
-        string.Join(',', resources.Select(r => _ids.TryGetValue(r, out var id) ? id : _ids[r] = _ids.Count + 1));
-
     // The form being costed and the name it was called by.
     private sealed record Caller(string Name, DictionaryToken? OwnXObjects);
+
+    // A form's own resources and its content, or why the content cannot be had.
+    private sealed record FormBody(DictionaryToken? Own, DrawnContent? Content, DecodeStatus Status);
 }

@@ -9,6 +9,9 @@ internal static class ContentBudget
     // A page tree has fewer inner nodes than pages in practice; four nodes per allowed page is a wide margin.
     private const int TreeNodesPerPage = 4;
 
+    // Corpus pages draw from one resource dictionary; the cost walk scans the whole stack for every name it looks up.
+    private const int MaxInheritedResources = 32;
+
     /// <summary>A refusal, or null when every page fits; checkpoint stops the walk when time is up.</summary>
     public static PdfWordsResult? Check(PdfDocument document, PdfExtractionLimits limits, int pageCount, Func<PdfWordsResult?> checkpoint)
     {
@@ -17,6 +20,8 @@ internal static class ContentBudget
             return TooLarge($"The page tree has more than {limits.MaxPages * TreeNodesPerPage} nodes, the limit.");
         if (pages.Count != pageCount)
             return PdfWordsResult.Failure(PdfExtractionStatus.Damaged, "The page tree of the file cannot be read consistently.");
+        if (pages.Any(p => p.Resources.Depth > MaxInheritedResources))
+            return TooLarge($"A page draws from more than {MaxInheritedResources} resource dictionaries, the limit.");
 
         var costs = new DrawingCost(document, limits.MaxContentBytesPerPage, limits.MaxLettersPerPage);
         var total = new Cost(0, 0);
@@ -26,6 +31,8 @@ internal static class ContentBudget
                 return stop;
 
             var cost = costs.Page(pages[i]);
+            if (costs.TooManyNamedCalls)
+                return TooLarge($"The document calls drawings by name more than {DrawingCost.MaxNamedCalls} times, the limit.");
             if (PageRefusal(cost, i + 1, limits) is { } refusal)
                 return refusal;
 
