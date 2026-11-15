@@ -17,10 +17,13 @@ public class PredictorConformanceTests
     public static TheoryData<int, int, int, int> Parameters()
     {
         var data = new TheoryData<int, int, int, int>();
-        foreach (var predictor in new[] { 2, 10, 11, 12, 13, 14, 15 })
-        foreach (var colors in new[] { 1, 3 })
-        foreach (var bits in new[] { 1, 2, 4, 8, 16 })
-        foreach (var columns in new[] { 1, 5, 17 })
+        var combinations =
+            from predictor in new[] { 2, 10, 11, 12, 13, 14, 15 }
+            from colors in new[] { 1, 3 }
+            from bits in new[] { 1, 2, 4, 8, 16 }
+            from columns in new[] { 1, 5, 17 }
+            select (predictor, colors, bits, columns);
+        foreach (var (predictor, colors, bits, columns) in combinations)
             data.Add(predictor, colors, bits, columns);
         return data;
     }
