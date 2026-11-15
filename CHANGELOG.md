@@ -15,7 +15,7 @@
 - Nelle impostazioni si scelgono la notazione degli accordi, diesis o bemolle e la lingua, con la voce "Automatica (lingua del dispositivo)".
 - Il canto usa un carattere a spaziatura fissa incluso nell'app (JetBrains Mono, licenza OFL), così gli accordi restano sopra la sillaba giusta su Android e Windows.
 - Estrazione del testo dai PDF con il testo già selezionabile, comprese le pagine a due colonne, che vengono separate.
-- I PDF troppo grandi, danneggiati o costruiti per consumare memoria vengono rifiutati con un messaggio, senza bloccare l'app.
+- I PDF troppo grandi, danneggiati o costruiti per consumare memoria vengono rifiutati con un messaggio; l'import dai PDF non è ancora disponibile nell'app.
 
 ### Modificato
 - `{key}` indica la tonalità degli accordi scritti e il capotasto alza la tonalità che suona, come nello standard ChordPro.
