@@ -138,6 +138,61 @@ public class PdfDrawingCostTests
         Assert.True(result.Pages[0].HasImages);
     }
 
+    // A chain of page-tree nodes, each with its own resources, above a single page that draws the given content.
+    private static byte[] ResourceChain(int nodes, byte[] content)
+    {
+        // Objects: 1 catalog, 2 content, 3 font, 4 to 3 + nodes the chain (the font in the top node), then the page.
+        var objects = new List<Obj> { new("<< /Type /Catalog /Pages 4 0 R >>"), new("/Filter /FlateDecode", Zlib(content)), new(Font) };
+        for (var i = 0; i < nodes; i++)
+        {
+            var resources = i == 0 ? "/Font << /F1 3 0 R >>" : "/ProcSet [/PDF]";
+            objects.Add(new Obj($"<< /Type /Pages /Kids [{5 + i} 0 R] /Count 1 /Resources << {resources} >> >>"));
+        }
+
+        objects.Add(new Obj("<< /Type /Page /MediaBox [0 0 595 842] /Resources << /ProcSet [/PDF] >> /Contents 2 0 R >>"));
+        return Write(objects);
+    }
+
+    [Fact]
+    public async Task ExtractAsync_RefusesAPage_ThatInheritsMoreResourceDictionariesThanTheLimit()
+    {
+        // Forty ancestors with resources; real page trees pass on one or two, and the cost walk scans all of them per name.
+        var result = await Extract(ResourceChain(40, Ascii(Text)));
+
+        Assert.Equal(PdfExtractionStatus.TooLarge, result.Status);
+        Assert.Contains("32", result.Reason, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task ExtractAsync_ReadsAPage_ThatInheritsAFewResourceDictionaries()
+    {
+        var result = await Extract(ResourceChain(8, Ascii(Text)));
+
+        Assert.Equal(PdfExtractionStatus.Success, result.Status);
+        Assert.Contains(result.Pages[0].Words, w => w.Text == "gioia");
+    }
+
+    [Fact]
+    public async Task ExtractAsync_RefusesADocument_ThatCallsMoreDrawingsByNameThanTheLimit()
+    {
+        // Four pages share one content calling 30,000 different names: each is costed, 120,000 lookups in all.
+        const int Pages = 4;
+        var calls = string.Concat(Enumerable.Range(0, 30_000).Select(i => $"/a{i} Do\n"));
+        var objects = new List<Obj>
+        {
+            new("<< /Type /Catalog /Pages 2 0 R >>"),
+            new($"<< /Type /Pages /Kids [{string.Join(' ', Enumerable.Range(5, Pages).Select(n => $"{n} 0 R"))}] /Count {Pages} >>"),
+            new(Font),
+            new("/Filter /FlateDecode", Zlib(Ascii(Text + calls))),
+        };
+        objects.AddRange(Enumerable.Range(0, Pages).Select(_ => new Obj(Page(4))));
+
+        var result = await Extract(Write(objects), new PdfExtractionLimits());
+
+        Assert.Equal(PdfExtractionStatus.TooLarge, result.Status);
+        Assert.Contains("100000", result.Reason, StringComparison.Ordinal);
+    }
+
     [Fact]
     public async Task ExtractAsync_RefusesADocumentOverTheWholeContentBudget()
     {
