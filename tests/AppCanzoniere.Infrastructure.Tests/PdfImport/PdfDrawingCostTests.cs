@@ -232,23 +232,44 @@ public class PdfDrawingCostTests
         Assert.Equal(PdfExtractionStatus.TooLarge, result.Status);
     }
 
-    [Fact]
-    public async Task ExtractAsync_RefusesByDefaultADocumentOfMoreThanAMillionLetters()
+    // Pages listing one shared content stream: the document's cost grows with the page count, the file does not.
+    private static byte[] SharedContentPages(int pages, byte[] content) => Write(new List<Obj>
     {
-        // Eleven pages share one stream of 96,000 letters; the corpus's largest document has 334,000.
-        const int Pages = 11;
-        var objects = new List<Obj>
-        {
-            new("<< /Type /Catalog /Pages 2 0 R >>"),
-            new($"<< /Type /Pages /Kids [{string.Join(' ', Enumerable.Range(5, Pages).Select(n => $"{n} 0 R"))}] /Count {Pages} >>"),
-            new(Font),
-            new("/Filter /FlateDecode", Zlib(Ascii(Letters(96_000)))),
-        };
-        objects.AddRange(Enumerable.Range(0, Pages).Select(_ => new Obj(Page(4))));
+        new("<< /Type /Catalog /Pages 2 0 R >>"),
+        new($"<< /Type /Pages /Kids [{string.Join(' ', Enumerable.Repeat("5 0 R", pages))}] /Count {pages} >>"),
+        new(Font),
+        new("/Filter /FlateDecode", Zlib(content)),
+        new(Page(4)),
+    });
 
-        var result = await new PdfPigWordExtractor().ExtractAsync(new MemoryStream(Write(objects)));
+    [Fact]
+    public async Task ExtractAsync_RefusesByDefaultADocumentOfMoreThan700000Letters()
+    {
+        // Eight pages share one stream of 96,000 letters, 768,000 in all; the corpus's largest document has 334,404.
+        var result = await new PdfPigWordExtractor().ExtractAsync(new MemoryStream(SharedContentPages(8, Ascii(Letters(96_000)))));
 
         Assert.Equal(PdfExtractionStatus.TooLarge, result.Status);
+        Assert.Contains("700000", result.Reason, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task ExtractAsync_RefusesByDefaultADocumentOfMoreThan500Pages()
+    {
+        // The corpus's longest document has 142 pages.
+        var result = await new PdfPigWordExtractor().ExtractAsync(new MemoryStream(SharedContentPages(501, Ascii(Text))));
+
+        Assert.Equal(PdfExtractionStatus.TooLarge, result.Status);
+        Assert.Contains("500", result.Reason, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task ExtractAsync_RefusesByDefaultADocumentOfMoreThan32MegabytesOfContent()
+    {
+        // Forty pages of 900 KB each, under the page limit, 36 MB in all; the corpus's largest document holds 4.4 MB.
+        var result = await new PdfPigWordExtractor().ExtractAsync(new MemoryStream(SharedContentPages(40, Padded(900 * 1024))));
+
+        Assert.Equal(PdfExtractionStatus.TooLarge, result.Status);
+        Assert.Contains($"{32 * 1024 * 1024}", result.Reason, StringComparison.Ordinal);
     }
 
     [Fact]

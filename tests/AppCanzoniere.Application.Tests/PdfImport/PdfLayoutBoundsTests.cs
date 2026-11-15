@@ -96,6 +96,18 @@ public class PdfLayoutBoundsTests
     }
 
     [Fact]
+    public async Task ImportAsync_RefusesADocumentThatLaysOutToMoreThanAMillionCharacters()
+    {
+        // Six pages of about 198,000 characters each: 1.2 million, against 323,410 for the longest corpus document.
+        var pages = Enumerable.Range(1, 6).Select(n => WideRows(198, n)).ToArray();
+
+        var result = await Import(pages);
+
+        Assert.Equal(PdfExtractionStatus.TooLarge, result.Status);
+        Assert.Contains("1000000", result.Reason, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public async Task ImportAsync_RefusesADocumentThatLaysOutToTooMuchText()
     {
         // Each page stays under the page limit; together they pass the document limit.
