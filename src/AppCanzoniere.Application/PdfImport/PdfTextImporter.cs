@@ -19,7 +19,7 @@ public sealed class PdfTextImporter
     public static readonly TimeSpan MaxSupportedDuration = TimeSpan.FromMilliseconds(uint.MaxValue - 1);
 
     /// <summary>Most characters a whole document may lay out to (the longest corpus document has 323,410).</summary>
-    public const int MaxTextCharacters = 4_000_000;
+    public const int MaxTextCharacters = 1_000_000;
 
     private readonly IPdfWordExtractor _extractor;
     private readonly TimeSpan _maxDuration;
