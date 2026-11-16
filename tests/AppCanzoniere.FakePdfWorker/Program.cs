@@ -27,6 +27,32 @@ switch (mode)
         Process.Start(new ProcessStartInfo(Environment.ProcessPath!, [typeof(Program).Assembly.Location, "hang", args[1] + ".child"]) { UseShellExecute = false });
         Thread.Sleep(Timeout.Infinite);
         return 0;
+    case "env":
+        // Reports whether the host's secret and the path reached this process.
+        var secret = Environment.GetEnvironmentVariable("PERPLEXITY_API_KEY") is null ? "no" : "yes";
+        var path = Environment.GetEnvironmentVariable("PATH") is null ? "no" : "yes";
+        Write(stdout, WordAnswer($"secret={secret};path={path}"));
+        return 0;
+    case "args":
+        // Echoes the arguments the host added, as the text of the only word.
+        Write(stdout, WordAnswer(string.Join(' ', args.Skip(2))));
+        return 0;
+    case "exit-holding-stderr":
+        // Exits normally while a grandchild keeps the inherited stderr pipe open.
+        Process.Start(new ProcessStartInfo(Environment.ProcessPath!, [typeof(Program).Assembly.Location, "hold", args[1] + ".child"]) { UseShellExecute = false, RedirectStandardOutput = true });
+        Write(stdout, WordAnswer("ciao"));
+        return 0;
+    case "hold":
+        Thread.Sleep(TimeSpan.FromSeconds(20));
+        return 0;
+    case "object-flood":
+        // Minimal objects, many of them, inside the output cap.
+        Write(stdout, "{\"v\":1,\"s\":\"Success\",\"r\":\"\",\"p\":[");
+        var minimal = System.Text.Encoding.UTF8.GetBytes(string.Concat(Enumerable.Repeat("{\"x\":[]},", 10_000)));
+        for (var i = 0; i < 300; i++)
+            stdout.Write(minimal);
+        Write(stdout, "{\"x\":[]}]}");
+        return 0;
     case "flood":
         var chunk = new byte[1 << 16];
         Array.Fill(chunk, (byte)'a');
@@ -59,6 +85,9 @@ switch (mode)
     default:
         return 2;
 }
+
+static string WordAnswer(string text) =>
+    "{\"v\":1,\"s\":\"Success\",\"r\":\"\",\"p\":[{\"n\":1,\"w\":595,\"h\":842,\"i\":false,\"x\":[{\"t\":" + System.Text.Json.JsonSerializer.Serialize(text) + ",\"l\":10,\"b\":20,\"r\":40,\"u\":30}]}]}";
 
 static void Write(Stream stream, string text)
 {

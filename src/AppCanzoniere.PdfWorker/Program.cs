@@ -1,22 +1,34 @@
 using AppCanzoniere.Infrastructure.PdfImport;
 
-// Usage: AppCanzoniere.PdfWorker <pdf path | -> [--deadline-seconds N]
-// Reads one PDF (file or stdin), writes the result as one JSON document to stdout. Exit 0 when it answered, 1 on any failure, 2 on bad arguments.
-if (args.Length is not (1 or 3) || (args.Length == 3 && (args[1] != "--deadline-seconds" || !int.TryParse(args[2], out var seconds) || seconds <= 0)))
+// Reads one PDF (file or stdin) and writes the result as one JSON document to stdout.
+// Exit codes: 0 answered, 1 any failure, 2 bad arguments, 3 deadline backstop reached.
+const string Usage = "Usage: AppCanzoniere.PdfWorker <pdf path | -> [--deadline-seconds N] [--limits JSON]";
+if (!TryParse(args, out var seconds, out var limits))
 {
-    Console.Error.WriteLine("Usage: AppCanzoniere.PdfWorker <pdf path | -> [--deadline-seconds N]");
+    Console.Error.WriteLine(Usage);
+    return 2;
+}
+
+PdfPigWordExtractor extractor;
+try
+{
+    extractor = new PdfPigWordExtractor(limits);
+}
+catch (ArgumentOutOfRangeException)
+{
+    Console.Error.WriteLine(Usage);
     return 2;
 }
 
 // A backstop in case the parent vanishes while a file keeps the reader busy.
-using var watchdog = args.Length == 3
-    ? new Timer(_ => Environment.Exit(3), null, TimeSpan.FromSeconds(int.Parse(args[2])), Timeout.InfiniteTimeSpan)
+using var watchdog = seconds is { } deadline
+    ? new Timer(_ => Environment.Exit(3), null, TimeSpan.FromSeconds(deadline), Timeout.InfiniteTimeSpan)
     : null;
 
 try
 {
     await using var input = args[0] == "-" ? Console.OpenStandardInput() : File.OpenRead(args[0]);
-    var result = await new PdfPigWordExtractor().ExtractAsync(input);
+    var result = await extractor.ExtractAsync(input);
     await using var output = Console.OpenStandardOutput();
     PdfWorkerProtocol.Write(output, result);
     await output.FlushAsync();
@@ -26,4 +38,27 @@ catch (Exception exception)
 {
     Console.Error.WriteLine(exception.ToString());
     return 1;
+}
+
+static bool TryParse(string[] args, out int? seconds, out PdfExtractionLimits? limits)
+{
+    seconds = null;
+    limits = null;
+    if (args.Length == 0)
+        return false;
+
+    for (var i = 1; i < args.Length; i += 2)
+    {
+        if (i + 1 >= args.Length)
+            return false;
+
+        if (args[i] == "--deadline-seconds" && seconds is null && int.TryParse(args[i + 1], out var value) && value > 0)
+            seconds = value;
+        else if (args[i] == PdfWorkerLimits.Switch && limits is null && PdfWorkerLimits.TryParse(args[i + 1]) is { } parsed)
+            limits = parsed;
+        else
+            return false;
+    }
+
+    return true;
 }

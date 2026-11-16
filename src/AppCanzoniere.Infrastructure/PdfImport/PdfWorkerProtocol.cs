@@ -50,15 +50,49 @@ public static class PdfWorkerProtocol
     /// <summary>Reads and validates a payload against the limits; null when it is malformed or breaks a limit.</summary>
     public static PdfWordsResult? TryRead(Stream input, PdfExtractionLimits limits)
     {
+        ArgumentNullException.ThrowIfNull(input);
+        if (input is MemoryStream memory && memory.TryGetBuffer(out var buffer))
+            return TryRead(buffer.AsSpan((int)memory.Position), limits);
+
+        using var copy = new MemoryStream();
+        input.CopyTo(copy);
+        return TryRead(copy.GetBuffer().AsSpan(0, (int)copy.Length), limits);
+    }
+
+    /// <summary>Reads and validates a payload held in memory; the number of JSON values is bounded before any object is built.</summary>
+    public static PdfWordsResult? TryRead(ReadOnlySpan<byte> json, PdfExtractionLimits limits)
+    {
         try
         {
-            var payload = JsonSerializer.Deserialize(input, PdfWorkerJsonContext.Default.PdfWorkerPayload);
+            if (!WithinCounts(json, limits))
+                return null;
+
+            var payload = JsonSerializer.Deserialize(json, PdfWorkerJsonContext.Default.PdfWorkerPayload);
             return payload is null ? null : PdfWorkerPayloadValidator.TryConvert(payload, limits);
         }
         catch (Exception exception) when (exception is JsonException or NotSupportedException or InvalidOperationException)
         {
             return null;
         }
+    }
+
+    // A word has at least one letter and a page at least a number, so these counts follow from the limits; a word takes at most 16 tokens, a letter box one more.
+    private static bool WithinCounts(ReadOnlySpan<byte> json, PdfExtractionLimits limits)
+    {
+        var maxObjects = limits.MaxPages + limits.MaxLettersPerDocument + 1;
+        var maxTokens = (16 * maxObjects) + limits.MaxLettersPerDocument + 64;
+        long objects = 0;
+        long tokens = 0;
+        var reader = new Utf8JsonReader(json);
+        while (reader.Read())
+        {
+            if (++tokens > maxTokens)
+                return false;
+            if (reader.TokenType == JsonTokenType.StartObject && ++objects > maxObjects)
+                return false;
+        }
+
+        return true;
     }
 
     private static PdfWorkerPayload ToPayload(PdfWordsResult result) => new(

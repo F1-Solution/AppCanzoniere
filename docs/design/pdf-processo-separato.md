@@ -28,4 +28,6 @@ Decisione del titolare: leggere i PDF fuori dall'app. Un guasto uccide solo il p
 - Il programma va impacchettato dentro l'MSIX e dentro la versione non impacchettata di Windows, accanto all'app.
 - Il processo figlio parte in circa un secondo (avvio di .NET): sulla raccolta di prova costa da 1 a 2,5 secondi per PDF.
 - Se l'app si chiude di colpo, il figlio si ferma da solo dopo il suo tempo massimo; un Job Object lo fermerebbe subito.
-- Il tetto di memoria è campionato ogni 20 ms: un'allocazione molto rapida può superarlo prima del controllo.
+- Il tetto di memoria è campionato ogni 100 ms: un'allocazione molto rapida può superarlo prima del controllo.
+- Il confine protegge da arresti anomali, blocchi e memoria (negazione del servizio), non da un lettore compromesso: il figlio riceve solo un ambiente minimo, senza i segreti dell'app.
+- Su Windows è previsto un Job Object, che fermerebbe anche i processi discendenti rimasti.

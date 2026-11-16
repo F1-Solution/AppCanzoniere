@@ -11,6 +11,11 @@ public sealed class IsolatedPdfWordExtractor : IPdfWordExtractor, IDisposable
     private const int ErrorBytes = 4096;
     private static readonly TimeSpan ExitWait = TimeSpan.FromSeconds(5);
 
+    // Once the reader has exited its pipes hold nothing more; only a stray descendant can keep them open.
+    private static readonly TimeSpan PipeGrace = TimeSpan.FromSeconds(1);
+
+    private static readonly string[] KeptVariables = { "PATH", "SystemRoot", "TEMP", "TMP", "TMPDIR", "HOME", "USERPROFILE" };
+
     private readonly PdfWorkerLaunch _launch;
     private readonly IsolatedPdfOptions _options;
     private readonly ConcurrentDictionary<Process, byte> _running = new();
@@ -22,6 +27,7 @@ public sealed class IsolatedPdfWordExtractor : IPdfWordExtractor, IDisposable
         _options = options ?? new IsolatedPdfOptions();
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(_options.MaxMemoryBytes, nameof(options));
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(_options.MaxOutputBytes, nameof(options));
+        ArgumentOutOfRangeException.ThrowIfLessThanOrEqual(_options.MemoryPollInterval, TimeSpan.Zero, nameof(options));
         ArgumentOutOfRangeException.ThrowIfLessThan(_options.Limits.MaxDuration, TimeSpan.Zero, nameof(options));
         ArgumentOutOfRangeException.ThrowIfGreaterThan(_options.Limits.MaxDuration, PdfTextImporter.MaxSupportedDuration, nameof(options));
     }
@@ -66,12 +72,11 @@ public sealed class IsolatedPdfWordExtractor : IPdfWordExtractor, IDisposable
         var abort = new ChildAbort(stop.Token);
         var feed = FeedAsync(process.StandardInput.BaseStream, pdf, abort);
         var output = ReadCappedAsync(process.StandardOutput.BaseStream, _options.MaxOutputBytes, abort, ChildVerdict.OutputTooLarge);
-        var error = ReadCappedAsync(process.StandardError.BaseStream, ErrorBytes, null, ChildVerdict.None);
+        var error = ReadCappedAsync(process.StandardError.BaseStream, ErrorBytes, abort, null);
         var watch = WatchMemoryAsync(process, abort);
         try
         {
             await process.WaitForExitAsync(abort.Token).ConfigureAwait(false);
-            await Task.WhenAll(output, error).ConfigureAwait(false);
         }
         catch (OperationCanceledException)
         {
@@ -79,6 +84,14 @@ public sealed class IsolatedPdfWordExtractor : IPdfWordExtractor, IDisposable
         }
 
         var aborted = abort.Token.IsCancellationRequested;
+
+        // On abort the tree dies first; after a normal exit the pipes get a short grace before anything left over is killed.
+        if (aborted)
+            Kill(process);
+        else
+            await WaitBoundedAsync(Task.WhenAll(output, error), PipeGrace, abort.Token).ConfigureAwait(false);
+
+        Kill(process);
         abort.Finish();
         await Task.WhenAny(Task.WhenAll(feed, watch), Task.Delay(ExitWait)).ConfigureAwait(false);
         caller.ThrowIfCancellationRequested();
@@ -86,7 +99,7 @@ public sealed class IsolatedPdfWordExtractor : IPdfWordExtractor, IDisposable
         return Outcome(process, abort.Verdict, aborted, await Completed(output), await Completed(error));
     }
 
-    private PdfWordsResult Outcome(Process process, ChildVerdict verdict, bool aborted, byte[]? output, byte[]? error)
+    private PdfWordsResult Outcome(Process process, ChildVerdict verdict, bool aborted, MemoryStream? output, MemoryStream? error)
     {
         var limits = _options.Limits;
         switch (verdict)
@@ -105,16 +118,18 @@ public sealed class IsolatedPdfWordExtractor : IPdfWordExtractor, IDisposable
         if (process.ExitCode != 0)
             return ExitFailure(process.ExitCode, error);
 
-        var result = output is null ? null : PdfWorkerProtocol.TryRead(new MemoryStream(output), limits);
+        if (output is not null)
+            output.Position = 0;
+        var result = output is null ? null : PdfWorkerProtocol.TryRead(output, limits);
         return result ?? Unreadable("The reader gave an answer that could not be trusted.");
     }
 
     private static PdfWordsResult MemoryExceeded() =>
         PdfWordsResult.Failure(PdfExtractionStatus.TooLarge, "The file needs more memory than the device can give.");
 
-    private static PdfWordsResult ExitFailure(int code, byte[]? error)
+    private static PdfWordsResult ExitFailure(int code, MemoryStream? error)
     {
-        var text = error is null ? string.Empty : System.Text.Encoding.UTF8.GetString(error);
+        var text = error is null ? string.Empty : System.Text.Encoding.UTF8.GetString(error.GetBuffer(), 0, (int)error.Length);
         if (text.Contains("OutOfMemoryException", StringComparison.Ordinal))
             return MemoryExceeded();
 
@@ -123,7 +138,7 @@ public sealed class IsolatedPdfWordExtractor : IPdfWordExtractor, IDisposable
 
     private static PdfWordsResult Unreadable(string reason) => PdfWordsResult.Failure(PdfExtractionStatus.Unreadable, reason);
 
-    private static async Task<byte[]?> Completed(Task<byte[]> task) => task.IsCompletedSuccessfully ? await task.ConfigureAwait(false) : null;
+    private static async Task<MemoryStream?> Completed(Task<MemoryStream> task) => task.IsCompletedSuccessfully ? await task.ConfigureAwait(false) : null;
 
     private bool TryStart(out Process process, out PdfWordsResult? failure)
     {
@@ -140,6 +155,9 @@ public sealed class IsolatedPdfWordExtractor : IPdfWordExtractor, IDisposable
         info.ArgumentList.Add("-");
         info.ArgumentList.Add("--deadline-seconds");
         info.ArgumentList.Add(((int)Math.Ceiling(_options.Limits.MaxDuration.TotalSeconds) + 5).ToString(System.Globalization.CultureInfo.InvariantCulture));
+        info.ArgumentList.Add(PdfWorkerLimits.Switch);
+        info.ArgumentList.Add(PdfWorkerLimits.Serialize(_options.Limits));
+        MinimalEnvironment(info.Environment);
         info.Environment["DOTNET_GCHeapHardLimit"] = _options.MaxMemoryBytes.ToString("X", System.Globalization.CultureInfo.InvariantCulture);
 
         try
@@ -153,6 +171,35 @@ public sealed class IsolatedPdfWordExtractor : IPdfWordExtractor, IDisposable
             process = null!;
             failure = Unreadable("The PDF reader could not be started.") with { Detail = exception.Message };
             return false;
+        }
+    }
+
+    // The reader is not a sandbox, but it need not see the host's secrets: only what .NET needs is passed on.
+    private static void MinimalEnvironment(IDictionary<string, string?> target)
+    {
+        var comparison = OperatingSystem.IsWindows() ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal;
+        var kept = new List<KeyValuePair<string, string?>>();
+        foreach (System.Collections.DictionaryEntry entry in Environment.GetEnvironmentVariables())
+        {
+            var name = (string)entry.Key;
+            if (KeptVariables.Any(k => string.Equals(k, name, comparison)) || name.StartsWith("DOTNET_", comparison))
+                kept.Add(new(name, entry.Value as string));
+        }
+
+        target.Clear();
+        foreach (var variable in kept)
+            target[variable.Key] = variable.Value;
+    }
+
+    private static async Task WaitBoundedAsync(Task work, TimeSpan limit, CancellationToken token)
+    {
+        try
+        {
+            await Task.WhenAny(work, Task.Delay(limit, token)).ConfigureAwait(false);
+        }
+        catch (OperationCanceledException)
+        {
+            // The run was aborted while waiting; the caller decides from the abort reason.
         }
     }
 
@@ -187,41 +234,43 @@ public sealed class IsolatedPdfWordExtractor : IPdfWordExtractor, IDisposable
         }
     }
 
-    private static async Task<byte[]> ReadCappedAsync(Stream stream, long cap, ChildAbort? abort, ChildVerdict onExceed)
+    // A null onExceed keeps the first cap bytes and discards the rest.
+    private static async Task<MemoryStream> ReadCappedAsync(Stream stream, long cap, ChildAbort abort, ChildVerdict? onExceed)
     {
         var data = new MemoryStream();
         var buffer = new byte[CopyBufferBytes];
         try
         {
             int read;
-            while ((read = await stream.ReadAsync(buffer, abort?.Token ?? CancellationToken.None).ConfigureAwait(false)) > 0)
+            while ((read = await stream.ReadAsync(buffer, abort.Token).ConfigureAwait(false)) > 0)
             {
                 if (data.Length + read > cap)
                 {
-                    if (abort is null)
+                    if (onExceed is not { } verdict)
+                    {
+                        await DrainAsync(stream, abort.Token).ConfigureAwait(false);
                         break;
-                    abort.Cancel(onExceed);
-                    return Array.Empty<byte>();
+                    }
+
+                    abort.Cancel(verdict);
+                    return new MemoryStream();
                 }
 
                 data.Write(buffer, 0, read);
             }
-
-            if (abort is null)
-                await DrainAsync(stream).ConfigureAwait(false);
         }
         catch (Exception exception) when (exception is IOException or OperationCanceledException or ObjectDisposedException)
         {
             // The pipe closed or the run was aborted; what was read so far stands.
         }
 
-        return data.ToArray();
+        return data;
     }
 
-    private static async Task DrainAsync(Stream stream)
+    private static async Task DrainAsync(Stream stream, CancellationToken token)
     {
         var buffer = new byte[CopyBufferBytes];
-        while (await stream.ReadAsync(buffer).ConfigureAwait(false) > 0)
+        while (await stream.ReadAsync(buffer, token).ConfigureAwait(false) > 0)
         {
         }
     }
