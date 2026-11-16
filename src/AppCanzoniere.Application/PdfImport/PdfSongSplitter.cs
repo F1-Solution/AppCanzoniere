@@ -45,6 +45,8 @@ internal sealed class SongCollector
     private List<string> _lines = new();
     private int _firstPage;
     private int _lastPage;
+    private int _lastNumber;
+    private bool _numberedBook;
 
     public void AddRegion(Region region)
     {
@@ -52,12 +54,13 @@ internal sealed class SongCollector
         var i = 0;
         while (i < region.Lines.Count)
         {
-            var found = SongTitleDetector.Detect(region, i);
+            var found = SongTitleDetector.Detect(region, i, new TitleContext(_lastNumber, _numberedBook));
             if (found is not null)
             {
                 EndSong();
                 _title = found.Title;
                 _subtitles = found.Subtitles;
+                NoteNumber(found.Number);
                 _firstPage = _lastPage = region.Page;
                 i = found.NextLine;
                 continue;
@@ -81,6 +84,14 @@ internal sealed class SongCollector
     {
         EndSong();
         return _songs;
+    }
+
+    private void NoteNumber(int? number)
+    {
+        if (number is null)
+            return;
+        _lastNumber = number.Value;
+        _numberedBook = true;
     }
 
     private void Keep()

@@ -51,12 +51,12 @@ internal static partial class SongLineKinds
 
     public static bool EndsWithNumber(string line) => EndsWithPageNumber().IsMatch(line.Trim());
 
-    /// <summary>Splits "12. TITLE" into its text; returns the trimmed line itself when it has no number.</summary>
-    public static (bool Numbered, string Text) StripNumber(string line)
+    /// <summary>Splits "12. TITLE" into its number and text; the number is null and the text the trimmed line when there is none.</summary>
+    public static (int? Number, string Text) StripNumber(string line)
     {
         var t = line.Trim();
         var m = NumberedTitle().Match(t);
-        return m.Success ? (true, m.Groups["rest"].Value.Trim()) : (false, t);
+        return m.Success ? (int.Parse(m.Groups["n"].Value, System.Globalization.CultureInfo.InvariantCulture), m.Groups["rest"].Value.Trim()) : (null, t);
     }
 
     public static int Indent(string line) => line.Length - line.TrimStart().Length;
