@@ -11,6 +11,7 @@ public partial class SongDetailPage : ContentPage
         InitializeComponent();
         _viewModel = viewModel;
         BindingContext = _viewModel;
+        SongView.LayoutFailed += (_, _) => _viewModel.ShowAsStored();
     }
 
     protected override async void OnAppearing()

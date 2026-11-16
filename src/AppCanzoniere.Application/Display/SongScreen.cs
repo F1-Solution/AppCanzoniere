@@ -16,8 +16,8 @@ public sealed record SongScreenRequest(
     string? AppLanguage,
     string? SystemLanguage);
 
-/// <summary>The texts of the song screen; an empty key, capo or error means nothing to show.</summary>
-public sealed record SongScreen(string Text, string Key, string Capo, string Error);
+/// <summary>The song screen; an empty key, capo or error means nothing to show, and Prepared is null when only Text is shown.</summary>
+public sealed record SongScreen(string Text, string Key, string Capo, string Error, PreparedSong? Prepared = null);
 
 /// <summary>Prepares what the song screen shows, falling back to the stored text when the layout fails.</summary>
 public sealed class SongScreenPresenter
@@ -42,9 +42,9 @@ public sealed class SongScreenPresenter
         try
         {
             var language = string.IsNullOrWhiteSpace(request.AppLanguage) ? request.SystemLanguage : request.AppLanguage.Trim();
-            var shown = _display.Render(new SongDisplayRequest(request.ChordPro, request.TransposeSteps, request.Settings, language));
+            var shown = _display.Prepare(new SongDisplayRequest(request.ChordPro, request.TransposeSteps, request.Settings, language));
             var capo = shown.Capo > 0 ? $"Capo {shown.Capo}" : string.Empty;
-            return new SongScreen(shown.Text, shown.Key, capo, string.Empty);
+            return new SongScreen(shown.ToMonospaceText(), shown.Key, capo, string.Empty, shown);
         }
         catch (Exception ex)
         {

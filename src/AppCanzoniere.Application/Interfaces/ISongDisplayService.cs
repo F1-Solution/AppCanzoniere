@@ -4,6 +4,6 @@ namespace AppCanzoniere.Application.Interfaces;
 
 public interface ISongDisplayService
 {
-    /// <summary>Renders a stored ChordPro song as chords above lyrics in the requested notation and transposition.</summary>
-    SongDisplay Render(SongDisplayRequest request);
+    /// <summary>Prepares a stored ChordPro song in the requested notation and transposition, ready to lay out at any width.</summary>
+    PreparedSong Prepare(SongDisplayRequest request);
 }
