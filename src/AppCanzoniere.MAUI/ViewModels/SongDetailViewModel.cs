@@ -173,8 +173,10 @@ public partial class SongDetailViewModel : ObservableObject
     {
         try
         {
+            // The chords-above-lyrics text stays when it was computed; raw source only when layout itself failed.
+            if (Prepared is null)
+                DisplayedContent = Song?.ChordProContent ?? string.Empty;
             Prepared = null;
-            DisplayedContent = Song?.ChordProContent ?? string.Empty;
             ErrorMessage = SongScreenPresenter.LayoutFailed;
         }
         catch (Exception ex)

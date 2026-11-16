@@ -9,6 +9,3 @@ public sealed record SongDisplayRequest(
     int TransposeSteps,
     ChordDisplaySettings Settings,
     string? LanguageTag);
-
-/// <summary>What the song screen shows: the text with chords above the lyrics, the sounding key (empty when the song has none) and the capo fret.</summary>
-public sealed record SongDisplay(string Text, string Key, int Capo);
