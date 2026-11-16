@@ -32,6 +32,8 @@ internal sealed record PdfBenchResult(string File, PdfTextResult Text, TimeSpan 
     public SplitResult Split { get; init; } = SplitResult.None;
 
     public AlignmentScore Alignment { get; init; } = AlignmentScore.None;
+
+    public SongsFound Songs { get; init; } = SongsFound.None;
 }
 
 /// <summary>Runs one PDF through extraction, layout and the chord sheet converter, and scores it against the labels.</summary>
@@ -54,6 +56,7 @@ internal sealed class PdfBenchmark
         {
             Split = SplitCheck.Measure(text, reference, TwoColumnPages(pdfPath, labels)),
             Alignment = ChordAlignment.Measure(pdfPath, text),
+            Songs = SongsFound.Measure(text),
         };
     }
 
