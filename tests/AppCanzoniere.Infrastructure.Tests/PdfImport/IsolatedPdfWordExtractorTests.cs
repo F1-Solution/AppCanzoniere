@@ -116,6 +116,139 @@ public class IsolatedPdfWordExtractorTests : IDisposable
     }
 
     [Fact]
+    public async Task ExtractAsync_AppliesTheHostLimitsInTheWorker()
+    {
+        using var isolated = Real(new PdfExtractionLimits { MaxPages = 4 });
+
+        var result = await Run(isolated, PdfFixtures.ManyPages(5));
+
+        Assert.Equal(PdfExtractionStatus.TooLarge, result.Status);
+        Assert.Contains("5", result.Reason, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task ExtractAsync_PassesTheLimitsAsAnArgument()
+    {
+        using var isolated = Fake("args");
+
+        var result = await Run(isolated);
+
+        var text = result.Pages.Single().Words.Single().Text;
+        Assert.Contains("--limits", text, StringComparison.Ordinal);
+        Assert.Contains("\"pg\":500", text, StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [InlineData("{\"v\":1,\"b\":-1,\"pg\":500,\"lp\":1,\"cp\":1,\"cd\":1,\"ld\":1,\"ds\":1,\"dd\":1,\"ms\":1000}")]
+    [InlineData("{\"v\":2,\"b\":1,\"pg\":500,\"lp\":1,\"cp\":1,\"cd\":1,\"ld\":1,\"ds\":1,\"dd\":1,\"ms\":1000}")]
+    [InlineData("{\"v\":1,\"b\":1,\"pg\":500,\"lp\":1,\"cp\":1,\"cd\":1,\"ld\":1,\"ds\":1,\"dd\":1,\"ms\":5000000000}")]
+    [InlineData("not json")]
+    public async Task Worker_ExitsWithBadArguments_WhenTheLimitsAreOutOfRange(string limits)
+    {
+        var info = new ProcessStartInfo(PdfWorkerLaunch.DotnetHost()) { RedirectStandardInput = true, RedirectStandardError = true, UseShellExecute = false };
+        info.ArgumentList.Add(Helper("AppCanzoniere.PdfWorker"));
+        info.ArgumentList.Add("-");
+        info.ArgumentList.Add("--limits");
+        info.ArgumentList.Add(limits);
+        using var process = Process.Start(info)!;
+        process.StandardInput.Close();
+
+        await process.WaitForExitAsync().WaitAsync(TimeSpan.FromSeconds(30));
+
+        Assert.Equal(2, process.ExitCode);
+    }
+
+    [Fact]
+    public async Task ExtractAsync_DoesNotPassTheHostsSecretsToTheReader()
+    {
+        const string name = "PERPLEXITY_API_KEY";
+        var before = Environment.GetEnvironmentVariable(name);
+        Environment.SetEnvironmentVariable(name, "secret-value");
+        try
+        {
+            using var isolated = Fake("env");
+
+            var result = await Run(isolated);
+
+            Assert.Equal("secret=no;path=yes", result.Pages.Single().Words.Single().Text);
+        }
+        finally
+        {
+            Environment.SetEnvironmentVariable(name, before);
+        }
+    }
+
+    [Fact]
+    public void Constructor_RequiresAPositiveMemoryPollInterval()
+    {
+        var launch = new PdfWorkerLaunch("x", Array.Empty<string>());
+
+        Assert.Throws<ArgumentOutOfRangeException>(() => new IsolatedPdfWordExtractor(launch, new IsolatedPdfOptions { MemoryPollInterval = TimeSpan.Zero }));
+        Assert.Throws<ArgumentOutOfRangeException>(() => new IsolatedPdfWordExtractor(launch, new IsolatedPdfOptions { MemoryPollInterval = TimeSpan.FromMilliseconds(-5) }));
+        Assert.Equal(TimeSpan.FromMilliseconds(100), new IsolatedPdfOptions().MemoryPollInterval);
+    }
+
+    [Fact]
+    public async Task ExtractAsync_ReturnsPromptly_WhenAGrandchildKeepsStderrOpenAfterAnOrdinaryExit()
+    {
+        using var isolated = Fake("exit-holding-stderr", Options(TimeSpan.FromSeconds(30)));
+        var clock = Stopwatch.StartNew();
+
+        var result = await Run(isolated);
+
+        try
+        {
+            Assert.Equal(PdfExtractionStatus.Success, result.Status);
+            Assert.True(clock.Elapsed < TimeSpan.FromSeconds(10), $"took {clock.Elapsed}");
+
+            // The tree kill after an ordinary exit relies on the parent link, which only Windows keeps.
+            if (OperatingSystem.IsWindows())
+                AssertChildGone(PidFile + ".child");
+        }
+        finally
+        {
+            KillLeftover(PidFile + ".child");
+        }
+    }
+
+    [Fact]
+    public async Task ExtractAsync_RejectsAFloodOfMinimalObjectsWithinTheOutputCap()
+    {
+        using var isolated = Fake("object-flood", Options(output: 64L << 20));
+
+        var result = await Run(isolated);
+
+        Assert.Equal(PdfExtractionStatus.Unreadable, result.Status);
+    }
+
+    [Fact]
+    public void TryRead_RejectsAFloodOfMinimalObjectsWithoutBuildingThem()
+    {
+        var flood = System.Text.Encoding.UTF8.GetBytes("{\"v\":1,\"s\":\"Success\",\"r\":\"\",\"p\":[" + string.Concat(Enumerable.Repeat("{\"x\":[]},", 3_000_000)) + "{\"x\":[]}]}");
+        var before = GC.GetAllocatedBytesForCurrentThread();
+
+        var result = PdfWorkerProtocol.TryRead(flood, new PdfExtractionLimits());
+
+        Assert.Null(result);
+        Assert.True(GC.GetAllocatedBytesForCurrentThread() - before < 20L << 20);
+    }
+
+    private static void KillLeftover(string pidFile)
+    {
+        if (!File.Exists(pidFile))
+            return;
+        try
+        {
+            using var process = Process.GetProcessById(int.Parse(File.ReadAllText(pidFile)));
+            process.Kill();
+        }
+        catch (Exception exception) when (exception is ArgumentException or InvalidOperationException or System.ComponentModel.Win32Exception)
+        {
+            // Already gone.
+        }
+    }
+
+    [Fact]
     public async Task ExtractAsync_ReadsAWellFormedAnswer()
     {
         using var isolated = Fake("ok");
