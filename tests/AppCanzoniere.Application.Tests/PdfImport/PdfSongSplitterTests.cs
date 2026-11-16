@@ -224,18 +224,35 @@ public sealed class PdfSongSplitterTests
     }
 
     [Fact]
-    public void Thousands_of_songs_split_in_bounded_time()
+    public void Splitting_time_grows_linearly_with_the_number_of_songs()
     {
-        var pages = Enumerable.Range(1, 100)
-            .Select(n => Page(n, string.Join("\n\n", Enumerable.Range(0, 10).Select(k => $"{n * 10 + k}. TITOLO {n * 10 + k}\n{SongA}"))))
-            .ToList();
+        ScalingAssert.StaysLinear(songs =>
+        {
+            var pages = Enumerable.Range(1, songs / 10)
+                .Select(n => Page(n, string.Join("\n\n", Enumerable.Range(0, 10).Select(k => $"{n * 10 + k}. TITOLO {n * 10 + k}\n{SongA}"))))
+                .ToList();
+            return () => Assert.Equal(songs, PdfSongSplitter.Split(pages).Songs.Count);
+        }, 400);
+    }
 
-        var clock = System.Diagnostics.Stopwatch.StartNew();
-        var result = PdfSongSplitter.Split(pages);
-        clock.Stop();
+    [Theory]
+    [InlineData("１２. LA LUNA")]
+    [InlineData("١٢. LA LUNA")]
+    public void Numbered_lines_in_other_digit_scripts_do_not_throw(string line)
+    {
+        var result = PdfSongSplitter.Split(new[] { Page(1, $"{line}\n{SongA}\n\n13. IL VENTO\n{SongB}") });
 
-        Assert.Equal(1000, result.Songs.Count);
-        Assert.True(clock.Elapsed < TimeSpan.FromSeconds(30), $"took {clock.Elapsed}");
+        Assert.NotEmpty(result.Songs);
+    }
+
+    [Fact]
+    public void A_numbered_verse_after_a_blank_line_stays_inside_its_song()
+    {
+        var text = "1. LA LUNA\nDo        Sol\n1. La luna sale piano\n\n2. Tu sei la mia vita\nDo        Sol\nNel cuore ti porto\n\n2. IL VENTO\n" + SongB;
+        var result = PdfSongSplitter.Split(new[] { Page(1, text) });
+
+        Assert.Equal(new[] { "LA LUNA", "IL VENTO" }, Titles(result));
+        Assert.Contains("2. Tu sei la mia vita", result.Songs[0].Lines);
     }
 
     [Fact]

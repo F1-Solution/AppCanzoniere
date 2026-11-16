@@ -1,7 +1,7 @@
 namespace AppCanzoniere.Application.PdfImport;
 
-/// <summary>What the detector needs to know of the songs already read: the last title number and whether titles are numbered.</summary>
-internal readonly record struct TitleContext(int LastNumber, bool NumberedBook);
+/// <summary>What the detector needs to know of the songs already read: the last title number, whether titles are numbered and the next verse number of the current song (0 when its verses are not numbered).</summary>
+internal readonly record struct TitleContext(int LastNumber, bool NumberedBook, int NextVerse = 0);
 
 /// <summary>Decides which lines of a column are song titles and which adjacent lines are their subtitles.</summary>
 internal static class SongTitleDetector
@@ -41,6 +41,8 @@ internal static class SongTitleDetector
     {
         var line = region.Lines[i];
         if (SongLineKinds.IsBlank(line) || region.IsChord[i] || SongLineKinds.IsNoise(line) || !LooksLikeTitleText(text))
+            return false;
+        if (number is not null && number == context.NextVerse && !SongLineKinds.IsUpperCase(text, MinTitleLetters))
             return false;
         if (i > 0 && !SongLineKinds.IsBlank(region.Lines[i - 1]) && !FollowsInSequence(region, i, number, context))
             return false;
