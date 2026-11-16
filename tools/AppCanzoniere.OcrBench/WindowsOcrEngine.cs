@@ -39,26 +39,46 @@ internal sealed class WindowsOcrEngine : IOcrEngine
             : null;
     }
 
+    /// <summary>Why the last page could not be read; null when it was read.</summary>
+    public string? LastFailure { get; private set; }
+
     public async Task<OcrPageResult> RecognizeAsync(OcrPageImage image, CancellationToken cancellationToken = default)
+    {
+        LastFailure = null;
+        try
+        {
+            return await RecognizeCoreAsync(image, cancellationToken);
+        }
+        catch (OperationCanceledException)
+        {
+            throw;
+        }
+        catch (Exception ex)
+        {
+            LastFailure = ex.Message;
+            return new OcrPageResult(0, 0, Array.Empty<AppLine>(), Language);
+        }
+    }
+
+    private async Task<OcrPageResult> RecognizeCoreAsync(OcrPageImage image, CancellationToken cancellationToken)
     {
         using var stream = new InMemoryRandomAccessStream();
         using (var writer = new DataWriter(stream.GetOutputStreamAt(0)))
         {
             writer.WriteBytes(image.Content.ToArray());
-            await writer.StoreAsync();
+            await writer.StoreAsync().AsTask(cancellationToken);
             writer.DetachStream();
         }
 
         stream.Seek(0);
-        var decoder = await BitmapDecoder.CreateAsync(stream);
+        var decoder = await BitmapDecoder.CreateAsync(stream).AsTask(cancellationToken);
         var scale = Scale(decoder.PixelWidth, decoder.PixelHeight);
         var width = (uint)Math.Max(1, Math.Round(decoder.PixelWidth * scale));
         var height = (uint)Math.Max(1, Math.Round(decoder.PixelHeight * scale));
         var transform = new BitmapTransform { ScaledWidth = width, ScaledHeight = height, InterpolationMode = BitmapInterpolationMode.Fant };
         using var bitmap = await decoder.GetSoftwareBitmapAsync(
-            BitmapPixelFormat.Bgra8, BitmapAlphaMode.Premultiplied, transform, ExifOrientationMode.IgnoreExifOrientation, ColorManagementMode.DoNotColorManage);
-        cancellationToken.ThrowIfCancellationRequested();
-        var result = await _engine.RecognizeAsync(bitmap);
+            BitmapPixelFormat.Bgra8, BitmapAlphaMode.Premultiplied, transform, ExifOrientationMode.IgnoreExifOrientation, ColorManagementMode.DoNotColorManage).AsTask(cancellationToken);
+        var result = await _engine.RecognizeAsync(bitmap).AsTask(cancellationToken);
         var lines = result.Lines
             .Select(l => new AppLine(l.Words.Select(w => new AppWord(w.Text, w.BoundingRect.X, w.BoundingRect.Y, w.BoundingRect.Width, w.BoundingRect.Height)).ToList()))
             .ToList();

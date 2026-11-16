@@ -47,6 +47,7 @@ internal sealed class SongCollector
     private int _lastPage;
     private int _lastNumber;
     private bool _numberedBook;
+    private int _verseNumber;
 
     public void AddRegion(Region region)
     {
@@ -54,7 +55,7 @@ internal sealed class SongCollector
         var i = 0;
         while (i < region.Lines.Count)
         {
-            var found = SongTitleDetector.Detect(region, i, new TitleContext(_lastNumber, _numberedBook));
+            var found = SongTitleDetector.Detect(region, i, new TitleContext(_lastNumber, _numberedBook, _verseNumber == 0 ? 0 : _verseNumber + 1));
             if (found is not null)
             {
                 EndSong();
@@ -78,6 +79,7 @@ internal sealed class SongCollector
         _title = null;
         _subtitles = Array.Empty<string>();
         _lines = new List<string>();
+        _verseNumber = 0;
     }
 
     public IReadOnlyList<SplitSong> Finish()
@@ -108,6 +110,15 @@ internal sealed class SongCollector
         _lines.Add(line.TrimEnd());
         if (!SongLineKinds.IsBlank(line))
             _lastPage = page;
+        NoteVerse(line);
+    }
+
+    // Numbered verses start at 1 and count up inside a song.
+    private void NoteVerse(string line)
+    {
+        var (number, _) = SongLineKinds.StripNumber(line);
+        if (number is not null && number == _verseNumber + 1)
+            _verseNumber = number.Value;
     }
 
     private void SeparateFromPreviousRegion()
