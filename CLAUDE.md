@@ -23,9 +23,11 @@ dotnet build src/AppCanzoniere.MAUI -f net10.0-windows10.0.19041.0 -p:MauiPlatfo
 
 `tools/AppCanzoniere.CorpusReport` is a console tool that converts the local, git-ignored song corpus (`corpus-locale/`) and writes an HTML comparison report: `dotnet run --project tools/AppCanzoniere.CorpusReport -c Release -- corpus-locale`.
 
-`tools/AppCanzoniere.PdfBench` measures PDF extraction on the local corpus and writes `corpus-locale/report-pdf/index.md`: `dotnet run --project tools/AppCanzoniere.PdfBench -c Release -- corpus-locale`.
+`tools/AppCanzoniere.PdfBench` measures PDF extraction on the local corpus and writes `corpus-locale/report-pdf/index.md`: `dotnet run --project tools/AppCanzoniere.PdfBench -c Release -- corpus-locale`. It reads through the separate worker by default (`--in-process` to skip it).
 
-`AppCanzoniere.slnx` is the main solution (core + MAUI, needs the Android and Windows workloads); `AppCanzoniere.Core.slnx` has no MAUI. Package versions are central in `Directory.Packages.props`, the SDK is pinned in `global.json`. CI is `.github/workflows/ci.yml` (jobs core, android, windows). Core tests: 3353 (Domain 5, Application 2807, Infrastructure 541).
+`tools/AppCanzoniere.OcrBench` (Windows only, outside both solutions) runs on-device OCR on scanned corpus PDFs and writes `corpus-locale/report-ocr/index.md`: `dotnet run --project tools/AppCanzoniere.OcrBench -c Release -- corpus-locale`.
+
+`AppCanzoniere.slnx` is the main solution (core + MAUI, needs the Android and Windows workloads); `AppCanzoniere.Core.slnx` has no MAUI. Package versions are central in `Directory.Packages.props`, the SDK is pinned in `global.json`. CI is `.github/workflows/ci.yml` (jobs core, android, windows). Core tests: 3448 (Domain 5, Application 2875, Infrastructure 568).
 
 **Backend:** the ASP.NET Core API is frozen and outside the main solution and CI; open it with `AppCanzoniere.Backend.slnx`. It does not work (see `docs/VALUTAZIONE.md`) and its integration tests fail.
 
@@ -39,6 +41,8 @@ Clean Architecture with four layers (dependencies flow inward only):
 - **Presentation** — Two frontends:
   - **MAUI** (`src/AppCanzoniere.MAUI`) — Pages, ViewModels (MVVM via CommunityToolkit.Mvvm), platform services
   - **Backend** (`src/AppCanzoniere.Backend`) — frozen, not in the main solution or CI
+
+PDFs are read by `src/AppCanzoniere.PdfWorker`, a separate process supervised from Infrastructure `PdfImport`; songbook splitting into songs and the OCR contract live in Application `PdfImport`, and the song screen is drawn by a GraphicsView control in MAUI `Controls`.
 
 ## Key Conventions
 
