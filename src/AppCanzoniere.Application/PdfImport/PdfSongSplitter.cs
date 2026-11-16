@@ -1,0 +1,114 @@
+namespace AppCanzoniere.Application.PdfImport;
+
+/// <summary>Cuts the laid-out pages of a songbook into songs, skipping covers, blank pages and indexes.</summary>
+public static class PdfSongSplitter
+{
+    /// <summary>Splits the pages, read column by column in order, into songs; one pass over the text.</summary>
+    public static SongSplitResult Split(IReadOnlyList<PageText> pages)
+    {
+        ArgumentNullException.ThrowIfNull(pages);
+        var builder = new SongCollector();
+        var indexEntries = 0;
+        var followsIndex = false;
+        foreach (var page in pages.Where(p => !p.IsScanned))
+        {
+            foreach (var block in page.Blocks)
+            {
+                var region = Region.Of(page.PageNumber, block.Lines.Select(l => l.Text).ToList());
+                var entries = IndexRegionDetector.CountEntries(region, followsIndex);
+                followsIndex = entries is not null;
+                if (entries is { } count)
+                {
+                    indexEntries += count;
+                    builder.EndSong();
+                    continue;
+                }
+
+                builder.AddRegion(region);
+            }
+        }
+
+        var songs = builder.Finish();
+        return new SongSplitResult(songs, indexEntries, SkippedPages(pages, songs));
+    }
+
+    private static IReadOnlyList<int> SkippedPages(IReadOnlyList<PageText> pages, IReadOnlyList<SplitSong> songs) =>
+        pages.Select(p => p.PageNumber).Where(n => !songs.Any(s => n >= s.FirstPage && n <= s.LastPage)).ToList();
+}
+
+/// <summary>Collects the lines of the song being read and the finished songs.</summary>
+internal sealed class SongCollector
+{
+    private readonly List<SplitSong> _songs = new();
+    private string? _title;
+    private IReadOnlyList<string> _subtitles = Array.Empty<string>();
+    private List<string> _lines = new();
+    private int _firstPage;
+    private int _lastPage;
+
+    public void AddRegion(Region region)
+    {
+        SeparateFromPreviousRegion();
+        var i = 0;
+        while (i < region.Lines.Count)
+        {
+            var found = SongTitleDetector.Detect(region, i);
+            if (found is not null)
+            {
+                EndSong();
+                _title = found.Title;
+                _subtitles = found.Subtitles;
+                _firstPage = _lastPage = region.Page;
+                i = found.NextLine;
+                continue;
+            }
+
+            AddLine(region.Lines[i], region.Page);
+            i++;
+        }
+    }
+
+    public void EndSong()
+    {
+        if (_title is not null)
+            Keep();
+        _title = null;
+        _subtitles = Array.Empty<string>();
+        _lines = new List<string>();
+    }
+
+    public IReadOnlyList<SplitSong> Finish()
+    {
+        EndSong();
+        return _songs;
+    }
+
+    private void Keep()
+    {
+        var lines = Trim(_lines);
+        if (lines.Count > 0)
+            _songs.Add(new SplitSong(_title!, _firstPage, _lastPage, lines, _subtitles));
+    }
+
+    private void AddLine(string line, int page)
+    {
+        if (_title is null || SongLineKinds.IsNoise(line))
+            return;
+        _lines.Add(line.TrimEnd());
+        if (!SongLineKinds.IsBlank(line))
+            _lastPage = page;
+    }
+
+    private void SeparateFromPreviousRegion()
+    {
+        if (_title is not null && _lines.Count > 0 && !SongLineKinds.IsBlank(_lines[^1]))
+            _lines.Add(string.Empty);
+    }
+
+    private static List<string> Trim(List<string> lines)
+    {
+        var start = lines.FindIndex(l => !SongLineKinds.IsBlank(l));
+        var end = lines.FindLastIndex(l => !SongLineKinds.IsBlank(l));
+        return start < 0 ? new List<string>() : lines.GetRange(start, end - start + 1);
+    }
+}
