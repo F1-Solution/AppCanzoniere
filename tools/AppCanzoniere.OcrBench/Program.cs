@@ -50,6 +50,12 @@ static async Task<string> RunAsync(WindowsOcrEngine engine, string pdf)
         var clock = Stopwatch.StartNew();
         var recognised = await engine.RecognizeAsync(scanned.Image);
         clock.Stop();
+        if (engine.LastFailure is { } failure)
+        {
+            md.Append(CultureInfo.InvariantCulture, $"- Page failed: {failure}\n\n");
+            continue;
+        }
+
         var adapted = OcrWordAdapter.ToPageWords(recognised, scanned.PageNumber);
         var text = PdfPageLayout.Lay(adapted.Page).Text;
         var converted = ChordSheetConverter.Convert(text);
