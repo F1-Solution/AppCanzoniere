@@ -51,7 +51,9 @@ public class PdfTexGlyphTests
     [Theory]
     [InlineData("ABCDEF+CMMI10")]
     [InlineData("CMMI7")]
-    [InlineData("QWERTY+LMMI10")]
+    [InlineData("ABCDEF+LMMathItalic10-Regular")]
+    [InlineData("QWERTY+LMMathItalic12-Regular")]
+    [InlineData("LMMathItalic8-Regular")]
     public async Task ExtractAsync_ReadsCodesOfTexMathItalicAsFlatSharpAndNatural(string font)
     {
         var words = await Words(ChordsIn(font));
@@ -69,6 +71,9 @@ public class PdfTexGlyphTests
 
     [Theory]
     [InlineData("ABCDEF+CMR10")]
+    [InlineData("ABCDEF+LMRoman10-Regular")]
+    [InlineData("abcdef+cmmi10")]
+    [InlineData("ABCDEF+lmmathitalic10-regular")]
     [InlineData("Helvetica")]
     public async Task ExtractAsync_LeavesOtherFontNamesUntouched(string font)
     {
