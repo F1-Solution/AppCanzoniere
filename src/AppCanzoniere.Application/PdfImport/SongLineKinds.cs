@@ -23,19 +23,19 @@ internal sealed record Region(int Page, IReadOnlyList<string> Lines, IReadOnlyLi
 /// <summary>Pattern checks on single lines used to find titles, index entries and noise.</summary>
 internal static partial class SongLineKinds
 {
-    [GeneratedRegex(@"^(?<n>\d{1,3})(?:\s*[.)\-–]\s*|\s+)(?<rest>\p{L}.*)$")]
+    [GeneratedRegex(@"^(?<n>[0-9]{1,3})(?:\s*[.)\-–]\s*|\s+)(?<rest>\p{L}.*)$")]
     private static partial Regex NumberedTitle();
 
-    [GeneratedRegex(@"^[-–\s]*(?:pag\.?\s*)?\d{1,4}[-–\s]*$", RegexOptions.IgnoreCase)]
+    [GeneratedRegex(@"^[-–\s]*(?:pag\.?\s*)?[0-9]{1,4}[-–\s]*$", RegexOptions.IgnoreCase)]
     private static partial Regex PageNumberOnly();
 
     [GeneratedRegex(@"^(?:https?://|www\.)\S+$", RegexOptions.IgnoreCase)]
     private static partial Regex Link();
 
-    [GeneratedRegex(@"(?:\.{2,}|\s{2,}|\spag\.?\s*)\d{1,4}$|\s\d{1,4}$", RegexOptions.IgnoreCase)]
+    [GeneratedRegex(@"(?:\.{2,}|\s{2,}|\spag\.?\s*)[0-9]{1,4}$|\s[0-9]{1,4}$", RegexOptions.IgnoreCase)]
     private static partial Regex EndsWithPageNumber();
 
-    [GeneratedRegex(@"^\d{1,3}\s*[.)\-–]?\s+\S")]
+    [GeneratedRegex(@"^[0-9]{1,3}\s*[.)\-–]?\s+\S")]
     private static partial Regex StartsWithNumber();
 
     public static bool IsBlank(string line) => string.IsNullOrWhiteSpace(line);
@@ -56,7 +56,9 @@ internal static partial class SongLineKinds
     {
         var t = line.Trim();
         var m = NumberedTitle().Match(t);
-        return m.Success ? (int.Parse(m.Groups["n"].Value, System.Globalization.CultureInfo.InvariantCulture), m.Groups["rest"].Value.Trim()) : (null, t);
+        return m.Success && int.TryParse(m.Groups["n"].Value, System.Globalization.NumberStyles.None, System.Globalization.CultureInfo.InvariantCulture, out var number)
+            ? (number, m.Groups["rest"].Value.Trim())
+            : (null, t);
     }
 
     public static int Indent(string line) => line.Length - line.TrimStart().Length;
