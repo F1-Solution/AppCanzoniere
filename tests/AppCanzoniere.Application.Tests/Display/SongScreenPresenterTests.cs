@@ -1,5 +1,6 @@
 using AppCanzoniere.Application.Display;
 using AppCanzoniere.Application.Interfaces;
+using AppCanzoniere.Application.Layout;
 using AppCanzoniere.Application.Music;
 using AppCanzoniere.Application.Services;
 
@@ -9,17 +10,17 @@ public class SongScreenPresenterTests
 {
     private sealed class FailingDisplay : ISongDisplayService
     {
-        public SongDisplay Render(SongDisplayRequest request) => throw new InvalidOperationException("layout failed");
+        public PreparedSong Prepare(SongDisplayRequest request) => throw new InvalidOperationException("layout failed");
     }
 
     private sealed class RecordingDisplay : ISongDisplayService
     {
         public SongDisplayRequest? Last { get; private set; }
 
-        public SongDisplay Render(SongDisplayRequest request)
+        public PreparedSong Prepare(SongDisplayRequest request)
         {
             Last = request;
-            return new SongDisplay("text", "G", 0);
+            return new PreparedSong(LayoutSource.From(new ChordProParser().Parse("x")), "G", 0);
         }
     }
 
