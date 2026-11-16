@@ -11,6 +11,7 @@
   <ItemGroup>
     <ProjectReference Include="..\..\src\AppCanzoniere.Application\AppCanzoniere.Application.csproj" />
     <ProjectReference Include="..\..\src\AppCanzoniere.Infrastructure\AppCanzoniere.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\src\AppCanzoniere.PdfWorker\AppCanzoniere.PdfWorker.csproj" />
   </ItemGroup>
 
   <ItemGroup>
