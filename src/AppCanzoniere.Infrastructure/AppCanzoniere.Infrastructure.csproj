@@ -11,6 +11,11 @@
       <PrivateAssets>all</PrivateAssets>
     </PackageReference>
     <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" />
+    <PackageReference Include="PdfPig" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="AppCanzoniere.Infrastructure.Tests" />
   </ItemGroup>
 
   <PropertyGroup>

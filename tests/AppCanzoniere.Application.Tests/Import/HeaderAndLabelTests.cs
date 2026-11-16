@@ -108,7 +108,18 @@ public class HeaderAndLabelTests
     public void NegativeSnapWidth_IsRejected() =>
         Assert.Throws<ArgumentOutOfRangeException>(() => ChordSheetConverter.Convert("Do", new ChordSheetOptions { SnapColumns = -1 }));
 
+    // Without a snap a chord over the space before a word is written between words, where a second conversion reads
+    // a bracket of the other notation as text, so the width must be at least 1.
     [Fact]
-    public void ZeroSnapWidth_IsAllowed() =>
-        Assert.Equal(Out("[Do]San[Sol]to"), ChordSheetConverter.Convert("Do Sol\nSanto", new ChordSheetOptions { SnapColumns = 0 }).ChordPro);
+    public void ZeroSnapWidth_IsRejected() =>
+        Assert.Throws<ArgumentOutOfRangeException>(() => ChordSheetConverter.Convert("Do", new ChordSheetOptions { SnapColumns = 0 }));
+
+    [Fact]
+    public void SnapWidthOfOne_KeepsAChordOfTheOtherNotationStable()
+    {
+        var options = new ChordSheetOptions { SnapColumns = 1 };
+        var first = RunWith(options, "Do  Sol", "Canta il Signore", "", "      Re Sol    [G]", "Vieni  e  canta  il  Re").ChordPro;
+
+        Assert.Equal(first, ChordSheetConverter.Convert(first, options).ChordPro);
+    }
 }

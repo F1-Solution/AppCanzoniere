@@ -33,13 +33,13 @@ public sealed class ChordTransformer
         // With a capo the written chords are shapes, spelled by their own key whatever the preference.
         _writtenPreference = capo > 0 ? AccidentalPreference.Auto : options.Accidentals;
         var chordList = documentChords?.ToList();
-        _tie = WrittenInOtherNotation(chordList, options.InputNotation.Notation);
+        _tie = !options.ReadBothNotations && WrittenInOtherNotation(chordList, options.InputNotation.Notation);
         if (KeyValue.TryParse(documentKey, options.InputNotation.Notation, out var key) && KeyFollows(key))
         {
             _documentKey = key;
             _reference = (Note.Mod12(key.Symbol.Root.PitchClass + _shift), key.Symbol.IsMinor);
         }
-        else if (FirstChord(chordList, options.InputNotation.Notation) is { } first)
+        else if (FirstChord(chordList, options.InputNotation.Notation, options.ReadBothNotations) is { } first)
             _reference = (Note.Mod12(first.Root.PitchClass + _shift), first.IsMinor);
     }
 
@@ -70,32 +70,50 @@ public sealed class ChordTransformer
         return inOther > 0 && inOther >= inInput;
     }
 
-    private static ChordSymbol? FirstChord(IEnumerable<string>? chords, Notation notation)
+    private static ChordSymbol? FirstChord(IEnumerable<string>? chords, Notation notation, bool both)
     {
         foreach (var text in chords ?? Enumerable.Empty<string>())
         {
-            if (ChordSymbolParser.TryParse(text, notation, out var symbol))
+            if (TryRead(text, notation, both, out var symbol, out _))
                 return symbol;
         }
 
         return null;
     }
 
+    // With both notations on, a chord the input notation rejects is read in the other one.
+    private static bool TryRead(string text, Notation input, bool both, out ChordSymbol symbol, out bool foreign)
+    {
+        foreign = false;
+        if (ChordSymbolParser.TryParse(text, input, out symbol))
+            return true;
+
+        var other = input == Notation.English ? Notation.Italian : Notation.English;
+        foreign = both && ChordSymbolParser.TryParse(text, other, out symbol);
+        return foreign;
+    }
+
+    // Notation or minor style differs, so chords are rewritten.
     private bool Conversion => _options.InputNotation != _options.OutputNotation;
+
+    private bool NotationChanges => _options.InputNotation.Notation != _options.OutputNotation.Notation;
+
+    /// <summary>Tonic and mode the chords are spelled against after the shift: the key, else the first chord; null when neither reads.</summary>
+    internal (int Tonic, bool Minor)? ReferenceKey => _reference;
 
     /// <summary>Chord as it is written in the output: shifted by transposition and capo; non-chords are returned unchanged.</summary>
     public string Chord(string chord)
     {
-        if (!ChordSymbolParser.TryParse(chord, _options.InputNotation.Notation, out var symbol))
+        if (!TryRead(chord, _options.InputNotation.Notation, _options.ReadBothNotations, out var symbol, out var foreign))
             return chord;
 
+        var conversion = Conversion || foreign;
         var reference = _reference ?? (Note.Mod12(symbol.Root.PitchClass + _shift), symbol.IsMinor);
-        var untouched = IsUntouched(_shift, _writtenPreference);
-        if (untouched && !Conversion)
+        if (IsUntouched(_shift, _writtenPreference) && !conversion)
             return chord;
 
         var shifted = Shifted(symbol, _shift, reference, _writtenPreference);
-        return ChordNotation.Format(shifted, _options.OutputNotation, keepMinorToken: !Conversion);
+        return ChordNotation.Format(shifted, _options.OutputNotation, keepMinorToken: !conversion);
     }
 
     /// <summary>Key as it is written in the output: it moves with the chords; text that is not a key is returned unchanged.</summary>
@@ -106,11 +124,16 @@ public sealed class ChordTransformer
     public string? WrittenKey() =>
         _documentKey is null ? null : WriteKey(_documentKeyText!.Trim(), _documentKey, _shift, _writtenPreference);
 
-    /// <summary>Key the song sounds in, named by the explicit preference (Auto when none); null without a readable key.</summary>
-    public string? SoundingKey() =>
-        _documentKey is null
-            ? null
-            : WriteKey(_documentKeyText!.Trim(), _documentKey, Note.Mod12(_transpose + _documentCapo), _options.Accidentals ?? AccidentalPreference.Auto);
+    /// <summary>Key the song sounds in; the explicit spelling preference applies only when it is transposed or has a capo; null without a readable key.</summary>
+    public string? SoundingKey()
+    {
+        if (_documentKey is null)
+            return null;
+
+        var steps = Note.Mod12(_transpose + _documentCapo);
+        var preference = steps == 0 ? AccidentalPreference.Auto : _options.Accidentals ?? AccidentalPreference.Auto;
+        return WriteKey(_documentKeyText!.Trim(), _documentKey, steps, preference);
+    }
 
     private string WriteKey(string original, KeyValue key, int steps, AccidentalPreference? preference)
     {
@@ -118,7 +141,7 @@ public sealed class ChordTransformer
             return original;
 
         var reference = (Note.Mod12(key.Symbol.Root.PitchClass + steps), key.Symbol.IsMinor);
-        return key.Write(Shifted(key.Symbol, steps, reference, preference), _options.OutputNotation, Conversion);
+        return key.Write(Shifted(key.Symbol, steps, reference, preference), _options.OutputNotation, NotationChanges, Conversion);
     }
 
     private static bool IsUntouched(int steps, AccidentalPreference? preference) =>

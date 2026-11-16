@@ -28,7 +28,7 @@
                Padding="15"
                BackgroundColor="{StaticResource Primary}"
                CornerRadius="10">
-            <Grid RowDefinitions="Auto,Auto,Auto">
+            <Grid RowDefinitions="Auto,Auto,Auto,Auto">
                 <Label Grid.Row="0"
                        Text="{Binding Song.Title}"
                        FontSize="24"
@@ -41,10 +41,17 @@
                        Opacity="0.9" />
                 <Label Grid.Row="2"
                        Text="{Binding CurrentKey, StringFormat='Key: {0}'}"
+                       IsVisible="{Binding HasKey}"
                        FontSize="14"
                        TextColor="White"
                        Opacity="0.8"
                        Margin="0,5,0,0" />
+                <Label Grid.Row="3"
+                       Text="{Binding CapoText}"
+                       IsVisible="{Binding HasCapo}"
+                       FontSize="14"
+                       TextColor="White"
+                       Opacity="0.8" />
             </Grid>
         </Frame>
 
@@ -56,13 +63,25 @@
                        FontSize="16"
                        FontAttributes="Bold" />
                 
+                <Label Text="{Binding ErrorMessage}"
+                       IsVisible="{Binding HasError}"
+                       FontSize="12" />
+
                 <Frame BorderColor="{StaticResource Gray200}"
                        Padding="10"
                        CornerRadius="5">
-                    <Label Text="{Binding DisplayedContent}"
-                           FontFamily="Courier"
-                           FontSize="14"
-                           LineBreakMode="WordWrap" />
+                    <ScrollView Orientation="Horizontal">
+                        <!-- One label per row: a row never wraps in a horizontal scroll view, and none can be cut to its first line. -->
+                        <VerticalStackLayout BindableLayout.ItemsSource="{Binding DisplayedLines}">
+                            <BindableLayout.ItemTemplate>
+                                <DataTemplate x:DataType="x:String">
+                                    <Label Text="{Binding .}"
+                                           FontFamily="JetBrainsMono"
+                                           FontSize="14" />
+                                </DataTemplate>
+                            </BindableLayout.ItemTemplate>
+                        </VerticalStackLayout>
+                    </ScrollView>
                 </Frame>
 
                 <!-- Edit Mode Section -->

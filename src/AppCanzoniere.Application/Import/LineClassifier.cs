@@ -73,16 +73,20 @@ internal static class LineClassifier
         return new ContentUnit(UnitKind.Lyric, lyric, start, indented, warned);
     }
 
-    // Only a clean lyric (plain words and brackets): any other line may be the converter's own output, which stays as it is.
+    // Only a lyric whose other-notation brackets stand between words: the converter's own output never writes a chord there.
     private static bool TreatsOtherNotationAsText(string text, int start, Notation notation)
     {
-        if (BracketedText.HasAttachedChord(text) || BracketedText.Matches(text).Any(m => BracketedText.IsAnnotation(m.Groups[1].Value)))
+        // The line is judged as it will be written, other brackets already replaced, so the output reads the same way.
+        var kept = TextSafety.ReplaceKeepingChords(text);
+        if (BracketedText.HasAttachedChord(kept) || BracketedText.Matches(kept).Any(m => BracketedText.IsAnnotation(m.Groups[1].Value)) ||
+            !BracketedText.OtherNotationStandsBetweenWords(kept, start, notation))
             return false;
 
-        // The line is judged as it will be written, without its chord brackets, so the replaced text reads the same way.
-        var written = TextSafety.Replace(WithoutChordBrackets(text));
+        var written = TextSafety.Replace(WithoutChordBrackets(kept));
         var plain = SheetTokenizer.Tokenize(written, start, notation);
-        return plain.Any(IsPlainWord) && plain.All(t => t.Kind == TokenKind.Neutral || IsBracketOnly(t) || IsPlainWord(t));
+        // A real word keeps this line a lyric in both notations; a note line above it reads the replaced bracket as it read the bracket.
+        return plain.Any(IsRealWord) &&
+               plain.All(t => t.Kind == TokenKind.Neutral || IsBracketOnly(t) || IsPunctuation(t) || IsLyricWord(t));
     }
 
     private static string WithoutChordBrackets(string text)
@@ -95,17 +99,29 @@ internal static class LineClassifier
 
     private static bool IsBracketOnly(SheetToken t) => t.Text.All(c => c is '[' or ']' or '(' or ')' or '{' or '}');
 
-    private static bool IsPlainWord(SheetToken t)
+    private static readonly char[] LyricPunctuation = ",;:.!?…«»“”\"‘’'()-–—".ToCharArray();
+
+    private static bool IsPunctuation(SheetToken t) => t.Kind == TokenKind.Word && t.Text.Trim(LyricPunctuation).Length == 0;
+
+    // Short and note-name words count; the document's lower-case style is left out because its chords come back in brackets.
+    private static bool IsLyricWord(SheetToken t)
     {
-        var word = t.Text.TrimEnd(',', ';', ':', '.', '!', '?');
-        return t.Kind == TokenKind.Word && !IsLoose(t) && word.Length >= 2 && word.All(c => char.IsLetter(c) || c is '\'' or '’' or '-');
+        var word = t.Text.Trim(LyricPunctuation);
+        var kindIsWord = t.Kind == TokenKind.Word || (t.Kind == TokenKind.Chord && t.Ambiguous && !t.Parenthesised && !t.Bracketed);
+        return kindIsWord && word.Length > 0 &&
+               word.All(c => char.IsLetterOrDigit(c) || c is '\'' or '’' or '-') && (word.Any(char.IsLetter) || word.All(char.IsDigit));
     }
+
+    // A word that is no chord name of either notation, also once its punctuation is stripped, as "(Dmi" is.
+    private static bool IsRealWord(SheetToken t) =>
+        t.Kind == TokenKind.Word && !t.LowerChord && !t.Foreign && !t.Doubtful && IsLyricWord(t) &&
+        t.Text.Trim(LyricPunctuation) is var word && !ChordWords.IsChord(word, Notation.Italian) && !ChordWords.IsChord(word, Notation.English);
 
     private static SheetWarning[] Replaced(bool changed) => changed ? new[] { SheetWarning.BracketsReplaced } : Array.Empty<SheetWarning>();
 
     public static LineClassification Classify(IReadOnlyList<SheetToken> tokens, Notation notation, LineContext context = default)
     {
-        // Chords already in brackets next to real words, or next to a single plain chord (a lyric with chords after it), mean the line is ChordPro already.
+        // Chords already in brackets next to real words, or a lyric with chords after it, mean the line is ChordPro already.
         if (tokens.Any(t => t.Bracketed) && (tokens.Any(t => !t.Bracketed && t.Kind == TokenKind.Word) || IsLyricWithTail(tokens)))
         {
             var chords = tokens.Count(t => t.Kind == TokenKind.Chord);
@@ -130,10 +146,9 @@ internal static class LineClassifier
         return ClassifyTokens(tokens);
     }
 
-    private static bool IsLoose(SheetToken t) => t.LowerChord || t.Foreign || t.Doubtful;
-
+    // One plain chord beside brackets that are no chord of the notation; merged, such a line would stop counting for the notation.
     private static bool IsLyricWithTail(IReadOnlyList<SheetToken> tokens) =>
-        tokens.Count(t => !t.Bracketed && t.Kind == TokenKind.Chord) == 1;
+        tokens.Count(t => !t.Bracketed && t.Kind == TokenKind.Chord) == 1 && tokens.Any(t => t.Bracketed && t.Kind != TokenKind.Chord);
 
     private static LineClassification ClassifyTokens(IReadOnlyList<SheetToken> tokens)
     {
@@ -178,7 +193,8 @@ internal static class LineClassifier
                 : Make(false, true, UnsureSingle, SheetWarning.AmbiguousSingleToken);
 
         var chords = tokens.Where(t => t.Kind == TokenKind.Chord).Select(t => t.Chord).ToList();
-        var sameName = chords.All(c => string.Equals(c, chords[0], StringComparison.OrdinalIgnoreCase));
+        // A repeated name alone ("Do Do") is a lyric, unless one of them is already in brackets or parentheses.
+        var sameName = chords.All(c => string.Equals(c, chords[0], StringComparison.OrdinalIgnoreCase)) && !tokens.Any(t => t.Bracketed || t.Parenthesised);
         return sameName
             ? Make(false, false, LikelyChord, SheetWarning.AmbiguousNoteWords)
             : Make(true, false, BareNamesChord);

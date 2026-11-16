@@ -1,3 +1,4 @@
+using AppCanzoniere.Application.Display;
 using AppCanzoniere.Application.Interfaces;
 using AppCanzoniere.Application.Services;
 using AppCanzoniere.Domain.Interfaces;
@@ -23,6 +24,7 @@ public static class MauiProgram
             {
                 fonts.AddFont("OpenSans-Regular.ttf", "OpenSansRegular");
                 fonts.AddFont("OpenSans-Semibold.ttf", "OpenSansSemibold");
+                fonts.AddFont("JetBrainsMono-Regular.ttf", "JetBrainsMono");
             });
 
 #if DEBUG
@@ -44,6 +46,10 @@ public static class MauiProgram
         // Application Services
         builder.Services.AddSingleton<IChordProParser, ChordProParser>();
         builder.Services.AddSingleton<IChordTransposer, ChordTransposer>();
+        builder.Services.AddSingleton<ISongDisplayService, SongDisplayService>();
+        builder.Services.AddSingleton<SongScreenPresenter>();
+        builder.Services.AddSingleton<IPreferenceStorage, PreferencesStorage>();
+        builder.Services.AddSingleton<IChordDisplaySettingsStore, ChordDisplaySettingsStore>();
 
         // Cloud Storage Providers
         builder.Services.AddSingleton<LocalStorageProvider>();

@@ -13,9 +13,12 @@ public partial class SongDetailPage : ContentPage
         BindingContext = _viewModel;
     }
 
-    protected override void OnAppearing()
+    protected override async void OnAppearing()
     {
         base.OnAppearing();
         _viewModel.InitializeNewSongCommand.Execute(null);
+
+        // Settings may have changed while another page was open; the transposition stays.
+        await _viewModel.RefreshDisplayAsync();
     }
 }

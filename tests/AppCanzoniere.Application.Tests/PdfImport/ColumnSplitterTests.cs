@@ -1,0 +1,271 @@
+using AppCanzoniere.Application.PdfImport;
+
+namespace AppCanzoniere.Application.Tests.PdfImport;
+
+// The lyrics below are written for these tests; '^' marks the character a chord sits over.
+public class ColumnSplitterTests
+{
+    private static readonly string[] LeftLyrics =
+    {
+        "^Cammina con me per la ^strada",
+        "^dove il sole ^nasce al mattino",
+        "^porta la tua ^luce nel cuore",
+        "^canta con noi la ^gioia del cielo",
+    };
+
+    private static readonly string[] RightLyrics =
+    {
+        "^Vento che soffia sul ^mare",
+        "^onde che corrono ^verso la riva",
+        "^voce che chiama il ^nome di tutti",
+        "^sera che scende ^piano sul monte",
+    };
+
+    private static readonly string[] Chords = { "DO", "SOL" };
+
+    private static string[] TextOf(LayoutRegion region) => region.Rows.SelectMany(r => r.Words).Select(w => w.Text).ToArray();
+
+    private static PageBuilder TwoColumns(double rightOffset = 0, double leftX = 40, double rightX = 310, double top = 760)
+    {
+        var page = new PageBuilder();
+        page.Song(LeftLyrics, Chords, leftX, top);
+        page.Song(RightLyrics, Chords, rightX, top - rightOffset);
+        return page;
+    }
+
+    [Fact]
+    public void Split_ReturnsNoRegions_ForAnEmptyPage()
+    {
+        Assert.Empty(ColumnSplitter.Split(Array.Empty<PositionedWord>(), PageBuilder.PageWidth));
+    }
+
+    [Fact]
+    public void Split_ReadsTheLeftColumnBeforeTheRightOne_WhenTwoSongsSitSideBySide()
+    {
+        var regions = ColumnSplitter.Split(TwoColumns().Words, PageBuilder.PageWidth);
+
+        Assert.Equal(new[] { (0, 2), (1, 2) }, regions.Select(r => (r.ColumnIndex, r.ColumnCount)));
+        Assert.Contains("Cammina", TextOf(regions[0]));
+        Assert.DoesNotContain("Vento", TextOf(regions[0]));
+        Assert.Contains("Vento", TextOf(regions[1]));
+        Assert.DoesNotContain("Cammina", TextOf(regions[1]));
+        Assert.Equal(8, regions[0].Rows.Count);
+        Assert.Equal(8, regions[1].Rows.Count);
+    }
+
+    [Fact]
+    public void Split_KeepsEachColumnsRows_WhenTheColumnsBaselinesAreOffset()
+    {
+        // In real booklets the right column's lines often sit a couple of points lower than the left ones,
+        // which makes line-by-line extraction interleave them.
+        var regions = ColumnSplitter.Split(TwoColumns(rightOffset: 2.2).Words, PageBuilder.PageWidth);
+
+        Assert.Equal(2, regions.Count);
+        Assert.Equal(8, regions[0].Rows.Count);
+        Assert.Equal(8, regions[1].Rows.Count);
+        Assert.All(regions[0].Rows, r => Assert.True(r.Right < PageBuilder.PageWidth / 2));
+        Assert.All(regions[1].Rows, r => Assert.True(r.Left > PageBuilder.PageWidth / 2));
+    }
+
+    [Fact]
+    public void Split_SeparatesColumns_AcrossANarrowGutter()
+    {
+        // One booklet in the corpus leaves only about five points between its columns.
+        var widest = LeftLyrics.Max(l => PageBuilder.Width(l.Replace("^", string.Empty).Replace(" ", string.Empty)) + l.Count(c => c == ' ') * PageBuilder.SpaceWidth);
+        const double rightX = 302;
+        var regions = ColumnSplitter.Split(TwoColumns(leftX: rightX - 5 - widest, rightX: rightX).Words, PageBuilder.PageWidth);
+
+        Assert.Equal(new[] { (0, 2), (1, 2) }, regions.Select(r => (r.ColumnIndex, r.ColumnCount)));
+    }
+
+    [Fact]
+    public void Split_PutsAFullWidthTitleFirst_ThenTheTwoColumns()
+    {
+        var page = TwoColumns(top: 740).Text("UN TITOLO MOLTO LUNGO CHE ATTRAVERSA TUTTA LA PAGINA", 150, 800);
+
+        var regions = ColumnSplitter.Split(page.Words, PageBuilder.PageWidth);
+
+        Assert.Equal(new[] { (0, 1), (0, 2), (1, 2) }, regions.Select(r => (r.ColumnIndex, r.ColumnCount)));
+        Assert.Equal("UN", TextOf(regions[0])[0]);
+        Assert.Single(regions[0].Rows);
+    }
+
+    [Fact]
+    public void Split_KeepsARunningHeaderWhole_WhenOneOfItsWordsHappensToStartAtTheRightColumnsMargin()
+    {
+        // A booklet's running header crosses the gutter with an ordinary word space, and by chance a word starts
+        // exactly where the right column starts; it is still one line.
+        var page = TwoColumns(top: 740);
+        const string before = "CANZONIERE BRANCA E/G GRUPPO SCOUT";
+        var x = 310 - PageBuilder.SpaceWidth - PageBuilder.Width(before.Replace(" ", string.Empty)) - (before.Count(c => c == ' ') * PageBuilder.SpaceWidth);
+        page.Text(before + " AGESCI MAZARA DEL VALLO", x, 800);
+
+        var regions = ColumnSplitter.Split(page.Words, PageBuilder.PageWidth);
+
+        Assert.Equal(new[] { (0, 1), (0, 2), (1, 2) }, regions.Select(r => (r.ColumnIndex, r.ColumnCount)));
+        Assert.Equal(new[] { "CANZONIERE", "BRANCA", "E/G", "GRUPPO", "SCOUT", "AGESCI", "MAZARA", "DEL", "VALLO" }, TextOf(regions[0]));
+    }
+
+    [Fact]
+    public void Split_KeepsTwoColumnTitlesInTheirColumns_WhenTheirGapIsNarrowerThanTheirHeight()
+    {
+        // Each column opens with a title set larger than the body; the gap between the two titles is narrower than
+        // their height, but the right title starts at the right column's margin, so it is the right column's title.
+        const double scale = 14 / PageBuilder.TextHeight;
+        var words = TwoColumns(top: 740).Words.ToList();
+        void Title(string text, double x)
+        {
+            foreach (var word in text.Split(' '))
+            {
+                var width = PageBuilder.Width(word) * scale;
+                words.Add(new PositionedWord(word, new WordBox(x, 800, x + width, 800 + (PageBuilder.TextHeight * scale))));
+                x += width + (PageBuilder.SpaceWidth * scale);
+            }
+        }
+
+        const string leftTitle = "CANTO DEL MARE";
+        var leftWidth = (PageBuilder.Width(leftTitle.Replace(" ", string.Empty)) + (2 * PageBuilder.SpaceWidth)) * scale;
+        Title(leftTitle, 300 - leftWidth);
+        Title("CANTO DELLA SERA", 310);
+
+        var regions = ColumnSplitter.Split(words, PageBuilder.PageWidth);
+
+        Assert.Equal(new[] { (0, 2), (1, 2) }, regions.Select(r => (r.ColumnIndex, r.ColumnCount)));
+        Assert.Equal(new[] { "CANTO", "DEL", "MARE" }, regions[0].Rows[0].Words.Select(w => w.Text));
+        Assert.Equal(new[] { "CANTO", "DELLA", "SERA" }, regions[1].Rows[0].Words.Select(w => w.Text));
+    }
+
+    [Fact]
+    public void Split_KeepsASmallerRunningHeaderWhole_WhenItsSpaceAtTheGutterIsSlightlyWider()
+    {
+        // As in one booklet: a header in a smaller size whose space at the gutter (2 points) is a little wider than its
+        // other spaces (1.8 points), with the word after it starting at the right column's margin.
+        const double scale = 0.6;
+        var header = new[] { "CANZONIERE", "BRANCA", "GRUPPO", "SCOUT", "AGESCI", "MAZARA", "DEL", "VALLO" };
+        double WidthOf(string word) => PageBuilder.Width(word) * scale;
+        var x = 310 - 2.0 - header.Take(3).Sum(WidthOf) - (2 * 1.8);
+        var words = TwoColumns(top: 740).Words.ToList();
+        foreach (var word in header)
+        {
+            words.Add(new PositionedWord(word, new WordBox(x, 800, x + WidthOf(word), 800 + (PageBuilder.TextHeight * scale))));
+            x += WidthOf(word) + (word == "GRUPPO" ? 2.0 : 1.8);
+        }
+
+        var regions = ColumnSplitter.Split(words, PageBuilder.PageWidth);
+
+        Assert.Equal(new[] { (0, 1), (0, 2), (1, 2) }, regions.Select(r => (r.ColumnIndex, r.ColumnCount)));
+        Assert.Equal(header, TextOf(regions[0]));
+    }
+
+    [Fact]
+    public void Split_KeepsAFooterWhole_WhenItCrossesTheGutterWithAWordSpace()
+    {
+        var page = TwoColumns();
+        const string before = "Raccolta di canti per la";
+        var x = 310 - PageBuilder.SpaceWidth - PageBuilder.Width(before.Replace(" ", string.Empty)) - (before.Count(c => c == ' ') * PageBuilder.SpaceWidth);
+        page.Text(before + " comunita parrocchiale di quartiere", x, 60);
+
+        var regions = ColumnSplitter.Split(page.Words, PageBuilder.PageWidth);
+
+        Assert.Equal(new[] { (0, 2), (1, 2), (0, 1) }, regions.Select(r => (r.ColumnIndex, r.ColumnCount)));
+        Assert.Equal("Raccolta", TextOf(regions[2])[0]);
+    }
+
+    [Fact]
+    public void Split_StillSplitsEveryBodyRow_AcrossAGutterNoWiderThanAWordSpace()
+    {
+        // One booklet leaves about three points between its columns, as wide as its word spaces.
+        var widest = LeftLyrics.Max(l => PageBuilder.Width(l.Replace("^", string.Empty).Replace(" ", string.Empty)) + l.Count(c => c == ' ') * PageBuilder.SpaceWidth);
+        const double rightX = 302;
+        var page = TwoColumns(leftX: rightX - 3 - widest, rightX: rightX, top: 740).Text("CANTI DELLA SERA E DEL MATTINO", 200, 800);
+
+        var regions = ColumnSplitter.Split(page.Words, PageBuilder.PageWidth);
+
+        Assert.Equal(new[] { (0, 1), (0, 2), (1, 2) }, regions.Select(r => (r.ColumnIndex, r.ColumnCount)));
+        Assert.Equal(8, regions[1].Rows.Count);
+        Assert.Equal(8, regions[2].Rows.Count);
+    }
+
+    [Fact]
+    public void Split_PutsAFullWidthParagraphBelowTheColumns_AfterBothColumns()
+    {
+        var page = TwoColumns().Text("una riga conclusiva che attraversa tutta la larghezza del foglio da un lato all'altro", 40, 120);
+
+        var regions = ColumnSplitter.Split(page.Words, PageBuilder.PageWidth);
+
+        Assert.Equal(new[] { (0, 2), (1, 2), (0, 1) }, regions.Select(r => (r.ColumnIndex, r.ColumnCount)));
+        Assert.Equal("una", TextOf(regions[2])[0]);
+    }
+
+    [Fact]
+    public void Split_KeepsOneColumn_WhenChordsFarApartLeaveAGapInTheMiddle()
+    {
+        var page = new PageBuilder();
+        page.Song(
+            new[]
+            {
+                "^Questa lunga strada che porta lontano dove nasce il ^giorno e finisce la sera",
+                "^tutti noi insieme camminiamo cantando sotto il cielo con la ^luce che ci guida",
+                "^ogni passo che facciamo ci avvicina un poco alla casa del ^padre che ci aspetta",
+                "^e la notte buia non fa paura a chi ha nel cuore la speranza di un ^nuovo mattino",
+            },
+            new[] { "LA-", "MI7" },
+            40,
+            760);
+
+        var regions = ColumnSplitter.Split(page.Words, PageBuilder.PageWidth);
+
+        Assert.Single(regions);
+        Assert.Equal((0, 1), (regions[0].ColumnIndex, regions[0].ColumnCount));
+        Assert.Equal(8, regions[0].Rows.Count);
+    }
+
+    [Fact]
+    public async Task Split_FinishesQuickly_OnAPageClaimingAnAbsurdWidth()
+    {
+        // A crafted page box a billion points wide, with text near both sides of its centre, used to make the gutter
+        // search try hundreds of millions of positions.
+        const double width = 1e9;
+        var words = TwoColumns(leftX: 40, rightX: (width / 2) + 100).Words;
+
+        var split = Task.Run(() => ColumnSplitter.Split(words, width));
+
+        await split.WaitAsync(TimeSpan.FromSeconds(5));
+    }
+
+    [Fact]
+    public void Split_StopsWithCancellation_WhenTheTokenIsCancelled()
+    {
+        using var source = new CancellationTokenSource();
+        source.Cancel();
+
+        Assert.ThrowsAny<OperationCanceledException>(() => ColumnSplitter.Split(TwoColumns().Words, PageBuilder.PageWidth, source.Token));
+    }
+
+    [Fact]
+    public void Split_StillFindsTheGutter_OnAPageSlightlyWiderThanTheText()
+    {
+        var regions = ColumnSplitter.Split(TwoColumns().Words, PageBuilder.PageWidth + 20);
+
+        Assert.Equal(new[] { (0, 2), (1, 2) }, regions.Select(r => (r.ColumnIndex, r.ColumnCount)));
+    }
+
+    [Fact]
+    public void Split_KeepsOneColumn_WhenOnlyChordsAtTheEndOfLinesReachTheRightHalf()
+    {
+        // Single-column songs often end a line with a chord placed well to the right; a stack of such chords
+        // lines up like a narrow column but holds no lyrics, so it must not become one.
+        var page = new PageBuilder();
+        for (var i = 0; i < 8; i++)
+        {
+            var baseline = 760 - (i * 24);
+            page.Word("RE", 40, baseline + 12).Word("SOL", 120, baseline + 12).Word("LA7", 330, baseline + 12);
+            page.Text("canto per te la mia canzone", 40, baseline);
+        }
+
+        var regions = ColumnSplitter.Split(page.Words, PageBuilder.PageWidth);
+
+        Assert.Single(regions);
+        Assert.Equal(16, regions[0].Rows.Count);
+    }
+}

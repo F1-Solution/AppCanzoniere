@@ -31,16 +31,21 @@
 
                     <VerticalStackLayout Spacing="5">
                         <Label Text="Chord Notation" />
-                        <Picker ItemsSource="{Binding ChordNotations}"
-                                SelectedItem="{Binding Settings.ChordNotation}" />
+                        <Picker ItemsSource="{Binding NotationLabels}"
+                                SelectedIndex="{Binding NotationIndex}" />
                     </VerticalStackLayout>
 
-                    <HorizontalStackLayout Spacing="10">
-                        <Label Text="Show Sharp instead of Flat"
-                               VerticalOptions="Center"
-                               FlexLayout.Grow="1" />
-                        <Switch IsToggled="{Binding Settings.ShowSharpInsteadOfFlat}" />
-                    </HorizontalStackLayout>
+                    <VerticalStackLayout Spacing="5">
+                        <Label Text="Minor Chords" />
+                        <Picker ItemsSource="{Binding MinorLabels}"
+                                SelectedIndex="{Binding MinorIndex}" />
+                    </VerticalStackLayout>
+
+                    <VerticalStackLayout Spacing="5">
+                        <Label Text="Sharps and Flats" />
+                        <Picker ItemsSource="{Binding AccidentalLabels}"
+                                SelectedIndex="{Binding AccidentalsIndex}" />
+                    </VerticalStackLayout>
                 </VerticalStackLayout>
             </Frame>
 
@@ -55,8 +60,8 @@
 
                     <VerticalStackLayout Spacing="5">
                         <Label Text="App Language" />
-                        <Picker ItemsSource="{Binding Languages}"
-                                SelectedItem="{Binding Settings.PreferredLanguage}" />
+                        <Picker ItemsSource="{Binding LanguageLabels}"
+                                SelectedIndex="{Binding LanguageIndex}" />
                     </VerticalStackLayout>
                 </VerticalStackLayout>
             </Frame>

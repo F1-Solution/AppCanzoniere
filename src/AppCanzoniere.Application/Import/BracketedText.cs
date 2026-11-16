@@ -7,6 +7,7 @@ namespace AppCanzoniere.Application.Import;
 internal static class BracketedText
 {
     private static readonly Regex Pair = new(@"\[([^\[\]]*)\]", RegexOptions.Compiled | RegexOptions.CultureInvariant);
+    private static readonly Regex Parenthesised = new(@"\(([^()\s]+)\)", RegexOptions.Compiled | RegexOptions.CultureInvariant);
 
     public static IEnumerable<Match> Matches(string text) => Pair.Matches(text);
 
@@ -23,6 +24,23 @@ internal static class BracketedText
     public static bool IsKept(string inner, Notation? only = null) => IsAnnotation(inner) || IsInlineChord(inner, only);
 
     public static bool ContainsInlineChord(string text) => Matches(text).Any(m => IsInlineChord(m.Groups[1].Value));
+
+    /// <summary>True when every bracketed chord of only the other notation has a space or the line start before it and one space and a word after it.</summary>
+    public static bool OtherNotationStandsBetweenWords(string text, int start, Notation notation) =>
+        Matches(text).Where(m => m.Index >= start && IsInlineChord(m.Groups[1].Value) && !IsInlineChord(m.Groups[1].Value, notation))
+            .All(m => StandsBetweenWords(text, start, m.Index, m.Index + m.Length));
+
+    /// <summary>True when a chord of <paramref name="notation"/> in parentheses stands between words, as a bracket written as text does.</summary>
+    public static bool HasParenthesisedChordBetweenWords(string text, Notation notation) =>
+        Parenthesised.Matches(text).Any(m => IsInlineChord(m.Groups[1].Value, notation) && StandsBetweenWords(text, 0, m.Index, m.Index + m.Length));
+
+    /// <summary>Smallest snap width: with it a chord over the space before a word moves onto the word, never between words.</summary>
+    public const int MinSnapColumns = 1;
+
+    // With a snap of at least MinSnapColumns the converter writes a chord that misses a letter only after the lyric or before a wide gap.
+    private static bool StandsBetweenWords(string text, int start, int index, int end) =>
+        (index == start || text[index - 1] == ' ') &&
+        end + 1 < text.Length && text[end] == ' ' && text[end + 1] is not (' ' or '[');
 
     /// <summary>True when a chord sits directly against a letter: the evidence that a line is already ChordPro.</summary>
     public static bool HasAttachedChord(string text) =>

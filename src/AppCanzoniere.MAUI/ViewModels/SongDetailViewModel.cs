@@ -1,3 +1,6 @@
+using System.Diagnostics;
+using System.Globalization;
+using AppCanzoniere.Application.Display;
 using AppCanzoniere.Application.Interfaces;
 using AppCanzoniere.Domain.Entities;
 using AppCanzoniere.Domain.Interfaces;
@@ -10,8 +13,12 @@ namespace AppCanzoniere.MAUI.ViewModels;
 public partial class SongDetailViewModel : ObservableObject
 {
     private readonly ISongRepository _songRepository;
-    private readonly IChordProParser _chordProParser;
-    private readonly IChordTransposer _chordTransposer;
+    private readonly SongScreenPresenter _presenter;
+    private readonly IChordDisplaySettingsStore _displaySettings;
+    private readonly IUserSettingsRepository _userSettings;
+    private string _errorMessage = string.Empty;
+    private string _capoText = string.Empty;
+    private string? _appLanguage;
 
     [ObservableProperty]
     private Song? _song;
@@ -19,33 +26,75 @@ public partial class SongDetailViewModel : ObservableObject
     [ObservableProperty]
     private string _displayedContent = string.Empty;
 
+    /// <summary>The song text one string per row, so no label ever has to wrap or truncate.</summary>
+    [ObservableProperty]
+    private IReadOnlyList<string> _displayedLines = Array.Empty<string>();
+
     [ObservableProperty]
     private int _currentTranspose;
 
-    [ObservableProperty]
     private string _currentKey = string.Empty;
+
+    /// <summary>The sounding key; empty when the song file has none.</summary>
+    public string CurrentKey
+    {
+        get => _currentKey;
+        private set
+        {
+            if (SetProperty(ref _currentKey, value))
+                OnPropertyChanged(nameof(HasKey));
+        }
+    }
+
+    public bool HasKey => _currentKey.Length > 0;
 
     [ObservableProperty]
     private bool _isEditMode;
 
+    /// <summary>Why the chords could not be shown; empty when the song rendered.</summary>
+    public string ErrorMessage
+    {
+        get => _errorMessage;
+        private set
+        {
+            if (SetProperty(ref _errorMessage, value))
+                OnPropertyChanged(nameof(HasError));
+        }
+    }
+
+    public bool HasError => _errorMessage.Length > 0;
+
+    /// <summary>"Capo 2" when the song is played with a capo; empty otherwise.</summary>
+    public string CapoText
+    {
+        get => _capoText;
+        private set
+        {
+            if (SetProperty(ref _capoText, value))
+                OnPropertyChanged(nameof(HasCapo));
+        }
+    }
+
+    public bool HasCapo => _capoText.Length > 0;
+
     public SongDetailViewModel(
         ISongRepository songRepository,
-        IChordProParser chordProParser,
-        IChordTransposer chordTransposer)
+        SongScreenPresenter presenter,
+        IChordDisplaySettingsStore displaySettings,
+        IUserSettingsRepository userSettings)
     {
         _songRepository = songRepository;
-        _chordProParser = chordProParser;
-        _chordTransposer = chordTransposer;
+        _presenter = presenter;
+        _displaySettings = displaySettings;
+        _userSettings = userSettings;
     }
 
     partial void OnSongChanged(Song? value)
     {
-        if (value != null)
-        {
-            CurrentKey = value.OriginalKey;
-            DisplayedContent = value.ChordProContent ?? value.MusicXmlContent ?? value.JsonContent ?? "No content available";
-            CurrentTranspose = 0;
-        }
+        if (value == null) return;
+
+        CurrentTranspose = 0;
+        UpdateDisplayedContent();
     }
 
     [RelayCommand]
@@ -79,26 +128,39 @@ public partial class SongDetailViewModel : ObservableObject
         UpdateDisplayedContent();
     }
 
+    /// <summary>Shows the song again with the current settings and language, keeping the transposition.</summary>
+    public async Task RefreshDisplayAsync()
+    {
+        try
+        {
+            var stored = await _userSettings.GetAsync();
+            _appLanguage = stored?.PreferredLanguage;
+        }
+        catch (Exception ex)
+        {
+            Debug.WriteLine($"Reading the app language failed: {ex}");
+        }
+
+        UpdateDisplayedContent();
+    }
+
+    // First display, every transpose step and every refresh come through here.
     private void UpdateDisplayedContent()
     {
         if (Song == null) return;
 
-        // Update current key with transposition
-        if (!string.IsNullOrEmpty(Song.OriginalKey))
-        {
-            CurrentKey = _chordTransposer.TransposeKey(Song.OriginalKey, CurrentTranspose);
-        }
-
-        // Transpose ChordPro content if available
-        if (!string.IsNullOrEmpty(Song.ChordProContent))
-        {
-            var document = _chordProParser.Parse(Song.ChordProContent);
-            DisplayedContent = _chordProParser.Render(document, CurrentTranspose);
-        }
-        else
-        {
-            DisplayedContent = Song.MusicXmlContent ?? Song.JsonContent ?? "No content available";
-        }
+        var screen = _presenter.Present(new SongScreenRequest(
+            Song.ChordProContent,
+            Song.MusicXmlContent ?? Song.JsonContent,
+            CurrentTranspose,
+            _displaySettings.Load(),
+            _appLanguage,
+            CultureInfo.CurrentUICulture.Name));
+        DisplayedContent = screen.Text;
+        DisplayedLines = screen.Text.Split('\n').Select(l => l.Length == 0 ? " " : l).ToArray();
+        CurrentKey = screen.Key;
+        CapoText = screen.Capo;
+        ErrorMessage = screen.Error;
     }
 
     [RelayCommand]
