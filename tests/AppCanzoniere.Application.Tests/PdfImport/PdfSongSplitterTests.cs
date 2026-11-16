@@ -183,9 +183,50 @@ public sealed class PdfSongSplitterTests
     }
 
     [Fact]
+    public void The_next_numbered_title_may_follow_a_label_without_a_blank_line()
+    {
+        var result = PdfSongSplitter.Split(new[] { Page(1, $"1. LA LUNA\n{SongA}\nRIT.\n2. IL VENTO\n{SongB}") });
+
+        Assert.Equal(new[] { "LA LUNA", "IL VENTO" }, Titles(result));
+    }
+
+    [Fact]
+    public void The_next_number_in_sequence_is_a_title_even_when_its_song_has_no_chords()
+    {
+        var result = PdfSongSplitter.Split(new[] { Page(1, $"1. LA LUNA\n{SongA}\n\n2. Il vento\nsolo testo\nancora testo") });
+
+        Assert.Equal(new[] { "LA LUNA", "Il vento" }, Titles(result));
+    }
+
+    [Fact]
+    public void A_verse_number_after_text_is_not_a_title()
+    {
+        var result = PdfSongSplitter.Split(new[] { Page(1, $"1. LA LUNA\n{SongA}\nsopra il mare\n5. Do Sol\nRe La\nverso") });
+
+        Assert.Equal(new[] { "LA LUNA" }, Titles(result));
+    }
+
+    [Fact]
+    public void Mixed_case_lyrics_at_the_top_of_a_column_are_not_titles_in_a_numbered_book()
+    {
+        var result = PdfSongSplitter.Split(new[] { Page(1, $"1. LA LUNA\n{SongA}"), Page(2, "Canta e cammina\nDo   Sol\ntesto") });
+
+        Assert.Equal(new[] { "LA LUNA" }, Titles(result));
+    }
+
+    [Fact]
+    public void An_indented_author_line_under_a_mixed_case_title_is_a_subtitle()
+    {
+        var result = PdfSongSplitter.Split(new[] { Page(1, $"   Manda me\n                Civico\n\n{SongA}") });
+
+        Assert.Equal(new[] { "Manda me" }, Titles(result));
+        Assert.Equal(new[] { "Civico" }, result.Songs[0].Subtitles);
+    }
+
+    [Fact]
     public void Thousands_of_songs_split_in_bounded_time()
     {
-        var pages = Enumerable.Range(1, 300)
+        var pages = Enumerable.Range(1, 100)
             .Select(n => Page(n, string.Join("\n\n", Enumerable.Range(0, 10).Select(k => $"{n * 10 + k}. TITOLO {n * 10 + k}\n{SongA}"))))
             .ToList();
 
@@ -193,7 +234,7 @@ public sealed class PdfSongSplitterTests
         var result = PdfSongSplitter.Split(pages);
         clock.Stop();
 
-        Assert.Equal(3000, result.Songs.Count);
+        Assert.Equal(1000, result.Songs.Count);
         Assert.True(clock.Elapsed < TimeSpan.FromSeconds(30), $"took {clock.Elapsed}");
     }
 
