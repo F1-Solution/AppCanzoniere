@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!-- Provisional reader tokens; phase F4 replaces the values and keeps the keys. -->
+<ResourceDictionary
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml">
+
+    <Color x:Key="Leggio.Background">#FFFFFF</Color>
+    <Color x:Key="Leggio.Lyric.Color">#1F1F1F</Color>
+    <Color x:Key="Leggio.Chord.Color">#512BD4</Color>
+    <Color x:Key="Leggio.Annotation.Color">#6E6E6E</Color>
+    <Color x:Key="Leggio.Label.Color">#2B0B98</Color>
+    <Color x:Key="Leggio.Comment.Color">#6E6E6E</Color>
+
+    <x:Double x:Key="Leggio.Lyric.Size">18</x:Double>
+    <x:Double x:Key="Leggio.Chord.Size">16</x:Double>
+    <x:Double x:Key="Leggio.Annotation.Size">13</x:Double>
+    <x:Double x:Key="Leggio.Label.Size">14</x:Double>
+    <x:Double x:Key="Leggio.Comment.Size">14</x:Double>
+
+    <x:String x:Key="Leggio.Lyric.Font">OpenSansRegular</x:String>
+    <x:String x:Key="Leggio.Chord.Font">OpenSansSemibold</x:String>
+    <x:String x:Key="Leggio.Label.Font">OpenSansSemibold</x:String>
+</ResourceDictionary>

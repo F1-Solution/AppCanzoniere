@@ -12,7 +12,6 @@ public sealed class SongDisplayService : ISongDisplayService
     private static readonly HashSet<int> NaturalTonics = new() { 0, 2, 4, 5, 7, 9, 11 };
 
     private readonly IChordProParser _parser;
-    private readonly ITextMeasurer _measurer = new MonospaceMeasurer();
 
     public SongDisplayService(IChordProParser parser)
     {
@@ -20,7 +19,7 @@ public sealed class SongDisplayService : ISongDisplayService
         _parser = parser;
     }
 
-    public SongDisplay Render(SongDisplayRequest request)
+    public PreparedSong Prepare(SongDisplayRequest request)
     {
         ArgumentNullException.ThrowIfNull(request);
         if (request.ChordPro is null)
@@ -42,10 +41,9 @@ public sealed class SongDisplayService : ISongDisplayService
 
         var shownOptions = baseOptions with { Accidentals = ChordSpelling(document, chords, baseOptions, settings.Accidentals) };
         var shown = _parser.Parse(_parser.Render(document, shownOptions));
-        var flow = SongLayoutEngine.Flow(LayoutSource.From(shown), LayoutTextProjector.Options, _measurer);
         var keyOptions = baseOptions with { Accidentals = settings.Accidentals };
-        return new SongDisplay(
-            LayoutTextProjector.Project(flow),
+        return new PreparedSong(
+            LayoutSource.From(shown),
             ChordProKeys.SoundingKey(document, keyOptions) ?? string.Empty,
             ChordProKeys.EffectiveCapo(document, shownOptions));
     }

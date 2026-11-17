@@ -96,7 +96,7 @@ internal static class PdfPigPage
 
     private static PositionedWord ToWord(Word word, double originLeft, double originBottom)
     {
-        var text = FoldLigatures(word.Text);
+        var text = FoldLigatures(string.Concat(word.Letters.Select(TexGlyphs.TextOf)));
         var box = new WordBox(
             word.BoundingBox.Left - originLeft,
             word.BoundingBox.Bottom - originBottom,
@@ -111,7 +111,7 @@ internal static class PdfPigPage
         var lefts = new List<double>(length);
         foreach (var letter in word.Letters)
         {
-            var text = FoldLigatures(letter.Value);
+            var text = FoldLigatures(TexGlyphs.TextOf(letter));
             var start = letter.StartBaseLine.X;
             var advance = letter.EndBaseLine.X - start;
             for (var k = 0; k < text.Length; k++)

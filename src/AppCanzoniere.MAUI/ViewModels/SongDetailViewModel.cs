@@ -23,13 +23,18 @@ public partial class SongDetailViewModel : ObservableObject
     [ObservableProperty]
     private Song? _song;
 
+    /// <summary>The song as plain text: what is shown when it cannot be drawn, and what a screen reader reads.</summary>
     [ObservableProperty]
     private string _displayedContent = string.Empty;
 
-    /// <summary>The song text one string per row, so no label ever has to wrap or truncate.</summary>
+    /// <summary>The song to draw wrapped at the screen width; null when only the plain text is shown.</summary>
     [ObservableProperty]
-    private IReadOnlyList<string> _displayedLines = Array.Empty<string>();
+    [NotifyPropertyChangedFor(nameof(ShowDrawing), nameof(ShowStoredText))]
+    private PreparedSong? _prepared;
 
+    public bool ShowDrawing => Prepared is not null;
+
+    public bool ShowStoredText => Prepared is null;
     [ObservableProperty]
     private int _currentTranspose;
 
@@ -157,10 +162,27 @@ public partial class SongDetailViewModel : ObservableObject
             _appLanguage,
             CultureInfo.CurrentUICulture.Name));
         DisplayedContent = screen.Text;
-        DisplayedLines = screen.Text.Split('\n').Select(l => l.Length == 0 ? " " : l).ToArray();
+        Prepared = screen.Prepared;
         CurrentKey = screen.Key;
         CapoText = screen.Capo;
         ErrorMessage = screen.Error;
+    }
+
+    /// <summary>Called when the drawing of the song throws: shows the song as stored, with the usual error.</summary>
+    public void ShowAsStored()
+    {
+        try
+        {
+            // The chords-above-lyrics text stays when it was computed; raw source only when layout itself failed.
+            if (Prepared is null)
+                DisplayedContent = Song?.ChordProContent ?? string.Empty;
+            Prepared = null;
+            ErrorMessage = SongScreenPresenter.LayoutFailed;
+        }
+        catch (Exception ex)
+        {
+            Debug.WriteLine($"Showing the stored song failed: {ex}");
+        }
     }
 
     [RelayCommand]

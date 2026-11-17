@@ -21,7 +21,10 @@ public enum PdfExtractionStatus
     TooLarge,
 
     /// <summary>Reading took longer than the configured time limit.</summary>
-    TimedOut
+    TimedOut,
+
+    /// <summary>The file could not be read: the reader stopped unexpectedly or its answer could not be trusted.</summary>
+    Unreadable
 }
 
 /// <summary>Positioned words of every page, or a typed failure with a readable reason.</summary>

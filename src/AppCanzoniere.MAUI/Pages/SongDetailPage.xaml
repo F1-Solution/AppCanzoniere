@@ -2,6 +2,7 @@
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              xmlns:vm="clr-namespace:AppCanzoniere.MAUI.ViewModels"
+             xmlns:controls="clr-namespace:AppCanzoniere.MAUI.Controls"
              x:Class="AppCanzoniere.MAUI.Pages.SongDetailPage"
              x:DataType="vm:SongDetailViewModel"
              Title="{Binding Song.Title}">
@@ -70,18 +71,18 @@
                 <Frame BorderColor="{StaticResource Gray200}"
                        Padding="10"
                        CornerRadius="5">
-                    <ScrollView Orientation="Horizontal">
-                        <!-- One label per row: a row never wraps in a horizontal scroll view, and none can be cut to its first line. -->
-                        <VerticalStackLayout BindableLayout.ItemsSource="{Binding DisplayedLines}">
-                            <BindableLayout.ItemTemplate>
-                                <DataTemplate x:DataType="x:String">
-                                    <Label Text="{Binding .}"
-                                           FontFamily="JetBrainsMono"
-                                           FontSize="14" />
-                                </DataTemplate>
-                            </BindableLayout.ItemTemplate>
-                        </VerticalStackLayout>
-                    </ScrollView>
+                    <Grid>
+                        <!-- Wraps at the real width of the screen; grows to the height of the song. -->
+                        <controls:SongDrawingView x:Name="SongView"
+                                                  Song="{Binding Prepared}"
+                                                  IsVisible="{Binding ShowDrawing}"
+                                                  SemanticProperties.Description="{Binding DisplayedContent}" />
+                        <!-- Plain text when the song cannot be drawn or is not ChordPro. -->
+                        <Label Text="{Binding DisplayedContent}"
+                               IsVisible="{Binding ShowStoredText}"
+                               FontFamily="JetBrainsMono"
+                               FontSize="14" />
+                    </Grid>
                 </Frame>
 
                 <!-- Edit Mode Section -->

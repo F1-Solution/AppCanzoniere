@@ -1,0 +1,17 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <InvariantGlobalization>true</InvariantGlobalization>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\AppCanzoniere.Application\AppCanzoniere.Application.csproj" />
+    <ProjectReference Include="..\AppCanzoniere.Infrastructure\AppCanzoniere.Infrastructure.csproj" />
+  </ItemGroup>
+
+</Project>

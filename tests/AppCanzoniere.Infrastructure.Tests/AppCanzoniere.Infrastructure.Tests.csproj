@@ -23,6 +23,8 @@
   <ItemGroup>
     <ProjectReference Include="..\..\src\AppCanzoniere.Domain\AppCanzoniere.Domain.csproj" />
     <ProjectReference Include="..\..\src\AppCanzoniere.Infrastructure\AppCanzoniere.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\src\AppCanzoniere.PdfWorker\AppCanzoniere.PdfWorker.csproj" />
+    <ProjectReference Include="..\AppCanzoniere.FakePdfWorker\AppCanzoniere.FakePdfWorker.csproj" />
   </ItemGroup>
 
 </Project>

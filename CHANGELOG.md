@@ -15,13 +15,17 @@
 - Nelle impostazioni si scelgono la notazione degli accordi, diesis o bemolle e la lingua, con la voce "Automatica (lingua del dispositivo)".
 - Il canto usa un carattere a spaziatura fissa incluso nell'app (JetBrains Mono, licenza OFL), così gli accordi restano sopra la sillaba giusta su Android e Windows.
 - Estrazione del testo dai PDF con il testo già selezionabile, comprese le pagine a due colonne, che vengono separate.
-- I PDF troppo grandi, danneggiati o costruiti per consumare memoria vengono rifiutati con un messaggio; l'import dai PDF non è ancora disponibile nell'app.
+- I PDF troppo grandi, danneggiati o costruiti per consumare memoria vengono rifiutati con un messaggio.
+- I libretti in PDF si dividono in canti, e ogni canto viene convertito in ChordPro con il suo titolo; l'import dai PDF non è ancora disponibile nell'app.
+- I PDF si leggono in un processo separato con limiti di tempo e memoria; un file che non si può leggere viene segnalato come illeggibile.
+- Le pagine scansionate si possono leggere con il riconoscimento del testo del dispositivo (solo banco di prova Windows).
 
 ### Modificato
 - `{key}` indica la tonalità degli accordi scritti e il capotasto alza la tonalità che suona, come nello standard ChordPro.
 - Con il capotasto le forme usano le alterazioni naturali della loro tonalità; la preferenza diesis o bemolle vale per la tonalità che suona.
 - Nel testo incollato le parentesi quadre e graffe diventano tonde, con un avviso.
 - Le righe in minuscolo con spazi singoli e senza altri segni da accordo restano testo anche se le parole sembrano accordi.
+- La schermata del canto va a capo sulla larghezza reale dello schermo e si ricalcola alla rotazione o al ridimensionamento della finestra, con gli accordi sopra le sillabe.
 
 ### Corretto
 - Gli accordi di un canto ChordPro vengono riscritti nella posizione in cui erano.
@@ -31,3 +35,4 @@
 - Con trasposizione zero la preferenza diesis/bemolle non riscrive più gli accordi del canto.
 - "Ripristina" nelle impostazioni non impedisce più i salvataggi successivi.
 - Le note scritte in minuscolo sotto una riga di accordi vengono lette come testo.
+- Diesis, bemolle e bequadro disegnati con i caratteri matematici di TeX vengono letti correttamente.

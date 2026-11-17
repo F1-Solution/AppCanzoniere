@@ -29,6 +29,7 @@ internal static class MarkdownReport
         md.AppendLine(Invariant, $"Run on {when:yyyy-MM-dd HH:mm} UTC. Extraction and layout run in-process with the app's own code; nothing leaves the machine.").AppendLine();
         md.AppendLine("Three separate questions, three separate measures: does the converter find the chord lines (recall / precision), does each line keep to one column (split check), and does each chord stand over its syllable (alignment). A good chord-line score says nothing about the other two.").AppendLine();
         PerPdf(md, results);
+        SongsReport.Append(md, results);
         Summary(md, results);
         PerExtract(md, results);
         PageColumns(md, results);
@@ -41,15 +42,15 @@ internal static class MarkdownReport
     private static void PerPdf(StringBuilder md, IReadOnlyList<PdfBenchResult> results)
     {
         md.AppendLine("## Per PDF").AppendLine();
-        md.AppendLine("| PDF | pages | result | 1-col | 2-col | no text | time ms | labelled pages | pdftotext R / P | in-app R / P | split: checked / joined / cut / unverified | chords: measured / off by 2+ |");
-        md.AppendLine("|---|---:|---|---:|---:|---:|---:|---|---|---|---|---|");
+        md.AppendLine("| PDF | pages | result | 1-col | 2-col | no text | time ms | labelled pages | pdftotext R / P | in-app R / P | split: checked / joined / cut / unverified | chords: measured / off by 2+ | songs found |");
+        md.AppendLine("|---|---:|---|---:|---:|---:|---:|---|---|---|---|---|---:|");
         foreach (var r in results)
         {
             var pages = r.Text.Pages;
             var labelled = string.Join(",", r.Extracts.SelectMany(e => e.Pages));
             var split = r.Split.Score;
             var a = r.Alignment;
-            md.AppendLine(Invariant, $"| {r.File} | {pages.Count} | {Outcome(r.Text)} | {pages.Count(p => p.ColumnCount == 1)} | {pages.Count(p => p.ColumnCount == 2)} | {pages.Count(p => p.ColumnCount == 0)} | {r.Elapsed.TotalMilliseconds:0} | {(labelled.Length == 0 ? "-" : labelled)} | {Pair(Sum(r, e => e.Baseline))} | {Pair(Sum(r, e => e.Extracted))} | {split.Checked} / {split.Joined} / {split.WrongSplit} / {split.Unverified} | {a.Chords} / {Ratio(a.OffTwoRate, a.OffTwo, a.Chords)} |");
+            md.AppendLine(Invariant, $"| {r.File} | {pages.Count} | {Outcome(r.Text)} | {pages.Count(p => p.ColumnCount == 1)} | {pages.Count(p => p.ColumnCount == 2)} | {pages.Count(p => p.ColumnCount == 0)} | {r.Elapsed.TotalMilliseconds:0} | {(labelled.Length == 0 ? "-" : labelled)} | {Pair(Sum(r, e => e.Baseline))} | {Pair(Sum(r, e => e.Extracted))} | {split.Checked} / {split.Joined} / {split.WrongSplit} / {split.Unverified} | {a.Chords} / {Ratio(a.OffTwoRate, a.OffTwo, a.Chords)} | {SongsReport.Cell(r)} |");
         }
 
         md.AppendLine();
