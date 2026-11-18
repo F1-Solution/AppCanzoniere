@@ -66,9 +66,10 @@ internal static class SheetAnalyzer
         var analyzed = new List<AnalyzedLine>(lines.Count);
         var inHeader = true;
         var lowerCaseStyle = HasLowerCaseStyle(lines, notation);
+        var capsStyle = HasCapsStyle(lines, notation);
         for (var i = 0; i < lines.Count; i++)
         {
-            var context = new LineContext(i + 1 < lines.Count ? lines[i + 1].Text : null, lowerCaseStyle, otherNotationAsText);
+            var context = new LineContext(i + 1 < lines.Count ? lines[i + 1].Text : null, lowerCaseStyle, otherNotationAsText, CapsStyle: capsStyle);
             var line = AnalyzeLine(i, lines[i], notation, inHeader, context);
             analyzed.Add(line);
             inHeader = inHeader && !EndsHeader(line);
@@ -100,6 +101,10 @@ internal static class SheetAnalyzer
     // A document with several lower-case chord lines writes all its chords in lower case.
     private static bool HasLowerCaseStyle(IReadOnlyList<NormalizedLine> lines, Notation notation) =>
         lines.Count(l => l.Text.Length > 0 && LooseChords.IsStyleEvidence(SheetTokenizer.Tokenize(l.Text, 0, notation), notation)) >= LooseChords.MinStyleLines;
+
+    // A song with several lyric rows in capitals writes its chords in capitals too.
+    private static bool HasCapsStyle(IReadOnlyList<NormalizedLine> lines, Notation notation) =>
+        lines.Count(l => l.Text.Length > 0 && CapsChords.IsLyricRow(SheetTokenizer.Tokenize(l.Text, 0, notation))) >= LooseChords.MinStyleLines;
 
     private static AnalyzedLine AnalyzeLine(int index, NormalizedLine line, Notation notation, bool inHeader, LineContext context)
     {
