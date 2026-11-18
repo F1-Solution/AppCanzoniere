@@ -1,5 +1,6 @@
 using AppCanzoniere.Application.Display;
 using AppCanzoniere.Application.Interfaces;
+using AppCanzoniere.Application.PageTurning;
 using AppCanzoniere.Application.Services;
 using AppCanzoniere.Domain.Interfaces;
 using AppCanzoniere.Infrastructure.Data;
@@ -10,6 +11,7 @@ using AppCanzoniere.MAUI.ViewModels;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using Microsoft.Maui.LifecycleEvents;
 
 namespace AppCanzoniere.MAUI;
 
@@ -26,6 +28,11 @@ public static class MauiProgram
                 fonts.AddFont("OpenSans-Semibold.ttf", "OpenSansSemibold");
                 fonts.AddFont("JetBrainsMono-Regular.ttf", "JetBrainsMono");
             });
+
+#if WINDOWS
+        builder.ConfigureLifecycleEvents(events => events.AddWindows(windows => windows.OnActivated((window, _) =>
+            Platforms.Windows.WindowKeyHook.Attach(window))));
+#endif
 
 #if DEBUG
         builder.Logging.AddDebug();
@@ -48,6 +55,7 @@ public static class MauiProgram
         builder.Services.AddSingleton<IChordTransposer, ChordTransposer>();
         builder.Services.AddSingleton<ISongDisplayService, SongDisplayService>();
         builder.Services.AddSingleton<SongScreenPresenter>();
+        builder.Services.AddSingleton<IHardwareKeySource, HardwareKeySource>();
         builder.Services.AddSingleton<IPreferenceStorage, PreferencesStorage>();
         builder.Services.AddSingleton<IChordDisplaySettingsStore, ChordDisplaySettingsStore>();
 

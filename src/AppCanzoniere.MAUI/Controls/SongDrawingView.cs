@@ -23,6 +23,9 @@ public sealed class SongDrawingView : GraphicsView
         set => SetValue(SongProperty, value);
     }
 
+    /// <summary>Height of the tallest row of the current layout, or a default before the first layout.</summary>
+    public double RowHeight => _drawable?.Drawing is { Rows.Count: > 0 } d ? d.Rows.Max(r => r.Height) : 24;
+
     /// <summary>Raised once when measuring, laying out or drawing throws; the owner then shows the song as stored.</summary>
     public event EventHandler<Exception>? LayoutFailed;
 
