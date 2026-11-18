@@ -17,6 +17,10 @@ internal static class CapsChords
     public static bool IsLyricRow(IReadOnlyList<SheetToken> tokens) =>
         tokens.Count(t => t.Kind == TokenKind.Word && !t.Bracketed && IsUpperWord(t.Text)) >= MinLongWords;
 
+    /// <summary>True for a row with at least two words of three or more letters written in lower or mixed case.</summary>
+    public static bool IsMixedCaseRow(IReadOnlyList<SheetToken> tokens) =>
+        tokens.Count(t => t.Kind == TokenKind.Word && t.Text.Count(char.IsLetter) >= 3 && t.Text.Any(char.IsLower)) >= MinLongWords;
+
     private static bool IsUpperWord(string text)
     {
         var letters = text.Where(char.IsLetter).ToList();

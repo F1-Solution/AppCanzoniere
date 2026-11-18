@@ -126,7 +126,7 @@ internal static class LineClassifier
 
         // In a song printed in capitals the chord rows are repaired, sung note words stay text and chords get normal spelling.
         var repaired = CapsChords.Repair(tokens, notation) ?? tokens;
-        if (CapsChords.IsSungNoteRow(repaired) || CapsChords.IsNoteWordsWithText(repaired))
+        if ((!context.AfterLabel && CapsChords.IsSungNoteRow(repaired)) || CapsChords.IsNoteWordsWithText(repaired))
         {
             var ambiguous = repaired.Count(t => t.Kind == TokenKind.Chord);
             var words = repaired.Count(t => t.Kind == TokenKind.Word);

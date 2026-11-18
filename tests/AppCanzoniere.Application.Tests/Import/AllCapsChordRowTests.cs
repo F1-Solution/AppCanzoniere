@@ -82,6 +82,25 @@ public class AllCapsChordRowTests
     }
 
     [Fact]
+    public void NoteNamesAfterASectionLabel_StayChords_InACapsSong()
+    {
+        var result = Run(Song("SOL           SI m", "DO        LAM", "SOL        DO", "RE         SOL").Append("Intro: RE SOL RE LA RE").ToArray());
+
+        Assert.Equal(SheetLineKind.SectionLabel, result.Diag(9).Kind);
+        Assert.True(result.Diag(9).CarriesChords);
+    }
+
+    [Fact]
+    public void MixedCaseLyricsUnderCapsTitles_KeepTightCapsChordRows()
+    {
+        var result = Run(
+            "CANTO DELLA SERA DEL PAESE", "RE LA RE", "Insieme abbiamo cantato un giorno", "LA RE", "per strade non battute",
+            "SOL LA", "insieme abbiamo raccolto un fiore", "ALTRO CANTO DELLA NOTTE", "SOL LA RE LA", "Insieme nel bene crediamo");
+
+        Assert.All(new[] { 2, 4, 6, 9 }, n => Assert.Equal(SheetLineKind.ChordLine, result.Diag(n).Kind));
+    }
+
+    [Fact]
     public void CapsLyricsWithoutAnyChordRow_YieldNoChords()
     {
         var result = Run(CapsLyrics[0], "DO RE MI FA", CapsLyrics[1], CapsLyrics[2]);
