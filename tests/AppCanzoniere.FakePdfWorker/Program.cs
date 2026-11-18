@@ -11,7 +11,7 @@ var stdout = Console.OpenStandardOutput();
 switch (mode)
 {
     case "ok":
-        Write(stdout, """{"v":1,"s":"Success","r":"","p":[{"n":1,"w":595,"h":842,"i":false,"x":[{"t":"ciao","l":10,"b":20,"r":40,"u":30}]}]}""");
+        Write(stdout, """{"v":2,"s":"Success","r":"","p":[{"n":1,"w":595,"h":842,"i":false,"x":[{"t":"ciao","l":10,"b":20,"r":40,"u":30}]}]}""");
         return 0;
     case "crash":
         Console.Error.WriteLine("boom");
@@ -63,7 +63,7 @@ switch (mode)
         return 0;
     case "object-flood":
         // Minimal objects, many of them, inside the output cap.
-        Write(stdout, "{\"v\":1,\"s\":\"Success\",\"r\":\"\",\"p\":[");
+        Write(stdout, "{\"v\":2,\"s\":\"Success\",\"r\":\"\",\"p\":[");
         var minimal = System.Text.Encoding.UTF8.GetBytes(string.Concat(Enumerable.Repeat("{\"x\":[]},", 10_000)));
         for (var i = 0; i < 300; i++)
             stdout.Write(minimal);
@@ -80,13 +80,13 @@ switch (mode)
     case "empty":
         return 0;
     case "bad-values":
-        Write(stdout, """{"v":1,"s":"Success","r":"","p":[{"n":1,"w":595,"h":842,"i":false,"x":[{"t":"ciao","l":1e300,"b":20,"r":4e300,"u":30}]}]}""");
+        Write(stdout, """{"v":2,"s":"Success","r":"","p":[{"n":1,"w":595,"h":842,"i":false,"x":[{"t":"ciao","l":1e300,"b":20,"r":4e300,"u":30}]}]}""");
         return 0;
     case "bad-version":
         Write(stdout, """{"v":99,"s":"Empty","r":"","p":[]}""");
         return 0;
     case "too-many-pages":
-        Write(stdout, "{\"v\":1,\"s\":\"NoTextLayer\",\"r\":\"\",\"p\":[" + string.Join(',', Enumerable.Range(1, 600).Select(n => $"{{\"n\":{n},\"w\":1,\"h\":1,\"i\":true,\"x\":[]}}")) + "]}");
+        Write(stdout, "{\"v\":2,\"s\":\"NoTextLayer\",\"r\":\"\",\"p\":[" + string.Join(',', Enumerable.Range(1, 600).Select(n => $"{{\"n\":{n},\"w\":1,\"h\":1,\"i\":true,\"x\":[]}}")) + "]}");
         return 0;
     case "memory":
         // Native memory, which a managed heap limit cannot see; each block is touched so it counts in the working set.
@@ -109,7 +109,7 @@ static void OrphanGrandchild(string pidFile)
 }
 
 static string WordAnswer(string text) =>
-    "{\"v\":1,\"s\":\"Success\",\"r\":\"\",\"p\":[{\"n\":1,\"w\":595,\"h\":842,\"i\":false,\"x\":[{\"t\":" + System.Text.Json.JsonSerializer.Serialize(text) + ",\"l\":10,\"b\":20,\"r\":40,\"u\":30}]}]}";
+    "{\"v\":2,\"s\":\"Success\",\"r\":\"\",\"p\":[{\"n\":1,\"w\":595,\"h\":842,\"i\":false,\"x\":[{\"t\":" + System.Text.Json.JsonSerializer.Serialize(text) + ",\"l\":10,\"b\":20,\"r\":40,\"u\":30}]}]}";
 
 static void Write(Stream stream, string text)
 {

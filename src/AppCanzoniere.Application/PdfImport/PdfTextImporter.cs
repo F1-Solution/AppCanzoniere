@@ -7,6 +7,9 @@ public sealed record PdfTextResult(PdfExtractionStatus Status, string Reason, IR
 
     /// <summary>Technical detail of a failure, for logs only; never shown to the user.</summary>
     public string? Detail { get; init; }
+
+    /// <summary>The cleaned title from the PDF metadata, null when there is none or it says nothing about the song.</summary>
+    public string? Title { get; init; }
 }
 
 /// <summary>Reads a PDF on the device and returns its text page by page and column by column.</summary>
@@ -76,7 +79,7 @@ public sealed class PdfTextImporter
         }
 
         StopIfOver(token, started);
-        return new PdfTextResult(words.Status, words.Reason, pages) { Detail = words.Detail };
+        return new PdfTextResult(words.Status, words.Reason, pages) { Detail = words.Detail, Title = words.Title };
     }
 
     // The clock is checked too, so a busy machine that delays the deadline timer still stops on time.

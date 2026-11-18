@@ -61,6 +61,14 @@ internal sealed class SongCollector
         while (i < region.Lines.Count)
         {
             var found = SongTitleDetector.Detect(region, i, new TitleContext(_lastNumber, _numberedBook, _verseNumber == 0 ? 0 : _verseNumber + 1));
+            if (found is not null && IsSameSongAgain(found))
+            {
+                _lastPage = region.Page;
+                _verseNumber = 0;
+                i = found.NextLine;
+                continue;
+            }
+
             if (found is not null)
             {
                 EndSong();
@@ -72,10 +80,17 @@ internal sealed class SongCollector
                 continue;
             }
 
-            AddLine(region.Lines[i], region.Page);
+            if (!PerformanceHints.IsHint(region.Lines[i]) && !PerformanceHints.IsBisOfLast(region.Lines[i], _lastNumber))
+                AddLine(region.Lines[i], region.Page);
             i++;
         }
     }
+
+    // A title repeated for another key or instrument, with the same number, continues the song.
+    private bool IsSameSongAgain(SongTitleDetector.Found found) =>
+        _title is not null
+        && (found.Number is null ? found.HadNote : found.Number == _lastNumber)
+        && (string.Equals(found.Title, _title, StringComparison.OrdinalIgnoreCase) || (found.Number is not null && found.Title.StartsWith(_title, StringComparison.OrdinalIgnoreCase)));
 
     public void EndSong()
     {
