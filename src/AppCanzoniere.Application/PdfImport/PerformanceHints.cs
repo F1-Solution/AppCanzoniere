@@ -8,7 +8,7 @@ internal static partial class PerformanceHints
     [GeneratedRegex(@"^\(?\s*(?:accordi\s+per\b|per\s+(?:tastiera|chitarra)\b|capotasto\b|trasp\w*\b|tono\b)", RegexOptions.IgnoreCase)]
     private static partial Regex Leading();
 
-    [GeneratedRegex(@"^\(?\s*(?:tastiera|chitarra)\b.*(?:capotasto|trasp|tono|[+\-]\s?\d|\b[A-G][#b]?-?\)?\s*$)", RegexOptions.IgnoreCase)]
+    [GeneratedRegex(@"^\(?\s*(?:tastiera|chitarra)\b.*(?:capotasto|trasp|tono|[+\-]\s?\d|(?-i:\b(?:DO|RE|MI|FA|SOL|LA|SI|[A-G])[#b]?-?\)?\s*$))", RegexOptions.IgnoreCase)]
     private static partial Regex Instrument();
 
     [GeneratedRegex(@"^(?<t>.*?\S)\s*(?:\btono\s+reale\b[^()]*)?(?<n>\((?:in\s+(?:do|re|mi|fa|sol|la|si|[A-G])\b[^()]*|[^()]*(?:capotasto|tastiera|chitarra|trasp|tono)[^()]*)\))\s*$", RegexOptions.IgnoreCase)]
