@@ -224,7 +224,7 @@ public class IsolatedPdfWordExtractorTests : IDisposable
     [Fact]
     public void TryRead_RejectsAFloodOfMinimalObjectsWithoutBuildingThem()
     {
-        var flood = System.Text.Encoding.UTF8.GetBytes("{\"v\":1,\"s\":\"Success\",\"r\":\"\",\"p\":[" + string.Concat(Enumerable.Repeat("{\"x\":[]},", 3_000_000)) + "{\"x\":[]}]}");
+        var flood = System.Text.Encoding.UTF8.GetBytes("{\"v\":2,\"s\":\"Success\",\"r\":\"\",\"p\":[" + string.Concat(Enumerable.Repeat("{\"x\":[]},", 3_000_000)) + "{\"x\":[]}]}");
         var before = GC.GetAllocatedBytesForCurrentThread();
 
         var result = PdfWorkerProtocol.TryRead(flood, new PdfExtractionLimits());

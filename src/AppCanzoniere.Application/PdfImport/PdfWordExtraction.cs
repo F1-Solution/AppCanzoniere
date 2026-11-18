@@ -35,6 +35,9 @@ public sealed record PdfWordsResult(PdfExtractionStatus Status, string Reason, I
     /// <summary>Technical detail of a failure, such as the parser's message, for logs only; never shown to the user.</summary>
     public string? Detail { get; init; }
 
+    /// <summary>The cleaned title from the PDF metadata, null when there is none or it says nothing about the song.</summary>
+    public string? Title { get; init; }
+
     public static PdfWordsResult Success(IReadOnlyList<PdfPageWords> pages) => new(PdfExtractionStatus.Success, string.Empty, pages);
 
     public static PdfWordsResult Failure(PdfExtractionStatus status, string reason, IReadOnlyList<PdfPageWords>? pages = null) =>

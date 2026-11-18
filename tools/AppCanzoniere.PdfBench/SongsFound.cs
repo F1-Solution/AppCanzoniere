@@ -12,7 +12,7 @@ internal sealed record SongsFound(IReadOnlyList<ConvertedSong> Songs, int IndexE
         if (!text.IsSuccess)
             return None;
 
-        var split = PdfSongSplitter.Split(text.Pages, null, fileName);
+        var split = PdfSongSplitter.Split(text.Pages, text.Title, fileName);
         return new SongsFound(split.Songs.Select(PdfSongConverter.Convert).ToList(), split.IndexEntryCount, split.SkippedPages);
     }
 }

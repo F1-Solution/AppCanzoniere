@@ -31,7 +31,7 @@ internal static class PdfWorkerPayloadValidator
         }
 
         return StatusMatchesPages(status, pages)
-            ? new PdfWordsResult(status, payload.Reason, pages) { Detail = payload.Detail }
+            ? new PdfWordsResult(status, payload.Reason, pages) { Detail = payload.Detail, Title = PdfDocumentTitle.Clean(payload.Title) }
             : null;
     }
 
