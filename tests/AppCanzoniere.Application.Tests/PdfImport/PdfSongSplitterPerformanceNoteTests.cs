@@ -73,6 +73,26 @@ public sealed class PdfSongSplitterPerformanceNoteTests
         Assert.Equal((1, 2), (song.FirstPage, song.LastPage));
     }
 
+    [Fact]
+    public void A_second_version_that_numbers_its_verses_again_stays_in_the_song()
+    {
+        var verses = "  la-    sol\n1) Luna alta sopra il lago\n  do  sol\n  vento lieve\n\n  la-    sol\n2) Rondini al tetto\n  do  sol\n  fiori nuovi\n\n  la-    sol\n3) Passi verso casa\n  do  sol\n  notte calma";
+        var first = $"SERA TRANQUILLA (in LA)\n\n12\n{verses}";
+        var second = $"SERA TRANQUILLA (in RE)\n\n12  Tastiera RE-\n{verses}\n\n  la-    sol\n4) Fine del cammino\n  do  sol\n  alba chiara";
+
+        var result = PdfSongSplitter.Split(new[] { Page(1, first), Page(2, second) });
+
+        Assert.Single(result.Songs);
+    }
+
+    [Fact]
+    public void A_title_with_a_word_added_and_the_same_number_is_the_same_song()
+    {
+        var result = PdfSongSplitter.Split(new[] { Page(1, $"12 SERA TRANQUILLA\n\n{Verses}"), Page(2, $"12 SERA TRANQUILLA ABBASSATO\n\n{Verses}") });
+
+        Assert.Equal("SERA TRANQUILLA", Assert.Single(result.Songs).Title);
+    }
+
     [Theory]
     [InlineData("Tastiera RE- trasp -2")]
     [InlineData("(tastiera +2 SI-)")]
