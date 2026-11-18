@@ -43,10 +43,11 @@ internal static class WindowKeyHook
             if (name is null)
                 return;
 
+            var phase = e.KeyStatus.WasKeyDown ? KeyPhase.Repeat : KeyPhase.Press;
             var ctrl = IsDown(VirtualKey.Control);
             var alt = IsDown(VirtualKey.Menu);
             var source = IPlatformApplication.Current?.Services.GetService<IHardwareKeySource>();
-            if (source is not null && source.OnKey(name, ctrl, alt))
+            if (source is not null && source.OnKey(name, ctrl, alt, phase))
                 e.Handled = true;
         }
         catch (Exception ex)
