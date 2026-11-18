@@ -7,6 +7,7 @@ namespace AppCanzoniere.Infrastructure.Tests.PdfImport;
 // Windows only: the Job Object is what reaches a descendant whose parent has already exited.
 public class PdfReaderJobTests : IDisposable
 {
+    private readonly DateTime _startedAt = DateTime.Now.AddSeconds(-1);
     private readonly string _folder = Path.Combine(Path.GetTempPath(), "pdfjob-" + Guid.NewGuid().ToString("N"));
 
     public PdfReaderJobTests() => Directory.CreateDirectory(_folder);
@@ -34,7 +35,20 @@ public class PdfReaderJobTests : IDisposable
         Assert.True(File.Exists(path), $"{path} was never written");
     }
 
-    private static bool IsGone(int pid)
+    // A pid can be reused once the test's process died, so only a dotnet process started after the test began counts as ours.
+    private bool IsOurs(Process process)
+    {
+        try
+        {
+            return process.ProcessName.Equals("dotnet", StringComparison.OrdinalIgnoreCase) && process.StartTime >= _startedAt;
+        }
+        catch (Exception exception) when (exception is InvalidOperationException or System.ComponentModel.Win32Exception)
+        {
+            return false;
+        }
+    }
+
+    private bool IsGone(int pid)
     {
         var deadline = DateTime.UtcNow.AddSeconds(5);
         while (DateTime.UtcNow < deadline)
@@ -42,7 +56,7 @@ public class PdfReaderJobTests : IDisposable
             try
             {
                 using var process = Process.GetProcessById(pid);
-                if (process.HasExited)
+                if (process.HasExited || !IsOurs(process))
                     return true;
             }
             catch (ArgumentException)
@@ -62,14 +76,15 @@ public class PdfReaderJobTests : IDisposable
         Assert.True(IsGone(pid), $"grandchild {pid} is still alive");
     }
 
-    private static void KillLeftover(string pidFile)
+    private void KillLeftover(string pidFile)
     {
         if (!File.Exists(pidFile))
             return;
         try
         {
             using var process = Process.GetProcessById(int.Parse(File.ReadAllText(pidFile)));
-            process.Kill();
+            if (IsOurs(process))
+                process.Kill();
         }
         catch (Exception exception) when (exception is ArgumentException or InvalidOperationException or System.ComponentModel.Win32Exception or IOException or FormatException)
         {
@@ -77,26 +92,22 @@ public class PdfReaderJobTests : IDisposable
         }
     }
 
-    [Fact]
+    [WindowsFact]
     public async Task ExtractAsync_LeavesNoDescendant_AfterATimeout()
     {
-        if (!OperatingSystem.IsWindows())
-            return;
+        using var isolated = Fake("orphan-then-hang", TimeSpan.FromSeconds(8));
+        var run = Run(isolated);
+        await WaitForFile(PidFile + ".child");
 
-        using var isolated = Fake("orphan-then-hang", TimeSpan.FromSeconds(3));
-
-        var result = await Run(isolated);
+        var result = await run;
 
         Assert.Equal(PdfExtractionStatus.TimedOut, result.Status);
         AssertGrandchildGone();
     }
 
-    [Fact]
+    [WindowsFact]
     public async Task ExtractAsync_LeavesNoDescendant_AfterCancellation()
     {
-        if (!OperatingSystem.IsWindows())
-            return;
-
         using var isolated = Fake("orphan-then-hang");
         using var cancel = new CancellationTokenSource();
         var run = Run(isolated, cancel.Token);
@@ -108,12 +119,9 @@ public class PdfReaderJobTests : IDisposable
         AssertGrandchildGone();
     }
 
-    [Fact]
+    [WindowsFact]
     public async Task ExtractAsync_LeavesNoDescendant_AfterANormalCompletion()
     {
-        if (!OperatingSystem.IsWindows())
-            return;
-
         using var isolated = Fake("orphan-then-ok");
 
         var result = await Run(isolated);
@@ -122,12 +130,9 @@ public class PdfReaderJobTests : IDisposable
         AssertGrandchildGone();
     }
 
-    [Fact]
+    [WindowsFact]
     public async Task Dispose_LeavesNoDescendant_OfAReadInProgress()
     {
-        if (!OperatingSystem.IsWindows())
-            return;
-
         var isolated = Fake("orphan-then-hang");
         var run = Run(isolated);
         await WaitForFile(PidFile + ".child");
