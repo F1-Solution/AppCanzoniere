@@ -9,6 +9,7 @@ public static class PdfSongSplitter
         ArgumentNullException.ThrowIfNull(pages);
         var builder = new SongCollector();
         var indexEntries = 0;
+        var contentRegions = new List<Region>();
         var followsIndex = false;
         foreach (var page in pages.Where(p => !p.IsScanned))
         {
@@ -24,11 +25,15 @@ public static class PdfSongSplitter
                     continue;
                 }
 
+                contentRegions.Add(region);
                 builder.AddRegion(region);
             }
         }
 
         var songs = builder.Finish();
+        if (songs.Count == 0 && UntitledSheet.Build(contentRegions, documentTitle, fileName) is { } sheet)
+            songs = new[] { sheet };
+
         return new SongSplitResult(songs, indexEntries, SkippedPages(pages, songs));
     }
 
@@ -105,12 +110,14 @@ internal sealed class SongCollector
 
     private void AddLine(string line, int page)
     {
-        if (_title is null || SongLineKinds.IsNoise(line))
+        if (SongLineKinds.IsNoise(line))
+            return;
+        NoteVerse(line);
+        if (_title is null)
             return;
         _lines.Add(line.TrimEnd());
         if (!SongLineKinds.IsBlank(line))
             _lastPage = page;
-        NoteVerse(line);
     }
 
     // Numbered verses start at 1 and count up inside a song.

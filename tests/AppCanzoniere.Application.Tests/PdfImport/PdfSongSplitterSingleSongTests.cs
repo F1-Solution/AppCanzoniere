@@ -15,8 +15,8 @@ public sealed class PdfSongSplitterSingleSongTests
 
         var song = Assert.Single(result.Songs);
         Assert.Equal((1, 2), (song.FirstPage, song.LastPage));
-        Assert.Contains("sulla collina verde", song.Lines);
-        Assert.Contains("nel cielo sereno", song.Lines);
+        Assert.Contains(song.Lines, l => l.Trim() == "sulla collina verde");
+        Assert.Contains(song.Lines, l => l.Trim() == "nel cielo sereno");
     }
 
     // Title order for a sheet without a title row: PDF metadata title, then the first lyric line, then the file name.
@@ -34,6 +34,14 @@ public sealed class PdfSongSplitterSingleSongTests
         var result = PdfSongSplitter.Split(new[] { Page(1, Untitled) }, null, "scan0034.pdf");
 
         Assert.Equal("Canterò al nuovo giorno", Assert.Single(result.Songs).Title);
+    }
+
+    [Fact]
+    public void A_lyric_line_title_drops_the_dashes_that_stretch_a_syllable()
+    {
+        var result = PdfSongSplitter.Split(new[] { Page(1, "Do  Sol\nCanterò al Signo------re\nLa-  Fa\nsopra il mare scuro") });
+
+        Assert.Equal("Canterò al Signore", Assert.Single(result.Songs).Title);
     }
 
     [Fact]

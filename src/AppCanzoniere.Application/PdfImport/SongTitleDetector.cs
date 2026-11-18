@@ -44,6 +44,8 @@ internal static class SongTitleDetector
             return false;
         if (number is not null && number == context.NextVerse && !SongLineKinds.IsUpperCase(text, MinTitleLetters))
             return false;
+        if (IsFirstVerseOfUntitledText(region, i, number, text, context))
+            return false;
         if (i > 0 && !SongLineKinds.IsBlank(region.Lines[i - 1]) && !FollowsInSequence(region, i, number, context))
             return false;
 
@@ -55,6 +57,10 @@ internal static class SongTitleDetector
 
         return !context.NumberedBook && LooksLikeMixedCaseTitle(region, i, text, next);
     }
+
+    // A mixed-case "1 text" below other text, before any numbered title, is the first verse of the song above.
+    private static bool IsFirstVerseOfUntitledText(Region region, int i, int? number, string text, TitleContext context) =>
+        number == 1 && !context.NumberedBook && !SongLineKinds.IsUpperCase(text, MinTitleLetters) && !IsFirstContent(region, i);
 
     // The next number of a numbered book is a title even when its song has no chord lines, if the text is short like a title.
     private static bool IsNextInSequence(int? number, string text, TitleContext context) =>

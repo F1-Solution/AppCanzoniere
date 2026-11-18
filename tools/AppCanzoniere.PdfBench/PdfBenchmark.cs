@@ -56,7 +56,7 @@ internal sealed class PdfBenchmark
         {
             Split = SplitCheck.Measure(text, reference, TwoColumnPages(pdfPath, labels)),
             Alignment = ChordAlignment.Measure(pdfPath, text),
-            Songs = SongsFound.Measure(text),
+            Songs = SongsFound.Measure(text, Path.GetFileName(pdfPath)),
         };
     }
 
