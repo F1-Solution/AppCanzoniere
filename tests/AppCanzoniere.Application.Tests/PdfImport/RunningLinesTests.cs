@@ -2,8 +2,8 @@ using AppCanzoniere.Application.PdfImport;
 
 namespace AppCanzoniere.Application.Tests.PdfImport;
 
-// Rule: a row in the top or bottom tenth of a page is dropped when it holds a web or email link,
-// or when the same row (digits ignored, two words or a number) sits there on at least three pages.
+// Rule: in the top or bottom tenth of a page, a row with a link is dropped at the bottom, or at the top when repeated;
+// any such row (digits ignored, two words or a number) repeated on three pages and a quarter of them is dropped too.
 public class RunningLinesTests
 {
     private sealed class Fake(IReadOnlyList<PdfPageWords> pages) : IPdfWordExtractor
@@ -42,11 +42,21 @@ public class RunningLinesTests
     }
 
     [Fact]
-    public async Task HeaderWithALink_IsDropped()
+    public async Task HeaderWithALinkRepeatedOnThreePages_IsDropped()
     {
-        var texts = await Import(Page(1, ("www.example.it", Header), ("Alleluia cantate al Signore", 400)));
+        var pages = Enumerable.Range(1, 3).Select(n => Page(n, ("www.example.it", Header), ("Alleluia cantate al Signore", 400))).ToArray();
 
-        Assert.Equal("Alleluia cantate al Signore", texts[0]);
+        var texts = await Import(pages);
+
+        Assert.All(texts, t => Assert.Equal("Alleluia cantate al Signore", t));
+    }
+
+    [Fact]
+    public async Task LinkUnderASongTitleAtTheTopOfOnePage_IsKept()
+    {
+        var texts = await Import(Page(1, ("https://example.com/watch?v=abc", Header), ("Alleluia cantate al Signore", 400)));
+
+        Assert.Contains("https://example.com/watch?v=abc", texts[0]);
     }
 
     [Fact]
