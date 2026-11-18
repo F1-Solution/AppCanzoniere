@@ -65,7 +65,7 @@ public sealed class PdfTextImporter
         var words = await _extractor.ExtractAsync(pdf, token).ConfigureAwait(false);
         var pages = new List<PageText>(words.Pages.Count);
         long characters = 0;
-        foreach (var page in words.Pages)
+        foreach (var page in RunningLines.Strip(words.Pages))
         {
             StopIfOver(token, started);
             var text = PdfPageLayout.Lay(page, token);

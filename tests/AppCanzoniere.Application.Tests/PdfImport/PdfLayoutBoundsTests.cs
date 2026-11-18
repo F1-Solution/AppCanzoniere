@@ -25,7 +25,8 @@ public class PdfLayoutBoundsTests
         var words = Enumerable.Range(0, rows).SelectMany(r => new[]
         {
             new PositionedWord("a", new WordBox(0, 830 - (r * 2), 0.5, 831 - (r * 2))),
-            new PositionedWord("b", new WordBox(594.5, 830 - (r * 2), 595, 831 - (r * 2))),
+            // The second word differs per page, so the rows are not taken for a footer repeated across pages.
+            new PositionedWord(((char)(97 + number)).ToString(), new WordBox(594.5, 830 - (r * 2), 595, 831 - (r * 2))),
         });
         return new PdfPageWords(number, 595, 842, words.ToList(), false);
     }
