@@ -119,4 +119,17 @@ public class AllCapsChordRowTests
         Assert.Contains("[DO]", result.ChordPro);
         Assert.Contains("[LAm]", result.ChordPro);
     }
+
+    [Fact]
+    public void AllCapsEnglishChordNames_AreRecognisedExceptInAnAmbiguousFirstRow()
+    {
+        var result = Run(Song("AM        BB", "CM7      G", "DM         F", "AM7     E"));
+
+        // Pins current behaviour: "AM BB" stays a lyric, and "CM7" and "AM7" keep their capitals (only "DM" becomes "Dm").
+        Assert.Equal(SheetLineKind.Lyric, result.Diag(1).Kind);
+        Assert.All(new[] { 3, 5, 7 }, n => Assert.Equal(SheetLineKind.ChordLine, result.Diag(n).Kind));
+        Assert.Contains("[CM7]", result.ChordPro);
+        Assert.Contains("[Dm]", result.ChordPro);
+        Assert.Contains("[AM7]", result.ChordPro);
+    }
 }
