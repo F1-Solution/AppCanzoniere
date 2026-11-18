@@ -32,7 +32,7 @@ internal static partial class SongLineKinds
     [GeneratedRegex(@"^(?:https?://|www\.)\S+$", RegexOptions.IgnoreCase)]
     private static partial Regex Link();
 
-    [GeneratedRegex(@"(?:\.{2,}|\s{2,}|\spag\.?\s*)[0-9]{1,4}$|\s[0-9]{1,4}$", RegexOptions.IgnoreCase)]
+    [GeneratedRegex(@"(?:\.{2,}|\s{2,}|\spag\.?\s*)[0-9]{1,4}(?:\s*[-–])?$|\s[0-9]{1,4}(?:\s*[-–])?$", RegexOptions.IgnoreCase)]
     private static partial Regex EndsWithPageNumber();
 
     [GeneratedRegex(@"^[0-9]{1,3}\s*[.)\-–]?\s+\S")]

@@ -12,7 +12,7 @@ internal static class IndexRegionDetector
     /// <summary>Returns the number of index entries when the column is an index, otherwise null.</summary>
     public static int? CountEntries(Region region, bool followsIndex)
     {
-        var content = Enumerable.Range(0, region.Lines.Count).Where(i => !SongLineKinds.IsBlank(region.Lines[i])).ToList();
+        var content = Enumerable.Range(0, region.Lines.Count).Where(i => !SongLineKinds.IsBlank(region.Lines[i]) && !SongLineKinds.IsNoise(region.Lines[i])).ToList();
         if (content.Count < MinFollowingEntries || content.Any(i => region.IsChord[i]))
             return null;
 
