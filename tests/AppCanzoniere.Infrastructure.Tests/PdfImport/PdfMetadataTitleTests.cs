@@ -55,6 +55,37 @@ public sealed class PdfMetadataTitleTests
     }
 
     [Fact]
+    public async Task An_empty_xmp_title_does_not_take_the_next_field()
+    {
+        var xml = "<?xpacket begin='' id='W5M0MpCehiHzreSzNTczkc9d'?><x:xmpmeta xmlns:x='adobe:ns:meta/'><rdf:RDF xmlns:rdf='http://www.w3.org/1999/02/22-rdf-syntax-ns#'>"
+            + "<rdf:Description xmlns:dc='http://purl.org/dc/elements/1.1/'><dc:title/><dc:creator><rdf:Seq><rdf:li>Mario Rossi</rdf:li></rdf:Seq></dc:creator></rdf:Description></rdf:RDF></x:xmpmeta><?xpacket end='w'?>";
+
+        var result = await Extract(WithXmp(xml));
+
+        Assert.Null(result.Title);
+    }
+
+    [Fact]
+    public async Task An_xmp_stream_over_the_decode_limit_gives_no_title_but_the_document_is_read()
+    {
+        var padded = Xmp("Il mio canto").Replace("<rdf:RDF", "<!--" + new string('x', 200_000) + "--><rdf:RDF");
+        var pdf = CraftedPdf.Write(new[]
+        {
+            new CraftedPdf.Obj("<< /Type /Catalog /Pages 2 0 R /Metadata 6 0 R >>"),
+            new CraftedPdf.Obj("<< /Type /Pages /Kids [4 0 R] /Count 1 >>"),
+            new CraftedPdf.Obj(CraftedPdf.Font),
+            new CraftedPdf.Obj(CraftedPdf.Page(5)),
+            new CraftedPdf.Obj(string.Empty, CraftedPdf.Ascii(CraftedPdf.Text)),
+            new CraftedPdf.Obj("/Type /Metadata /Subtype /XML /Filter /FlateDecode", CraftedPdf.Zlib(Encoding.UTF8.GetBytes(padded))),
+        });
+
+        var result = await new PdfPigWordExtractor(new PdfExtractionLimits { MaxDecodedStreamBytes = 64 * 1024 }).ExtractAsync(new MemoryStream(pdf));
+
+        Assert.Equal(PdfExtractionStatus.Success, result.Status);
+        Assert.Null(result.Title);
+    }
+
+    [Fact]
     public async Task A_very_long_title_is_cut()
     {
         var result = await Extract(WithInfoTitle(new string('a', 9000)));

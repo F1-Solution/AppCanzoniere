@@ -81,7 +81,7 @@ internal sealed class SongCollector
             }
 
             if (!PerformanceHints.IsHint(region.Lines[i]) && !PerformanceHints.IsBisOfLast(region.Lines[i], _lastNumber))
-                AddLine(region.Lines[i], region.Page);
+                AddLine(region.Lines[i], region.Page, region.HasChordAbove(i));
             i++;
         }
     }
@@ -123,11 +123,12 @@ internal sealed class SongCollector
             _songs.Add(new SplitSong(_title!, _firstPage, _lastPage, lines, _subtitles));
     }
 
-    private void AddLine(string line, int page)
+    private void AddLine(string line, int page, bool chordAbove)
     {
         if (SongLineKinds.IsNoise(line))
             return;
-        NoteVerse(line);
+        if (_title is not null || chordAbove)
+            NoteVerse(line);
         if (_title is null)
             return;
         _lines.Add(line.TrimEnd());
@@ -135,7 +136,7 @@ internal sealed class SongCollector
             _lastPage = page;
     }
 
-    // Numbered verses start at 1 and count up inside a song.
+    // Numbered verses start at 1 and count up inside a song, or under chords of a sheet without a title.
     private void NoteVerse(string line)
     {
         var (number, _) = SongLineKinds.StripNumber(line);

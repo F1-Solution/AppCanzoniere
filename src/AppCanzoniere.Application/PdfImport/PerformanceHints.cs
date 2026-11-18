@@ -5,7 +5,8 @@ namespace AppCanzoniere.Application.PdfImport;
 /// <summary>Recognises the instrument, capo and transposition remarks that sheets print beside a title and that are never titles or lyrics.</summary>
 internal static partial class PerformanceHints
 {
-    [GeneratedRegex(@"^\(?\s*(?:accordi\s+per\b|per\s+(?:tastiera|chitarra)\b|capotasto\b|trasp\w*\b|tono\b)", RegexOptions.IgnoreCase)]
+    // Trasposto/trasp. followed by a sign and digit or a key, "tono reale", or "tono" and a key at the end of the line.
+    [GeneratedRegex(@"^\(?\s*(?:accordi\s+per\b|per\s+(?:tastiera|chitarra)\b|capotasto\b|trasp\w*\.?\s*(?:[+\-−]\s*)?\d|trasp\w*\.?\s*(?:in\s+)?(?-i:(?:DO|RE|MI|FA|SOL|LA|SI|[A-G])[#b]?-?m?)\)?\s*$|tono\s+reale\b|tono\s+(?-i:(?:DO|RE|MI|FA|SOL|LA|SI|[A-G])[#b]?-?m?)\)?\s*$)", RegexOptions.IgnoreCase)]
     private static partial Regex Leading();
 
     [GeneratedRegex(@"^\(?\s*(?:tastiera|chitarra)\b.*(?:capotasto|trasp|tono|[+\-]\s?\d|(?-i:\b(?:DO|RE|MI|FA|SOL|LA|SI|[A-G])[#b]?-?\)?\s*$))", RegexOptions.IgnoreCase)]
@@ -17,11 +18,14 @@ internal static partial class PerformanceHints
     [GeneratedRegex(@"^bis\b\s*(?<rest>.*)$", RegexOptions.IgnoreCase)]
     private static partial Regex Bis();
 
+    // Hints are short remarks; a longer line is lyrics.
+    private const int MaxHintLength = 60;
+
     /// <summary>True for a line that only says which instrument, capo position or transposition a sheet is for.</summary>
     public static bool IsHint(string line)
     {
         var t = SongLineKinds.StripNumber(line).Text;
-        return Leading().IsMatch(t) || Instrument().IsMatch(t);
+        return t.Length <= MaxHintLength && (Leading().IsMatch(t) || Instrument().IsMatch(t));
     }
 
     /// <summary>Splits a title from a trailing parenthesised performance note; the note is null when there is none.</summary>

@@ -45,7 +45,11 @@ internal static class PdfMetadataTitle
         while (reader.Read())
         {
             if (reader.NodeType == XmlNodeType.Element && reader.LocalName == "title" && reader.NamespaceURI == DublinCore)
+            {
+                if (reader.IsEmptyElement)
+                    return null;
                 depth = reader.Depth;
+            }
             else if (depth >= 0 && reader.NodeType == XmlNodeType.Element && reader.LocalName == "li" && reader.NamespaceURI == Rdf)
                 return reader.ReadElementContentAsString();
             else if (depth >= 0 && reader.NodeType == XmlNodeType.EndElement && reader.Depth == depth)
