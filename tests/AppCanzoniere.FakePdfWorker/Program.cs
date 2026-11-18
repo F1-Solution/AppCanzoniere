@@ -27,6 +27,22 @@ switch (mode)
         Process.Start(new ProcessStartInfo(Environment.ProcessPath!, [typeof(Program).Assembly.Location, "hang", args[1] + ".child"]) { UseShellExecute = false });
         Thread.Sleep(Timeout.Infinite);
         return 0;
+    case "orphan-then-hang":
+        // The grandchild's parent exits first, so only the Job Object can still reach the grandchild.
+        OrphanGrandchild(args[1]);
+        Thread.Sleep(Timeout.Infinite);
+        return 0;
+    case "orphan-then-ok":
+        OrphanGrandchild(args[1]);
+        Write(stdout, WordAnswer("ciao"));
+        return 0;
+    case "spawn-hold-and-exit":
+        // Second step of the orphan modes: args are <mode> <own pid file> <grandchild pid file>.
+        var held = Process.Start(new ProcessStartInfo(Environment.ProcessPath!, [typeof(Program).Assembly.Location, "hold", args[2]]) { UseShellExecute = false })!;
+        for (var i = 0; i < 100 && !File.Exists(args[2]); i++)
+            Thread.Sleep(50);
+        held.Dispose();
+        return 0;
     case "env":
         // Reports whether the host's secret and the path reached this process.
         var secret = Environment.GetEnvironmentVariable("PERPLEXITY_API_KEY") is null ? "no" : "yes";
@@ -84,6 +100,12 @@ switch (mode)
         }
     default:
         return 2;
+}
+
+static void OrphanGrandchild(string pidFile)
+{
+    using var middle = Process.Start(new ProcessStartInfo(Environment.ProcessPath!, [typeof(Program).Assembly.Location, "spawn-hold-and-exit", pidFile + ".mid", pidFile + ".child"]) { UseShellExecute = false })!;
+    middle.WaitForExit();
 }
 
 static string WordAnswer(string text) =>

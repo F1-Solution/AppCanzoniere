@@ -18,7 +18,7 @@ public sealed class IsolatedPdfWordExtractor : IPdfWordExtractor, IDisposable
 
     private readonly PdfWorkerLaunch _launch;
     private readonly IsolatedPdfOptions _options;
-    private readonly ConcurrentDictionary<Process, byte> _running = new();
+    private readonly ConcurrentDictionary<Process, ReaderJob?> _running = new();
     private readonly CancellationTokenSource _disposed = new();
 
     public IsolatedPdfWordExtractor(PdfWorkerLaunch launch, IsolatedPdfOptions? options = null)
@@ -45,14 +45,16 @@ public sealed class IsolatedPdfWordExtractor : IPdfWordExtractor, IDisposable
 
         using (process)
         {
-            _running[process] = 0;
+            // A descendant started before this assignment escapes the job; the reader needs far longer than that to start one.
+            using var job = ReaderJob.TryAssign(process);
+            _running[process] = job;
             try
             {
                 return await RunAsync(process, pdf, stop, cancellationToken).ConfigureAwait(false);
             }
             finally
             {
-                await KillAsync(process).ConfigureAwait(false);
+                await StopAsync(process).ConfigureAwait(false);
                 _running.TryRemove(process, out _);
             }
         }
@@ -63,7 +65,7 @@ public sealed class IsolatedPdfWordExtractor : IPdfWordExtractor, IDisposable
     {
         _disposed.Cancel();
         foreach (var process in _running.Keys)
-            Kill(process);
+            Stop(process);
         _disposed.Dispose();
     }
 
@@ -87,11 +89,11 @@ public sealed class IsolatedPdfWordExtractor : IPdfWordExtractor, IDisposable
 
         // On abort the tree dies first; after a normal exit the pipes get a short grace before anything left over is killed.
         if (aborted)
-            Kill(process);
+            Stop(process);
         else
             await WaitBoundedAsync(Task.WhenAll(output, error), PipeGrace, abort.Token).ConfigureAwait(false);
 
-        Kill(process);
+        Stop(process);
         abort.Finish();
         await Task.WhenAny(Task.WhenAll(feed, watch), Task.Delay(ExitWait)).ConfigureAwait(false);
         caller.ThrowIfCancellationRequested();
@@ -297,8 +299,11 @@ public sealed class IsolatedPdfWordExtractor : IPdfWordExtractor, IDisposable
         }
     }
 
-    private static void Kill(Process process)
+    private void Stop(Process process)
     {
+        if (_running.TryGetValue(process, out var job))
+            job?.Terminate();
+
         try
         {
             process.Kill(entireProcessTree: true);
@@ -309,9 +314,9 @@ public sealed class IsolatedPdfWordExtractor : IPdfWordExtractor, IDisposable
         }
     }
 
-    private static async Task KillAsync(Process process)
+    private async Task StopAsync(Process process)
     {
-        Kill(process);
+        Stop(process);
         try
         {
             using var wait = new CancellationTokenSource(ExitWait);
