@@ -19,6 +19,9 @@
 - I libretti in PDF si dividono in canti, e ogni canto viene convertito in ChordPro con il suo titolo; l'import dai PDF non è ancora disponibile nell'app.
 - I PDF si leggono in un processo separato con limiti di tempo e memoria; un file che non si può leggere viene segnalato come illeggibile.
 - Le pagine scansionate si possono leggere con il riconoscimento del testo del dispositivo (solo banco di prova Windows).
+- Il pedale Bluetooth e la tastiera girano pagina nella schermata del canto: avanti con Pagina giù, Freccia giù, Freccia destra o Spazio, indietro con Pagina su, Freccia su o Freccia sinistra.
+- Su Android i tasti del volume girano pagina nella schermata del canto (su indietro, giù avanti); altrove regolano il volume.
+- Lo schermo resta acceso solo mentre è aperta la schermata di un canto, su Android e Windows.
 
 ### Modificato
 - `{key}` indica la tonalità degli accordi scritti e il capotasto alza la tonalità che suona, come nello standard ChordPro.
@@ -26,6 +29,9 @@
 - Nel testo incollato le parentesi quadre e graffe diventano tonde, con un avviso.
 - Le righe in minuscolo con spazi singoli e senza altri segni da accordo restano testo anche se le parole sembrano accordi.
 - La schermata del canto va a capo sulla larghezza reale dello schermo e si ricalcola alla rotazione o al ridimensionamento della finestra, con gli accordi sopra le sillabe.
+- Girare pagina scorre di un'altezza dello schermo meno una riga, così l'ultima riga letta resta visibile.
+- Su Windows lo schermo si spegne quando l'app è ridotta a icona durante la lettura di un canto.
+- Tenendo premuto un tasto di pagina si gira una sola pagina, e i tasti di pagina non fanno nulla mentre si scrive in un campo di testo.
 
 ### Corretto
 - Gli accordi di un canto ChordPro vengono riscritti nella posizione in cui erano.
@@ -36,3 +42,11 @@
 - "Ripristina" nelle impostazioni non impedisce più i salvataggi successivi.
 - Le note scritte in minuscolo sotto una riga di accordi vengono lette come testo.
 - Diesis, bemolle e bequadro disegnati con i caratteri matematici di TeX vengono letti correttamente.
+- Il lettore dei PDF su Windows si chiude insieme all'app, anche se l'app si chiude all'improvviso.
+- Un PDF di un solo canto senza riga di titolo diventa un canto, intitolato dal titolo del PDF, dalla prima riga di testo o dal nome del file.
+- Negli indici dei libretti le voci con i numeri di pagina tra trattini vengono contate per intero.
+- Le righe di indicazione come Tastiera, Chitarra, capotasto o trasposizione non diventano titoli e non restano nel testo del canto.
+- Una seconda versione di un canto, in altra tonalità o marcata "BIS", resta nello stesso canto.
+- I piè di pagina con link e le righe correnti ripetute su più pagine non entrano nei canti, mentre titoli, ritornelli e righe di accordi vicino al margine restano.
+- Una scansione il cui unico testo è un piè di pagina viene segnalata come senza testo.
+- Nelle schede scansionate tutte maiuscole le righe di accordi vengono riconosciute e scritte in notazione normale (Sol, Lam), mentre le righe di testo maiuscolo restano testo (solo banco di prova Windows).
