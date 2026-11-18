@@ -57,7 +57,8 @@
         </Frame>
 
         <!-- Song Content -->
-        <ScrollView Grid.Row="1"
+        <ScrollView x:Name="SongScroll"
+                    Grid.Row="1"
                     Padding="15">
             <StackLayout Spacing="10">
                 <Label Text="Chords &amp; Lyrics"
