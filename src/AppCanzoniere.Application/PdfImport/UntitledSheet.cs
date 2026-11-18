@@ -36,7 +36,7 @@ internal static partial class UntitledSheet
         if (trimmed.Count == 0)
             return null;
 
-        var title = Clean(documentTitle) ?? FirstLyricLine(regions) ?? Clean(Path.GetFileNameWithoutExtension(fileName)) ?? FallbackTitle;
+        var title = Clean(PdfDocumentTitle.Clean(documentTitle)) ?? FirstLyricLine(regions) ?? Clean(Path.GetFileNameWithoutExtension(fileName)) ?? FallbackTitle;
         return new SplitSong(title, first, last, trimmed, Array.Empty<string>());
     }
 
