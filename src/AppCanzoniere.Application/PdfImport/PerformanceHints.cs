@@ -20,7 +20,7 @@ internal static partial class PerformanceHints
     /// <summary>True for a line that only says which instrument, capo position or transposition a sheet is for.</summary>
     public static bool IsHint(string line)
     {
-        var t = line.Trim();
+        var t = SongLineKinds.StripNumber(line).Text;
         return Leading().IsMatch(t) || Instrument().IsMatch(t);
     }
 
