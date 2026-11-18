@@ -22,13 +22,16 @@ internal static class SongTitleDetector
 
     public static Found? Detect(Region region, int index, TitleContext context)
     {
-        var (number, title) = SongLineKinds.StripNumber(region.Lines[index]);
-        if (!IsTitle(region, index, number, title, context))
+        var (number, full) = SongLineKinds.StripNumber(region.Lines[index]);
+        var (title, note) = PerformanceHints.SplitNote(full);
+        if (PerformanceHints.IsHint(region.Lines[index]) || PerformanceHints.IsBisOfLast(region.Lines[index], context.LastNumber) || !IsTitle(region, index, number, title, context))
             return null;
 
         var subtitles = new List<string>();
+        if (note is not null)
+            subtitles.Add(note);
         var next = index + 1;
-        while (next < region.Lines.Count && subtitles.Count < MaxSubtitles && IsSubtitle(region, next))
+        while (next < region.Lines.Count && subtitles.Count < MaxSubtitles + (note is null ? 0 : 1) && IsSubtitle(region, next))
         {
             subtitles.Add(region.Lines[next].Trim());
             next++;

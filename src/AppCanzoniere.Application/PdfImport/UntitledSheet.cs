@@ -54,7 +54,7 @@ internal static partial class UntitledSheet
             for (var i = 0; i < region.Lines.Count; i++)
             {
                 var line = region.Lines[i];
-                if (SongLineKinds.IsBlank(line) || SongLineKinds.IsNoise(line) || region.IsChord[i])
+                if (SongLineKinds.IsBlank(line) || SongLineKinds.IsNoise(line) || region.IsChord[i] || PerformanceHints.IsHint(line))
                     continue;
                 var title = Clean(SectionPrefix().Replace(SongLineKinds.StripNumber(line).Text, string.Empty));
                 if (title is not null && title.Count(char.IsLetter) >= 2 && title.Length <= MaxTitleLength)

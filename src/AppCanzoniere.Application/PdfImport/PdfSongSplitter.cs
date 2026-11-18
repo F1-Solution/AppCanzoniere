@@ -72,7 +72,8 @@ internal sealed class SongCollector
                 continue;
             }
 
-            AddLine(region.Lines[i], region.Page);
+            if (!PerformanceHints.IsHint(region.Lines[i]) && !PerformanceHints.IsBisOfLast(region.Lines[i], _lastNumber))
+                AddLine(region.Lines[i], region.Page);
             i++;
         }
     }

@@ -60,6 +60,19 @@ public sealed class PdfSongSplitterPerformanceNoteTests
         Assert.Equal("SERA TRANQUILLA", song.Title);
     }
 
+    [Fact]
+    public void A_numbered_hint_line_and_a_repeated_title_for_another_key_continue_the_song()
+    {
+        var first = $"SERA TRANQUILLA (in LA)\n\n12  Chitarra LA- capotasto in 3° tasto\n{Verses}";
+        var second = $"SERA TRANQUILLA (in RE)\n\n12  Tastiera RE- trasp -2\n{Verses}";
+
+        var result = PdfSongSplitter.Split(new[] { Page(1, first), Page(2, second) });
+
+        var song = Assert.Single(result.Songs);
+        Assert.Equal("SERA TRANQUILLA", song.Title);
+        Assert.Equal((1, 2), (song.FirstPage, song.LastPage));
+    }
+
     [Theory]
     [InlineData("Tastiera RE- trasp -2")]
     [InlineData("(tastiera +2 SI-)")]
