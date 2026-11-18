@@ -4,7 +4,7 @@ namespace AppCanzoniere.Application.PdfImport;
 public static class PdfSongSplitter
 {
     /// <summary>Splits the pages, read column by column in order, into songs; one pass over the text.</summary>
-    public static SongSplitResult Split(IReadOnlyList<PageText> pages)
+    public static SongSplitResult Split(IReadOnlyList<PageText> pages, string? documentTitle = null, string? fileName = null)
     {
         ArgumentNullException.ThrowIfNull(pages);
         var builder = new SongCollector();
