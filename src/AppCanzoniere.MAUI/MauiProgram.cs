@@ -56,6 +56,7 @@ public static class MauiProgram
         builder.Services.AddSingleton<ISongDisplayService, SongDisplayService>();
         builder.Services.AddSingleton<SongScreenPresenter>();
         builder.Services.AddSingleton<IHardwareKeySource, HardwareKeySource>();
+        builder.Services.AddSingleton(_ => new ScreenWakeLock(on => DeviceDisplay.Current.KeepScreenOn = on));
         builder.Services.AddSingleton<IPreferenceStorage, PreferencesStorage>();
         builder.Services.AddSingleton<IChordDisplaySettingsStore, ChordDisplaySettingsStore>();
 
