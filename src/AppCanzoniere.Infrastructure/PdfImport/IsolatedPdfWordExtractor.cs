@@ -95,7 +95,7 @@ public sealed class IsolatedPdfWordExtractor : IPdfWordExtractor, IDisposable
 
         Stop(process);
         abort.Finish();
-        await Task.WhenAny(Task.WhenAll(feed, watch), Task.Delay(ExitWait)).ConfigureAwait(false);
+        await Task.WhenAny(Task.WhenAll(feed, watch, output, error), Task.Delay(ExitWait)).ConfigureAwait(false);
         caller.ThrowIfCancellationRequested();
         ObjectDisposedException.ThrowIf(_disposed.IsCancellationRequested, this);
         return Outcome(process, abort.Verdict, aborted, await Completed(output), await Completed(error));
