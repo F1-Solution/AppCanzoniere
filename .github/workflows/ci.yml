@@ -129,6 +129,9 @@ jobs:
           --framework net10.0-windows10.0.19041.0 --configuration Debug
           -p:MauiPlatforms=windows
 
+      - name: Job Object tests
+        run: dotnet test tests/AppCanzoniere.Infrastructure.Tests --filter "FullyQualifiedName~PdfImport"
+
       - name: Upload Windows build
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:

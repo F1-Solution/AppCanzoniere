@@ -38,4 +38,37 @@ public class HardwareKeySourceTests
 
         Assert.False(source.OnKey("VolumeDown", false, false));
     }
+
+    [Fact]
+    public void A_repeat_or_release_without_subscribers_is_not_consumed()
+    {
+        var source = new HardwareKeySource();
+
+        Assert.False(source.OnKey("VolumeDown", false, false, KeyPhase.Repeat));
+        Assert.False(source.OnKey("VolumeDown", false, false, KeyPhase.Release));
+    }
+
+    [Theory]
+    [InlineData(KeyPhase.Repeat)]
+    [InlineData(KeyPhase.Release)]
+    public void A_repeat_or_release_of_a_mapped_key_is_consumed_without_turning_the_page(KeyPhase phase)
+    {
+        var source = new HardwareKeySource();
+        var turns = 0;
+        source.PageTurnRequested += (_, _) => turns++;
+
+        Assert.True(source.OnKey("ArrowDown", false, false, phase));
+        Assert.Equal(0, turns);
+    }
+
+    [Theory]
+    [InlineData(KeyPhase.Repeat)]
+    [InlineData(KeyPhase.Release)]
+    public void A_repeat_or_release_of_an_unmapped_key_is_not_consumed(KeyPhase phase)
+    {
+        var source = new HardwareKeySource();
+        source.PageTurnRequested += (_, _) => { };
+
+        Assert.False(source.OnKey("Enter", false, false, phase));
+    }
 }

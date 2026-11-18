@@ -19,16 +19,9 @@ public class MainActivity : MauiAppCompatActivity
                 var source = IPlatformApplication.Current?.Services.GetService<IHardwareKeySource>();
                 if (source is not null)
                 {
-                    // Down presses turn the page; the matching Up is consumed too so the system never sees half a key.
-                    if (e.Action == KeyEventActions.Down)
-                    {
-                        if (e.RepeatCount == 0 ? source.OnKey(name, e.IsCtrlPressed, e.IsAltPressed) : PageTurnKeys.Map(name, e.IsCtrlPressed, e.IsAltPressed) != PageTurnDirection.None)
-                            return true;
-                    }
-                    else if (e.Action == KeyEventActions.Up && PageTurnKeys.Map(name, e.IsCtrlPressed, e.IsAltPressed) != PageTurnDirection.None && source.IsListening)
-                    {
+                    var phase = e.Action == KeyEventActions.Up ? KeyPhase.Release : e.RepeatCount > 0 ? KeyPhase.Repeat : KeyPhase.Press;
+                    if ((e.Action == KeyEventActions.Down || e.Action == KeyEventActions.Up) && source.OnKey(name, e.IsCtrlPressed, e.IsAltPressed, phase))
                         return true;
-                    }
                 }
             }
         }

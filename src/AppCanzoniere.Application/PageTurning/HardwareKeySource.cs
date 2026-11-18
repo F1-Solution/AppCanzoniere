@@ -6,7 +6,7 @@ public sealed class HardwareKeySource : IHardwareKeySource
 
     public bool IsListening => PageTurnRequested is not null;
 
-    public bool OnKey(string key, bool ctrl, bool alt)
+    public bool OnKey(string key, bool ctrl, bool alt, KeyPhase phase = KeyPhase.Press)
     {
         var handler = PageTurnRequested;
         if (handler is null)
@@ -16,7 +16,9 @@ public sealed class HardwareKeySource : IHardwareKeySource
         if (direction == PageTurnDirection.None)
             return false;
 
-        handler(this, direction);
+        // Only the first press turns; a held key or its release is swallowed so nothing else reacts to half a key.
+        if (phase == KeyPhase.Press)
+            handler(this, direction);
         return true;
     }
 }

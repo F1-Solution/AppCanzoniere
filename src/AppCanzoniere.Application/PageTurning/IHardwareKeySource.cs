@@ -9,6 +9,6 @@ public interface IHardwareKeySource
     /// <summary>True while at least one screen is subscribed.</summary>
     bool IsListening { get; }
 
-    /// <summary>Called by the platform on a key press; returns true when the key was a page turn and must be consumed.</summary>
-    bool OnKey(string key, bool ctrl, bool alt);
+    /// <summary>Called by the platform for each key phase; returns true when a listening screen maps the key and it must be consumed. Only the first press turns the page.</summary>
+    bool OnKey(string key, bool ctrl, bool alt, KeyPhase phase = KeyPhase.Press);
 }
