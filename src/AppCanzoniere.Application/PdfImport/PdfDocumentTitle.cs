@@ -34,6 +34,7 @@ public static partial class PdfDocumentTitle
     private static bool IsUseless(string text) =>
         OfficeProduct().IsMatch(text)
         || FileExtension().IsMatch(text)
+        || (!text.Contains(' ') && (text.Contains('_') || text.Count(c => c == '-') >= 2))
         || text.Contains('\\')
         || text.Contains('/')
         || Placeholder().IsMatch(text);

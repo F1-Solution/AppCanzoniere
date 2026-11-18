@@ -30,6 +30,8 @@ public sealed class PdfDocumentTitleTests
     [InlineData("Documento1")]
     [InlineData("Nuovo documento")]
     [InlineData("scan0034")]
+    [InlineData("Credo_in_te_Frisina_Chitarra")]
+    [InlineData("canto-di-lode-v2")]
     public void A_missing_or_useless_title_is_ignored(string? raw) =>
         Assert.Null(PdfDocumentTitle.Clean(raw));
 

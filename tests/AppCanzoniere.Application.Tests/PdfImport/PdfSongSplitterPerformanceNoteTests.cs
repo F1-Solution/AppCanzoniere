@@ -86,6 +86,14 @@ public sealed class PdfSongSplitterPerformanceNoteTests
     }
 
     [Fact]
+    public void Two_songs_with_the_same_plain_title_stay_two_songs()
+    {
+        var result = PdfSongSplitter.Split(new[] { Page(1, $"SANTO\n\n{Verses}"), Page(2, $"SANTO\n\n{Verses}") });
+
+        Assert.Equal(2, result.Songs.Count);
+    }
+
+    [Fact]
     public void A_title_with_a_word_added_and_the_same_number_is_the_same_song()
     {
         var result = PdfSongSplitter.Split(new[] { Page(1, $"12 SERA TRANQUILLA\n\n{Verses}"), Page(2, $"12 SERA TRANQUILLA ABBASSATO\n\n{Verses}") });

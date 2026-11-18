@@ -18,7 +18,7 @@ internal static class SongTitleDetector
     private const int CenteredIndent = 4;
 
     /// <summary>A title found at a line: its text, its number if any, and the line after its last subtitle.</summary>
-    public sealed record Found(string Title, int? Number, IReadOnlyList<string> Subtitles, int NextLine);
+    public sealed record Found(string Title, int? Number, IReadOnlyList<string> Subtitles, int NextLine, bool HadNote = false);
 
     public static Found? Detect(Region region, int index, TitleContext context)
     {
@@ -37,7 +37,7 @@ internal static class SongTitleDetector
             next++;
         }
 
-        return new Found(title, number, subtitles, next);
+        return new Found(title, number, subtitles, next, note is not null);
     }
 
     private static bool IsTitle(Region region, int i, int? number, string text, TitleContext context)

@@ -89,8 +89,8 @@ internal sealed class SongCollector
     // A title repeated for another key or instrument, with the same number, continues the song.
     private bool IsSameSongAgain(SongTitleDetector.Found found) =>
         _title is not null
-        && (string.Equals(found.Title, _title, StringComparison.OrdinalIgnoreCase) || (found.Number is not null && found.Number == _lastNumber && found.Title.StartsWith(_title, StringComparison.OrdinalIgnoreCase)))
-        && (found.Number is null || found.Number == _lastNumber);
+        && (found.Number is null ? found.HadNote : found.Number == _lastNumber)
+        && (string.Equals(found.Title, _title, StringComparison.OrdinalIgnoreCase) || (found.Number is not null && found.Title.StartsWith(_title, StringComparison.OrdinalIgnoreCase)));
 
     public void EndSong()
     {
