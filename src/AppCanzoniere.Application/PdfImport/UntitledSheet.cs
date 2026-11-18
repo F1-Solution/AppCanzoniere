@@ -24,7 +24,7 @@ internal static partial class UntitledSheet
         {
             if (lines.Count > 0)
                 lines.Add(string.Empty);
-            lines.AddRange(region.Lines.Where(l => !SongLineKinds.IsNoise(l)).Select(l => l.TrimEnd()));
+            lines.AddRange(region.Lines.Where(l => !SongLineKinds.IsNoise(l) && !PerformanceHints.IsHint(l)).Select(l => l.TrimEnd()));
             if (region.Lines.Any(l => !SongLineKinds.IsBlank(l) && !SongLineKinds.IsNoise(l)))
             {
                 first = first == 0 ? region.Page : first;

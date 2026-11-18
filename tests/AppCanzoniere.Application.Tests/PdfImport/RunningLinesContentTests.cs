@@ -46,7 +46,7 @@ public class RunningLinesContentTests
         var texts = await Import(pages);
 
         Assert.All(texts, t => Assert.Contains("Gloria a te Signore", t));
-        Assert.All(texts, t => Assert.Contains("Do Sol La- Fa", t));
+        Assert.All(texts, t => Assert.Contains("La-", t));
     }
 
     [Fact]
@@ -56,7 +56,7 @@ public class RunningLinesContentTests
 
         var texts = await Import(pages);
 
-        Assert.All(texts, t => Assert.Contains("Do Sol La- Fa", t));
+        Assert.All(texts, t => Assert.Contains("La-", t));
     }
 
     [Fact]

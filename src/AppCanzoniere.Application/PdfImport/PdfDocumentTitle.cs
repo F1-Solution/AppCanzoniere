@@ -15,8 +15,12 @@ public static partial class PdfDocumentTitle
     [GeneratedRegex(@"^microsoft\s+(?:word|powerpoint|excel|publisher)\b", RegexOptions.IgnoreCase)]
     private static partial Regex OfficeProduct();
 
-    [GeneratedRegex(@"\.[a-z0-9]{2,5}$", RegexOptions.IgnoreCase)]
+    [GeneratedRegex(@"\.(?:pdf|docx?|odt|rtf|txt|ps|indd|pages|jpe?g|png|tiff?|xlsx?|pptx?|mus|musx|sib|mscz|mscx|gp[x0-9]?|ptb|html?)$", RegexOptions.IgnoreCase)]
     private static partial Regex FileExtension();
+
+    // A drive path, a UNC path, a rooted path, or a path of several segments ending in a file extension.
+    [GeneratedRegex(@"^(?:[a-z]:[\\/]|\\\\|/[^\s/])|[\\/].*[\\/].*\.[a-z0-9]{2,5}$", RegexOptions.IgnoreCase)]
+    private static partial Regex FilePath();
 
     [GeneratedRegex(@"^(?:untitled|senza\s+titolo|nuovo\s+documento|new\s+document|documento|document|titolo|title|scan|scansione|slide|presentazione)[\s_\-]*(?:\(?\d+\)?)?$", RegexOptions.IgnoreCase)]
     private static partial Regex Placeholder();
@@ -35,8 +39,7 @@ public static partial class PdfDocumentTitle
         OfficeProduct().IsMatch(text)
         || FileExtension().IsMatch(text)
         || (!text.Contains(' ') && (text.Contains('_') || text.Count(c => c == '-') >= 2))
-        || text.Contains('\\')
-        || text.Contains('/')
+        || FilePath().IsMatch(text)
         || Placeholder().IsMatch(text);
 
     private static string Collapse(string raw)
@@ -65,5 +68,12 @@ public static partial class PdfDocumentTitle
         return builder.ToString();
     }
 
-    private static string Cut(string text) => text.Length <= MaxLength ? text : text[..MaxLength].TrimEnd();
+    private static string Cut(string text)
+    {
+        if (text.Length <= MaxLength)
+            return text;
+
+        var end = char.IsHighSurrogate(text[MaxLength - 1]) ? MaxLength - 1 : MaxLength;
+        return text[..end].TrimEnd();
+    }
 }

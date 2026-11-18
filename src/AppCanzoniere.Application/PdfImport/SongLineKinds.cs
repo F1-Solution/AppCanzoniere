@@ -8,6 +8,9 @@ internal sealed record Region(int Page, IReadOnlyList<string> Lines, IReadOnlyLi
 {
     public static Region Of(int page, IReadOnlyList<string> lines) => new(page, lines, ChordFlags(lines));
 
+    /// <summary>True when a chord row lies above the line at index i.</summary>
+    public bool HasChordAbove(int i) => IsChord.Take(i).Any(c => c);
+
     // The converter's own diagnostics tell which lines are chord lines; they map one to one to the input lines.
     private static IReadOnlyList<bool> ChordFlags(IReadOnlyList<string> lines)
     {

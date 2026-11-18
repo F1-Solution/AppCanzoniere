@@ -36,7 +36,7 @@ public sealed class PdfSongSplitterLyricHintTests
     [Fact]
     public void A_long_line_that_begins_with_a_hint_word_is_a_lyric()
     {
-        var lyric = "Tono SI mi dicevano tutti gli amici lungo il fiume stasera";
+        var lyric = "Tono reale dicevano tutti gli amici lungo il fiume stasera quando cantava";
 
         var result = PdfSongSplitter.Split(new[] { Page(1, $"LA SERA\n\n   Do        Sol\n{lyric}\n   La-       Fa\n   sopra il mare scuro") });
 

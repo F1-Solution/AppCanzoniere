@@ -68,7 +68,8 @@ public sealed class PdfTextImporter
         var words = await _extractor.ExtractAsync(pdf, token).ConfigureAwait(false);
         var pages = new List<PageText>(words.Pages.Count);
         long characters = 0;
-        foreach (var page in RunningLines.Strip(words.Pages))
+        var stripped = RunningLines.Strip(words.Pages);
+        foreach (var page in stripped)
         {
             StopIfOver(token, started);
             var text = PdfPageLayout.Lay(page, token);
@@ -79,6 +80,9 @@ public sealed class PdfTextImporter
         }
 
         StopIfOver(token, started);
+        if (words.Status == PdfExtractionStatus.Success && words.Pages.Any(p => p.HasText) && !stripped.Any(p => p.HasText))
+            return new PdfTextResult(PdfExtractionStatus.NoTextLayer, "No page has a text layer once the repeated footers are removed.", pages) { Detail = words.Detail, Title = words.Title };
+
         return new PdfTextResult(words.Status, words.Reason, pages) { Detail = words.Detail, Title = words.Title };
     }
 
