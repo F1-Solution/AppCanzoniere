@@ -121,6 +121,24 @@ internal static class LineClassifier
 
     public static LineClassification Classify(IReadOnlyList<SheetToken> tokens, Notation notation, LineContext context = default)
     {
+        if (!context.CapsStyle)
+            return ClassifyReading(tokens, notation, context);
+
+        // In a song printed in capitals the chord rows are repaired, sung note words stay text and chords get normal spelling.
+        var repaired = CapsChords.Repair(tokens, notation) ?? tokens;
+        if ((!context.AfterLabel && CapsChords.IsSungNoteRow(repaired)) || CapsChords.IsNoteWordsWithText(repaired))
+        {
+            var ambiguous = repaired.Count(t => t.Kind == TokenKind.Chord);
+            var words = repaired.Count(t => t.Kind == TokenKind.Word);
+            return new LineClassification(false, false, LikelyLyric, new[] { SheetWarning.AmbiguousNoteWords }, repaired, 0, ambiguous, words);
+        }
+
+        var result = ClassifyReading(repaired, notation, context);
+        return result.IsChord || result.Pending ? result with { Tokens = CapsChords.Spell(result.Tokens, notation) } : result;
+    }
+
+    private static LineClassification ClassifyReading(IReadOnlyList<SheetToken> tokens, Notation notation, LineContext context)
+    {
         // Chords already in brackets next to real words, or a lyric with chords after it, mean the line is ChordPro already.
         if (tokens.Any(t => t.Bracketed) && (tokens.Any(t => !t.Bracketed && t.Kind == TokenKind.Word) || IsLyricWithTail(tokens)))
         {
