@@ -9,7 +9,7 @@ Windows fa parte della prima versione insieme ad Android (non è una fase condiz
 | ID | Titolo | Stato | Dipende da | Bloccata da |
 |---|---|---|---|---|
 | F0 | Ricognizione: valutazione del codice, proposte UX e UI, piano commerciale, collegamento a GitHub | **completata** | — | — |
-| G0 | Validazione commerciale e d'uso (Gate 0, lavoro del proprietario, in parallelo) | da iniziare | F0 | Avvio entro il 16/11/2026; copione delle interviste aggiornato a tre modalità, pubblicità e Pro |
+| G0 | Validazione commerciale e d'uso (Gate 0, lavoro del proprietario, in parallelo) | **in corso** (avviato il 18/11/2026) | F0 | Avvio entro il 16/11/2026; copione delle interviste aggiornato a tre modalità, pubblicità e Pro |
 | F1 | Risanamento del repository e CI verde (build Android e Windows) | **in corso** (prima PR unita l'11/11/2026) | F0 | Protezione del branch e minuti Actions sul piano GitHub (V-09); workload della macchina locale (proprietario) |
 | F2 | Nucleo musicale: ChordPro, trasposizione, notazione legata alla lingua, "incolla" | **completata** (round 5: notazione collegata alla schermata del canto, rendering corretto nell'app, punti aperti di "incolla") | F1 (job core) | Nulla |
 | F3 | Prove tecniche del Gate 0: leggio su tablet Android e su Windows, import da PDF | **in corso** (round 6: divisione dei libretti in canti, conversione canto per canto in ChordPro, glifi TeX per diesis e bemolle, lettura dei PDF in un processo separato, prima prova OCR su Windows, leggio che va a capo sulla larghezza reale; restano pedale e schermo acceso, OCR su Android, prove su dispositivo) | F1 (job Android e Windows), F2 | Tablet economico, pedale Bluetooth, PC Windows di prova; 10 libretti PDF reali |
