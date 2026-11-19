@@ -5,6 +5,13 @@ public sealed record PdfWorkerLaunch(string FileName, IReadOnlyList<string> Lead
 {
     private const string WorkerName = "AppCanzoniere.PdfWorker";
 
+    /// <summary>Subfolder of the Windows app output that holds the worker.</summary>
+    public const string AppFolder = "PdfWorker";
+
+    /// <summary>Finds the worker shipped with the app: its subfolder first, then the app folder itself.</summary>
+    public static PdfWorkerLaunch? LocateForApp(string appDirectory) =>
+        Locate(Path.Combine(appDirectory, AppFolder)) ?? Locate(appDirectory);
+
     /// <summary>Finds the worker next to the app: its own executable first, then its library run by the dotnet host.</summary>
     public static PdfWorkerLaunch? Locate(string directory)
     {

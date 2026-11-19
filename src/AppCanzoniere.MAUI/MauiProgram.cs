@@ -30,8 +30,17 @@ public static class MauiProgram
             });
 
 #if WINDOWS
-        builder.ConfigureLifecycleEvents(events => events.AddWindows(windows => windows.OnActivated((window, _) =>
-            Platforms.Windows.WindowKeyHook.Attach(window))));
+        builder.ConfigureLifecycleEvents(events => events.AddWindows(windows => windows
+            .OnActivated((window, _) => Platforms.Windows.WindowKeyHook.Attach(window))
+            .OnWindowCreated(window => Platforms.Windows.MinimizeWatcher.Attach(window))));
+#endif
+
+#if WINDOWS
+        // The reader is started on demand from the PdfWorker folder next to the app.
+        builder.Services.AddSingleton<AppCanzoniere.Application.PdfImport.IPdfWordExtractor>(_ =>
+            new AppCanzoniere.Infrastructure.PdfImport.IsolatedPdfWordExtractor(
+                AppCanzoniere.Infrastructure.PdfImport.PdfWorkerLaunch.LocateForApp(AppContext.BaseDirectory)
+                ?? throw new FileNotFoundException("The PDF reader is missing from the app folder.")));
 #endif
 
 #if DEBUG

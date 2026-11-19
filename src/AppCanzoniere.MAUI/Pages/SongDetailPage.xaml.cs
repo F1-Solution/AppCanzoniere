@@ -38,6 +38,10 @@ public partial class SongDetailPage : ContentPage
             _window.Stopped += OnWindowStopped;
             _window.Resumed += OnWindowResumed;
         }
+#if WINDOWS
+        Platforms.Windows.MinimizeWatcher.Changed -= OnMinimizedChanged;
+        Platforms.Windows.MinimizeWatcher.Changed += OnMinimizedChanged;
+#endif
         _viewModel.InitializeNewSongCommand.Execute(null);
 
         // Settings may have changed while another page was open; the transposition stays.
@@ -54,11 +58,34 @@ public partial class SongDetailPage : ContentPage
             _window = null;
         }
 
+#if WINDOWS
+        Platforms.Windows.MinimizeWatcher.Changed -= OnMinimizedChanged;
+        _minimized = false;
+#endif
         ReleaseScreen();
         base.OnDisappearing();
     }
 
-    private void HoldScreenOn() => _wakeLease ??= _wake.Acquire();
+#if WINDOWS
+    // Windows does not raise Stopped for a minimized window.
+    private void OnMinimizedChanged(bool minimized) => Dispatcher.Dispatch(() =>
+    {
+        _minimized = minimized;
+        if (minimized)
+            ReleaseScreen();
+        else
+            HoldScreenOn();
+    });
+#endif
+
+    private bool _minimized;
+
+    // A minimized window must not take the display back when another event resumes it.
+    private void HoldScreenOn()
+    {
+        if (!_minimized)
+            _wakeLease ??= _wake.Acquire();
+    }
 
     private void ReleaseScreen()
     {

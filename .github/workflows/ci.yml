@@ -170,6 +170,10 @@ jobs:
       - name: Job Object tests
         run: dotnet test tests/AppCanzoniere.Infrastructure.Tests --filter "FullyQualifiedName~PdfImport"
 
+      # Launches the built app on the runner's interactive desktop; also checks the PDF reader ships in the output.
+      - name: Windows app UI tests
+        run: dotnet test tests/AppCanzoniere.Windows.UiTests --configuration Debug
+
       - name: Upload Windows build
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
