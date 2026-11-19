@@ -10,6 +10,7 @@ internal sealed class SongFocus : IDisposable
     private readonly SongDrawingView _drawing;
     private readonly Microsoft.Maui.Controls.ScrollView _scroll;
     private ViewTreeObserver? _observer;
+    private string _lastRequest = "none";
 
     public SongFocus(SongDrawingView drawing, Microsoft.Maui.Controls.ScrollView scroll)
     {
@@ -38,7 +39,9 @@ internal sealed class SongFocus : IDisposable
                 return;
 
             Prepare();
-            if (!view.RequestFocus())
+            var granted = view.RequestFocus();
+            _lastRequest = granted ? "granted" : "refused";
+            if (!granted)
             {
                 // The view may not be shown or laid out yet, so it asks again shortly.
                 view.PostDelayed(() =>
@@ -59,7 +62,14 @@ internal sealed class SongFocus : IDisposable
     {
         var root = Target()?.RootView;
         var target = Target();
-        return $"{root?.FindFocus()?.Class?.SimpleName ?? "none"} target={target?.Class?.SimpleName ?? "none"} focusable={target?.Focusable} shown={target?.IsShown} touch={(root?.IsInTouchMode ?? false).ToString().ToLowerInvariant()}";
+        var blockers = new List<string>();
+        for (var parent = target?.Parent; parent is not null; parent = parent.Parent)
+        {
+            if (parent is ViewGroup { DescendantFocusability: DescendantFocusability.BlockDescendants } blocking)
+                blockers.Add(blocking.Class?.SimpleName ?? "?");
+        }
+
+        return $"{root?.FindFocus()?.Class?.SimpleName ?? "none"} target={target?.Class?.SimpleName ?? "none"} focusable={target?.Focusable} shown={target?.IsShown} request={_lastRequest} blockers=[{string.Join(",", blockers)}] touch={(root?.IsInTouchMode ?? false).ToString().ToLowerInvariant()}";
     }
 
     public void Dispose() => Detach();
