@@ -50,9 +50,9 @@ static async Task<string> RunAsync(WindowsOcrEngine engine, string pdf)
         var clock = Stopwatch.StartNew();
         var recognised = await engine.RecognizeAsync(scanned.Image);
         clock.Stop();
-        if (engine.LastFailure is { } failure)
+        if (recognised.IsFailure)
         {
-            md.Append(CultureInfo.InvariantCulture, $"- Page failed: {failure}\n\n");
+            md.Append(CultureInfo.InvariantCulture, $"- Page failed: {recognised.FailureReason}\n\n");
             continue;
         }
 

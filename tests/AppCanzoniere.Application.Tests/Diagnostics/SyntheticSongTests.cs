@@ -16,6 +16,15 @@ public class SyntheticSongTests
     }
 
     [Fact]
+    public void Create_UsesTheGivenTitleInTheSongAndItsChordPro()
+    {
+        var song = SyntheticSong.Create("Canto di prova");
+
+        Assert.Equal("Canto di prova", song.Title);
+        Assert.Contains("{title:Canto di prova}", song.ChordProContent);
+    }
+
+    [Fact]
     public void ChordPro_ParsesToSeveralScreensOfLines()
     {
         var document = new ChordProParser().Parse(SyntheticSong.ChordPro());

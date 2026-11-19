@@ -1,7 +1,10 @@
 namespace AppCanzoniere.Application.PdfImport;
 
 /// <summary>The page words an OCR result adapts to, and how many recognised words were dropped.</summary>
-public sealed record OcrWordsResult(PdfPageWords Page, int RejectedWords, bool TooManyWords);
+public sealed record OcrWordsResult(PdfPageWords Page, int RejectedWords, bool TooManyWords, string? FailureReason = null)
+{
+    public bool IsFailure => FailureReason is not null;
+}
 
 /// <summary>Turns OCR words into the positioned words of the PDF path, so the same layout reads a scan.</summary>
 public static class OcrWordAdapter
@@ -22,6 +25,9 @@ public static class OcrWordAdapter
     public static OcrWordsResult ToPageWords(OcrPageResult result, int pageNumber)
     {
         ArgumentNullException.ThrowIfNull(result);
+        if (result.IsFailure)
+            return Empty(pageNumber, 0, tooMany: false) with { FailureReason = result.FailureReason };
+
         if (result.Width is <= 0 or > MaxSidePixels || result.Height is <= 0 or > MaxSidePixels)
             return Empty(pageNumber, CountWords(result), tooMany: false);
 
