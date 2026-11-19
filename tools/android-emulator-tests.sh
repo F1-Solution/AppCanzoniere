@@ -89,6 +89,9 @@ adb shell dumpsys power | tr -d '\r' > "$OUT/power-song.txt"
 grep -q "WAKE_LOCK.*'WindowManager/" "$OUT/power-song.txt"; check "dumpsys power shows a window wake lock on the song screen" $?
 
 echo "== 3. Page keys"
+# The first key sent after the screen opens never reaches the app on the emulator, so a neutral key goes first.
+key KEYCODE_SHIFT_LEFT
+log | grep "KEY " | tail -3
 adb logcat -c
 turn "PAGE_DOWN forward" 1 KEYCODE_PAGE_DOWN
 shot 02-song-after-page-down
