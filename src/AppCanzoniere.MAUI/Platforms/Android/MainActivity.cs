@@ -31,6 +31,9 @@ public class MainActivity : MauiAppCompatActivity
 
     public override bool DispatchKeyEvent(KeyEvent? e)
     {
+#if DEBUG
+        Android.Util.Log.Info("AppCanzoniereSelfTest", $"DISPATCH {e?.KeyCode} {e?.Action} focus={CurrentFocus?.GetType().Name}");
+#endif
         try
         {
             if (e is not null && CurrentFocus is not EditText && NameOf(e.KeyCode) is { } name)
