@@ -18,6 +18,10 @@
     <PackageVersion Include="CommunityToolkit.Mvvm" Version="8.4.2" />
     <!-- PDF text extraction on the device (Apache-2.0) -->
     <PackageVersion Include="PdfPig" Version="0.1.16" />
+    <!-- On-device OCR on Android, bundled Latin model (Microsoft binding of Google ML Kit) -->
+    <PackageVersion Include="Xamarin.Google.MLKit.TextRecognition" Version="116.0.1.9" />
+    <!-- Fragment 1.9 contains the Kotlin extensions; the old separate Ktx artifact duplicates classes, so pin its empty successor -->
+    <PackageVersion Include="Xamarin.AndroidX.Fragment.Ktx" Version="1.9.1" />
     <!-- Tests (FluentAssertions stays on 7.x: 8.x is commercially licensed) -->
     <PackageVersion Include="coverlet.collector" Version="10.1.0" />
     <PackageVersion Include="FluentAssertions" Version="7.2.2" />
