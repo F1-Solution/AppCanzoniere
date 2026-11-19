@@ -50,3 +50,4 @@
 - I piè di pagina con link e le righe correnti ripetute su più pagine non entrano nei canti, mentre titoli, ritornelli e righe di accordi vicino al margine restano.
 - Una scansione il cui unico testo è un piè di pagina viene segnalata come senza testo.
 - Nelle schede scansionate tutte maiuscole le righe di accordi vengono riconosciute e scritte in notazione normale (Sol, Lam), mentre le righe di testo maiuscolo restano testo (solo banco di prova Windows).
+- Nelle scansioni gli accordi cadono sulla sillaba giusta, anche con "SI m" staccato, e le righe con barre o "BB" in maiuscolo vengono riconosciute.
