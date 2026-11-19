@@ -81,12 +81,11 @@ wait_log 'SONG (OPENED|FAIL)' 180
 log | grep -q 'SONG OPENED'; check "Song screen opens on the synthetic song" $?
 sleep 5
 shot 01-song-before
-adb shell uiautomator dump /sdcard/ui.xml > /dev/null 2>&1 && adb pull /sdcard/ui.xml "$OUT/ui-song.xml" > /dev/null 2>&1
 
 echo "== 6a. Screen stays on while the song is open"
 log | grep 'KEEPSCREENON' | tail -1 | grep -q 'KEEPSCREENON True'; check "Keep-screen-on requested on the song screen" $?
 adb shell dumpsys power | tr -d '\r' > "$OUT/power-song.txt"
-grep -q "WindowManager" "$OUT/power-song.txt"; check "dumpsys power shows a window wake lock on the song screen" $?
+grep -q "WAKE_LOCK.*'WindowManager/" "$OUT/power-song.txt"; check "dumpsys power shows a window wake lock on the song screen" $?
 
 echo "== 3. Page keys"
 adb logcat -c
@@ -119,6 +118,7 @@ else
   fail "Long press moved exactly one page"
 fi
 shot 03-song-after-long-press
+adb shell uiautomator dump /sdcard/ui.xml > /dev/null 2>&1 && adb pull /sdcard/ui.xml "$OUT/ui-song.xml" > /dev/null 2>&1
 
 echo "== 4b/6b. Leaving the song screen"
 adb logcat -c
@@ -126,7 +126,7 @@ key KEYCODE_BACK
 shot 04-after-back
 log | grep -q 'KEEPSCREENON False'; check "Keep-screen-on released after leaving the song screen" $?
 adb shell dumpsys power | tr -d '\r' > "$OUT/power-home.txt"
-grep -q "WindowManager" "$OUT/power-home.txt" && fail "dumpsys power shows no window wake lock after leaving" || pass "dumpsys power shows no window wake lock after leaving"
+grep -q "WAKE_LOCK.*'WindowManager/" "$OUT/power-home.txt" && fail "dumpsys power shows no window wake lock after leaving" || pass "dumpsys power shows no window wake lock after leaving"
 
 adb logcat -c
 AUDIO_HOME0=$(audio_state)
