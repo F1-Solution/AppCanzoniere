@@ -49,6 +49,7 @@ internal static class SheetAnalyzer
     private const int MaxTitleLength = 60;
     private const int MinTabDashes = 4;
     private const int MinTitleCapitals = 2;
+    private const int MaxMixedPerCapsRow = 3;
 
     private static readonly Regex ContentsEntry = new(
         @"(?:\bpag(?:ina|\.)?\s*\d+|\bp\.\s*\d+|\.{3,}\s*\d+)\s*$",
@@ -66,9 +67,10 @@ internal static class SheetAnalyzer
         var analyzed = new List<AnalyzedLine>(lines.Count);
         var inHeader = true;
         var lowerCaseStyle = HasLowerCaseStyle(lines, notation);
+        var capsStyle = HasCapsStyle(lines, notation);
         for (var i = 0; i < lines.Count; i++)
         {
-            var context = new LineContext(i + 1 < lines.Count ? lines[i + 1].Text : null, lowerCaseStyle, otherNotationAsText);
+            var context = new LineContext(i + 1 < lines.Count ? lines[i + 1].Text : null, lowerCaseStyle, otherNotationAsText, CapsStyle: capsStyle);
             var line = AnalyzeLine(i, lines[i], notation, inHeader, context);
             analyzed.Add(line);
             inHeader = inHeader && !EndsHeader(line);
@@ -100,6 +102,14 @@ internal static class SheetAnalyzer
     // A document with several lower-case chord lines writes all its chords in lower case.
     private static bool HasLowerCaseStyle(IReadOnlyList<NormalizedLine> lines, Notation notation) =>
         lines.Count(l => l.Text.Length > 0 && LooseChords.IsStyleEvidence(SheetTokenizer.Tokenize(l.Text, 0, notation), notation)) >= LooseChords.MinStyleLines;
+
+    // A song whose lyric rows are in capitals, with only a few in mixed case, writes its chords in capitals too.
+    private static bool HasCapsStyle(IReadOnlyList<NormalizedLine> lines, Notation notation)
+    {
+        var rows = lines.Where(l => l.Text.Length > 0).Select(l => SheetTokenizer.Tokenize(l.Text, 0, notation)).ToList();
+        var caps = rows.Count(CapsChords.IsLyricRow);
+        return caps >= LooseChords.MinStyleLines && rows.Count(CapsChords.IsMixedCaseRow) * MaxMixedPerCapsRow <= caps;
+    }
 
     private static AnalyzedLine AnalyzeLine(int index, NormalizedLine line, Notation notation, bool inHeader, LineContext context)
     {

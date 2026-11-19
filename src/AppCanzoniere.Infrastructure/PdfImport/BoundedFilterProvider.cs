@@ -35,6 +35,9 @@ internal sealed class BoundedFilterProvider : BaseFilterProvider
     /// <summary>The limit passed, even if PdfPig caught the refusal and carried on.</summary>
     public DecodeRefusal Refusal => _tally.Refusal;
 
+    /// <summary>Runs a read whose decode limit hits are ignored, such as reading the title after the pages; the counts go back as they were.</summary>
+    public T WithoutRefusal<T>(Func<T> read) => _tally.Isolated(read);
+
     private static int Cap(long bytes) => (int)Math.Clamp(bytes, 1, Array.MaxLength);
 
     private static Dictionary<string, IFilter> Wrap(int cap, Tally tally)
@@ -80,6 +83,24 @@ internal sealed class BoundedFilterProvider : BaseFilterProvider
                 return bytes;
             Refuse(DecodeRefusal.Document);
             throw new DecodeLimitExceededException($"The document unpacks to more than {budget} bytes.");
+        }
+
+        public T Isolated<T>(Func<T> read)
+        {
+            var total = Interlocked.Read(ref _total);
+            var refused = Refusal != DecodeRefusal.None;
+            try
+            {
+                return read();
+            }
+            finally
+            {
+                if (!refused)
+                {
+                    Interlocked.Exchange(ref _total, total);
+                    Volatile.Write(ref _refusal, (int)DecodeRefusal.None);
+                }
+            }
         }
 
         public void Refuse(DecodeRefusal refusal) => Interlocked.CompareExchange(ref _refusal, (int)refusal, (int)DecodeRefusal.None);

@@ -11,7 +11,7 @@ var stdout = Console.OpenStandardOutput();
 switch (mode)
 {
     case "ok":
-        Write(stdout, """{"v":1,"s":"Success","r":"","p":[{"n":1,"w":595,"h":842,"i":false,"x":[{"t":"ciao","l":10,"b":20,"r":40,"u":30}]}]}""");
+        Write(stdout, """{"v":2,"s":"Success","r":"","p":[{"n":1,"w":595,"h":842,"i":false,"x":[{"t":"ciao","l":10,"b":20,"r":40,"u":30}]}]}""");
         return 0;
     case "crash":
         Console.Error.WriteLine("boom");
@@ -26,6 +26,22 @@ switch (mode)
         // A child of the worker must die with it.
         Process.Start(new ProcessStartInfo(Environment.ProcessPath!, [typeof(Program).Assembly.Location, "hang", args[1] + ".child"]) { UseShellExecute = false });
         Thread.Sleep(Timeout.Infinite);
+        return 0;
+    case "orphan-then-hang":
+        // The grandchild's parent exits first, so only the Job Object can still reach the grandchild.
+        OrphanGrandchild(args[1]);
+        Thread.Sleep(Timeout.Infinite);
+        return 0;
+    case "orphan-then-ok":
+        OrphanGrandchild(args[1]);
+        Write(stdout, WordAnswer("ciao"));
+        return 0;
+    case "spawn-hold-and-exit":
+        // Second step of the orphan modes: args are <mode> <own pid file> <grandchild pid file>.
+        var held = Process.Start(new ProcessStartInfo(Environment.ProcessPath!, [typeof(Program).Assembly.Location, "hold", args[2]]) { UseShellExecute = false })!;
+        for (var i = 0; i < 100 && !File.Exists(args[2]); i++)
+            Thread.Sleep(50);
+        held.Dispose();
         return 0;
     case "env":
         // Reports whether the host's secret and the path reached this process.
@@ -47,7 +63,7 @@ switch (mode)
         return 0;
     case "object-flood":
         // Minimal objects, many of them, inside the output cap.
-        Write(stdout, "{\"v\":1,\"s\":\"Success\",\"r\":\"\",\"p\":[");
+        Write(stdout, "{\"v\":2,\"s\":\"Success\",\"r\":\"\",\"p\":[");
         var minimal = System.Text.Encoding.UTF8.GetBytes(string.Concat(Enumerable.Repeat("{\"x\":[]},", 10_000)));
         for (var i = 0; i < 300; i++)
             stdout.Write(minimal);
@@ -64,13 +80,13 @@ switch (mode)
     case "empty":
         return 0;
     case "bad-values":
-        Write(stdout, """{"v":1,"s":"Success","r":"","p":[{"n":1,"w":595,"h":842,"i":false,"x":[{"t":"ciao","l":1e300,"b":20,"r":4e300,"u":30}]}]}""");
+        Write(stdout, """{"v":2,"s":"Success","r":"","p":[{"n":1,"w":595,"h":842,"i":false,"x":[{"t":"ciao","l":1e300,"b":20,"r":4e300,"u":30}]}]}""");
         return 0;
     case "bad-version":
         Write(stdout, """{"v":99,"s":"Empty","r":"","p":[]}""");
         return 0;
     case "too-many-pages":
-        Write(stdout, "{\"v\":1,\"s\":\"NoTextLayer\",\"r\":\"\",\"p\":[" + string.Join(',', Enumerable.Range(1, 600).Select(n => $"{{\"n\":{n},\"w\":1,\"h\":1,\"i\":true,\"x\":[]}}")) + "]}");
+        Write(stdout, "{\"v\":2,\"s\":\"NoTextLayer\",\"r\":\"\",\"p\":[" + string.Join(',', Enumerable.Range(1, 600).Select(n => $"{{\"n\":{n},\"w\":1,\"h\":1,\"i\":true,\"x\":[]}}")) + "]}");
         return 0;
     case "memory":
         // Native memory, which a managed heap limit cannot see; each block is touched so it counts in the working set.
@@ -86,8 +102,14 @@ switch (mode)
         return 2;
 }
 
+static void OrphanGrandchild(string pidFile)
+{
+    using var middle = Process.Start(new ProcessStartInfo(Environment.ProcessPath!, [typeof(Program).Assembly.Location, "spawn-hold-and-exit", pidFile + ".mid", pidFile + ".child"]) { UseShellExecute = false })!;
+    middle.WaitForExit();
+}
+
 static string WordAnswer(string text) =>
-    "{\"v\":1,\"s\":\"Success\",\"r\":\"\",\"p\":[{\"n\":1,\"w\":595,\"h\":842,\"i\":false,\"x\":[{\"t\":" + System.Text.Json.JsonSerializer.Serialize(text) + ",\"l\":10,\"b\":20,\"r\":40,\"u\":30}]}]}";
+    "{\"v\":2,\"s\":\"Success\",\"r\":\"\",\"p\":[{\"n\":1,\"w\":595,\"h\":842,\"i\":false,\"x\":[{\"t\":" + System.Text.Json.JsonSerializer.Serialize(text) + ",\"l\":10,\"b\":20,\"r\":40,\"u\":30}]}]}";
 
 static void Write(Stream stream, string text)
 {

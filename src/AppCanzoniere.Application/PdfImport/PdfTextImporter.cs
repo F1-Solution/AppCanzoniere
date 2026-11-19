@@ -7,6 +7,9 @@ public sealed record PdfTextResult(PdfExtractionStatus Status, string Reason, IR
 
     /// <summary>Technical detail of a failure, for logs only; never shown to the user.</summary>
     public string? Detail { get; init; }
+
+    /// <summary>The cleaned title from the PDF metadata, null when there is none or it says nothing about the song.</summary>
+    public string? Title { get; init; }
 }
 
 /// <summary>Reads a PDF on the device and returns its text page by page and column by column.</summary>
@@ -65,7 +68,8 @@ public sealed class PdfTextImporter
         var words = await _extractor.ExtractAsync(pdf, token).ConfigureAwait(false);
         var pages = new List<PageText>(words.Pages.Count);
         long characters = 0;
-        foreach (var page in words.Pages)
+        var stripped = RunningLines.Strip(words.Pages);
+        foreach (var page in stripped)
         {
             StopIfOver(token, started);
             var text = PdfPageLayout.Lay(page, token);
@@ -76,7 +80,10 @@ public sealed class PdfTextImporter
         }
 
         StopIfOver(token, started);
-        return new PdfTextResult(words.Status, words.Reason, pages) { Detail = words.Detail };
+        if (words.Status == PdfExtractionStatus.Success && words.Pages.Any(p => p.HasText) && !stripped.Any(p => p.HasText))
+            return new PdfTextResult(PdfExtractionStatus.NoTextLayer, "No page has a text layer once the repeated footers are removed.", pages) { Detail = words.Detail, Title = words.Title };
+
+        return new PdfTextResult(words.Status, words.Reason, pages) { Detail = words.Detail, Title = words.Title };
     }
 
     // The clock is checked too, so a busy machine that delays the deadline timer still stops on time.

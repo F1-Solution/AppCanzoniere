@@ -163,7 +163,7 @@ public sealed class PdfPigWordExtractor : IPdfWordExtractor
             pages.Add(PdfPigPage.Words(page));
         }
 
-        return Classify(pages);
+        return Classify(pages) with { Title = filters.WithoutRefusal(() => PdfMetadataTitle.Read(document)) };
     }
 
     // A parsed page too big to lay out: a page box larger than PDF allows, or more characters than the limit.

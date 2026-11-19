@@ -4,11 +4,12 @@ namespace AppCanzoniere.Application.PdfImport;
 public static class PdfSongSplitter
 {
     /// <summary>Splits the pages, read column by column in order, into songs; one pass over the text.</summary>
-    public static SongSplitResult Split(IReadOnlyList<PageText> pages)
+    public static SongSplitResult Split(IReadOnlyList<PageText> pages, string? documentTitle = null, string? fileName = null)
     {
         ArgumentNullException.ThrowIfNull(pages);
         var builder = new SongCollector();
         var indexEntries = 0;
+        var contentRegions = new List<Region>();
         var followsIndex = false;
         foreach (var page in pages.Where(p => !p.IsScanned))
         {
@@ -24,11 +25,15 @@ public static class PdfSongSplitter
                     continue;
                 }
 
+                contentRegions.Add(region);
                 builder.AddRegion(region);
             }
         }
 
         var songs = builder.Finish();
+        if (songs.Count == 0 && UntitledSheet.Build(contentRegions, documentTitle, fileName) is { } sheet)
+            songs = new[] { sheet };
+
         return new SongSplitResult(songs, indexEntries, SkippedPages(pages, songs));
     }
 
@@ -56,6 +61,14 @@ internal sealed class SongCollector
         while (i < region.Lines.Count)
         {
             var found = SongTitleDetector.Detect(region, i, new TitleContext(_lastNumber, _numberedBook, _verseNumber == 0 ? 0 : _verseNumber + 1));
+            if (found is not null && IsSameSongAgain(found))
+            {
+                _lastPage = region.Page;
+                _verseNumber = 0;
+                i = found.NextLine;
+                continue;
+            }
+
             if (found is not null)
             {
                 EndSong();
@@ -67,10 +80,17 @@ internal sealed class SongCollector
                 continue;
             }
 
-            AddLine(region.Lines[i], region.Page);
+            if (!PerformanceHints.IsHint(region.Lines[i]) && !PerformanceHints.IsBisOfLast(region.Lines[i], _lastNumber))
+                AddLine(region.Lines[i], region.Page, region.HasChordAbove(i));
             i++;
         }
     }
+
+    // A title repeated for another key or instrument, with the same number, continues the song.
+    private bool IsSameSongAgain(SongTitleDetector.Found found) =>
+        _title is not null
+        && (found.Number is null ? found.HadNote : found.Number == _lastNumber)
+        && (string.Equals(found.Title, _title, StringComparison.OrdinalIgnoreCase) || (found.Number is not null && found.Title.StartsWith(_title, StringComparison.OrdinalIgnoreCase)));
 
     public void EndSong()
     {
@@ -103,17 +123,20 @@ internal sealed class SongCollector
             _songs.Add(new SplitSong(_title!, _firstPage, _lastPage, lines, _subtitles));
     }
 
-    private void AddLine(string line, int page)
+    private void AddLine(string line, int page, bool chordAbove)
     {
-        if (_title is null || SongLineKinds.IsNoise(line))
+        if (SongLineKinds.IsNoise(line))
+            return;
+        if (_title is not null || chordAbove)
+            NoteVerse(line);
+        if (_title is null)
             return;
         _lines.Add(line.TrimEnd());
         if (!SongLineKinds.IsBlank(line))
             _lastPage = page;
-        NoteVerse(line);
     }
 
-    // Numbered verses start at 1 and count up inside a song.
+    // Numbered verses start at 1 and count up inside a song, or under chords of a sheet without a title.
     private void NoteVerse(string line)
     {
         var (number, _) = SongLineKinds.StripNumber(line);

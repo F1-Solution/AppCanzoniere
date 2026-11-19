@@ -18,23 +18,26 @@ internal static class SongTitleDetector
     private const int CenteredIndent = 4;
 
     /// <summary>A title found at a line: its text, its number if any, and the line after its last subtitle.</summary>
-    public sealed record Found(string Title, int? Number, IReadOnlyList<string> Subtitles, int NextLine);
+    public sealed record Found(string Title, int? Number, IReadOnlyList<string> Subtitles, int NextLine, bool HadNote = false);
 
     public static Found? Detect(Region region, int index, TitleContext context)
     {
-        var (number, title) = SongLineKinds.StripNumber(region.Lines[index]);
-        if (!IsTitle(region, index, number, title, context))
+        var (number, full) = SongLineKinds.StripNumber(region.Lines[index]);
+        var (title, note) = PerformanceHints.SplitNote(full);
+        if (PerformanceHints.IsHint(region.Lines[index]) || PerformanceHints.IsBisOfLast(region.Lines[index], context.LastNumber) || !IsTitle(region, index, number, title, context))
             return null;
 
         var subtitles = new List<string>();
+        if (note is not null)
+            subtitles.Add(note);
         var next = index + 1;
-        while (next < region.Lines.Count && subtitles.Count < MaxSubtitles && IsSubtitle(region, next))
+        while (next < region.Lines.Count && subtitles.Count < MaxSubtitles + (note is null ? 0 : 1) && IsSubtitle(region, next))
         {
             subtitles.Add(region.Lines[next].Trim());
             next++;
         }
 
-        return new Found(title, number, subtitles, next);
+        return new Found(title, number, subtitles, next, note is not null);
     }
 
     private static bool IsTitle(Region region, int i, int? number, string text, TitleContext context)
@@ -43,6 +46,8 @@ internal static class SongTitleDetector
         if (SongLineKinds.IsBlank(line) || region.IsChord[i] || SongLineKinds.IsNoise(line) || !LooksLikeTitleText(text))
             return false;
         if (number is not null && number == context.NextVerse && !SongLineKinds.IsUpperCase(text, MinTitleLetters))
+            return false;
+        if (IsFirstVerseOfUntitledText(region, i, number, text, context))
             return false;
         if (i > 0 && !SongLineKinds.IsBlank(region.Lines[i - 1]) && !FollowsInSequence(region, i, number, context))
             return false;
@@ -55,6 +60,10 @@ internal static class SongTitleDetector
 
         return !context.NumberedBook && LooksLikeMixedCaseTitle(region, i, text, next);
     }
+
+    // A mixed-case "1 text" below a chord row, before any numbered title, is the first verse of the song above.
+    private static bool IsFirstVerseOfUntitledText(Region region, int i, int? number, string text, TitleContext context) =>
+        number == 1 && !context.NumberedBook && !SongLineKinds.IsUpperCase(text, MinTitleLetters) && region.HasChordAbove(i);
 
     // The next number of a numbered book is a title even when its song has no chord lines, if the text is short like a title.
     private static bool IsNextInSequence(int? number, string text, TitleContext context) =>

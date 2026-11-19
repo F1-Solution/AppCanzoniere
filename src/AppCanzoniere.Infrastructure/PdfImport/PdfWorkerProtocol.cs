@@ -10,6 +10,7 @@ public sealed record PdfWorkerPayload(
     [property: JsonPropertyName("s")] string Status,
     [property: JsonPropertyName("r")] string Reason,
     [property: JsonPropertyName("d")] string? Detail,
+    [property: JsonPropertyName("m")] string? Title,
     [property: JsonPropertyName("p")] List<PdfWorkerPage> Pages);
 
 /// <summary>One page of the payload.</summary>
@@ -37,7 +38,7 @@ internal sealed partial class PdfWorkerJsonContext : JsonSerializerContext;
 public static class PdfWorkerProtocol
 {
     /// <summary>The only payload version this build writes and reads.</summary>
-    public const int Version = 1;
+    public const int Version = 2;
 
     /// <summary>Writes the result as one JSON document.</summary>
     public static void Write(Stream output, PdfWordsResult result)
@@ -100,6 +101,7 @@ public static class PdfWorkerProtocol
         result.Status.ToString(),
         result.Reason,
         result.Detail,
+        result.Title,
         result.Pages.Select(ToPage).ToList());
 
     private static PdfWorkerPage ToPage(PdfPageWords page) => new(
