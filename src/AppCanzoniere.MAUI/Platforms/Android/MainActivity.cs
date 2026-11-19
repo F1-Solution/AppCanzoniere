@@ -39,7 +39,11 @@ public class MainActivity : MauiAppCompatActivity
                 if (source is not null)
                 {
                     var phase = e.Action == KeyEventActions.Up ? KeyPhase.Release : e.RepeatCount > 0 ? KeyPhase.Repeat : KeyPhase.Press;
-                    if ((e.Action == KeyEventActions.Down || e.Action == KeyEventActions.Up) && source.OnKey(name, e.IsCtrlPressed, e.IsAltPressed, phase))
+                    var handled = (e.Action == KeyEventActions.Down || e.Action == KeyEventActions.Up) && source.OnKey(name, e.IsCtrlPressed, e.IsAltPressed, phase);
+#if DEBUG
+                    Android.Util.Log.Info("AppCanzoniereSelfTest", $"KEY {name} {e.Action} handled={handled}");
+#endif
+                    if (handled)
                         return true;
                 }
             }

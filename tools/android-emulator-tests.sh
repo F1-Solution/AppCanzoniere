@@ -46,6 +46,7 @@ turn() {
   local y viewport row page
   y=$(scroll_field y); viewport=$(scroll_field viewport); row=$(scroll_field row)
   if [ -z "$y" ] || [ -z "$viewport" ] || [ -z "$row" ]; then
+    log | tail -5
     fail "$name (no scroll reported)"
     return
   fi
