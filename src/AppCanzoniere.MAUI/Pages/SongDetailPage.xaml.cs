@@ -10,6 +10,9 @@ public partial class SongDetailPage : ContentPage
     private readonly ScreenWakeLock _wake;
     private IDisposable? _wakeLease;
     private Window? _window;
+#if ANDROID
+    private SongFocus? _focus;
+#endif
 
     public SongDetailPage(SongDetailViewModel viewModel, IHardwareKeySource keys, ScreenWakeLock wake)
     {
@@ -18,6 +21,13 @@ public partial class SongDetailPage : ContentPage
         _keys = keys;
         _wake = wake;
         BindingContext = _viewModel;
+#if ANDROID
+        _viewModel.PropertyChanged += (_, e) =>
+        {
+            if (e.PropertyName == nameof(SongDetailViewModel.IsEditMode) && !_viewModel.IsEditMode)
+                Dispatcher.Dispatch(() => _focus?.Request());
+        };
+#endif
         SongView.LayoutFailed += (_, _) => _viewModel.ShowAsStored();
 #if DEBUG && ANDROID
         // Debug-only: lets the emulator tests read the scroll position from logcat.
@@ -32,6 +42,7 @@ public partial class SongDetailPage : ContentPage
         _keys.PageTurnRequested -= OnPageTurnRequested;
         _keys.PageTurnRequested += OnPageTurnRequested;
         HoldScreenOn();
+        UnsubscribeWindow();
         _window = Window;
         if (_window is not null)
         {
@@ -41,29 +52,51 @@ public partial class SongDetailPage : ContentPage
 #if WINDOWS
         Platforms.Windows.MinimizeWatcher.Changed -= OnMinimizedChanged;
         Platforms.Windows.MinimizeWatcher.Changed += OnMinimizedChanged;
+        _minimized = Platforms.Windows.MinimizeWatcher.IsMinimized;
+        if (_minimized)
+            ReleaseScreen();
+#endif
+#if ANDROID
+        _focus ??= new SongFocus(SongView, SongScroll);
+        _focus.Attach();
 #endif
         _viewModel.InitializeNewSongCommand.Execute(null);
 
         // Settings may have changed while another page was open; the transposition stays.
         await _viewModel.RefreshDisplayAsync();
+#if ANDROID
+        // The drawing may have appeared only now, so focus is requested again and reported for the emulator tests.
+        _focus.Attach();
+#if DEBUG
+        Dispatcher.DispatchDelayed(TimeSpan.FromMilliseconds(300), () =>
+            Android.Util.Log.Info("AppCanzoniereSelfTest", $"FOCUS {_focus?.Describe()}"));
+#endif
+#endif
     }
 
     protected override void OnDisappearing()
     {
         _keys.PageTurnRequested -= OnPageTurnRequested;
-        if (_window is not null)
-        {
-            _window.Stopped -= OnWindowStopped;
-            _window.Resumed -= OnWindowResumed;
-            _window = null;
-        }
-
+        UnsubscribeWindow();
+#if ANDROID
+        _focus?.Dispose();
+#endif
 #if WINDOWS
         Platforms.Windows.MinimizeWatcher.Changed -= OnMinimizedChanged;
         _minimized = false;
 #endif
         ReleaseScreen();
         base.OnDisappearing();
+    }
+
+    private void UnsubscribeWindow()
+    {
+        if (_window is null)
+            return;
+
+        _window.Stopped -= OnWindowStopped;
+        _window.Resumed -= OnWindowResumed;
+        _window = null;
     }
 
 #if WINDOWS
@@ -78,7 +111,11 @@ public partial class SongDetailPage : ContentPage
     });
 #endif
 
+#if WINDOWS
     private bool _minimized;
+#else
+    private const bool _minimized = false;
+#endif
 
     // A minimized window must not take the display back when another event resumes it.
     private void HoldScreenOn()

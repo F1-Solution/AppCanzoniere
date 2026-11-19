@@ -10,15 +10,13 @@
     <ContentPage.ToolbarItems>
         <ToolbarItem Text="Edit"
                      IconImageSource="edit.png"
-                     Command="{Binding ToggleEditModeCommand}"
-                     IsVisible="{Binding IsEditMode, Converter={StaticResource InvertedBoolConverter}}" />
+                     Command="{Binding ToggleEditModeCommand}" />
         <ToolbarItem Text="Delete"
                      IconImageSource="delete.png"
                      Command="{Binding DeleteCommand}" />
         <ToolbarItem Text="Add Songs"
                      IconImageSource="add.png"
-                     Command="{Binding ToggleAddingSongsCommand}"
-                     IsVisible="{Binding IsAddingSongs, Converter={StaticResource InvertedBoolConverter}}" />
+                     Command="{Binding ToggleAddingSongsCommand}" />
     </ContentPage.ToolbarItems>
 
     <Grid>

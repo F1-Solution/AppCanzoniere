@@ -7,6 +7,9 @@ internal static class MinimizeWatcher
 {
     private static bool _minimized;
 
+    /// <summary>True while the window is minimized.</summary>
+    public static bool IsMinimized => _minimized;
+
     /// <summary>Raised with true when the window is minimized and false when it is restored.</summary>
     public static event Action<bool>? Changed;
 

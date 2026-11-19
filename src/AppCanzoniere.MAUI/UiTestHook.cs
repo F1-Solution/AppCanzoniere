@@ -1,5 +1,5 @@
 #if DEBUG
-using AppCanzoniere.Domain.Entities;
+using AppCanzoniere.Application.Diagnostics;
 
 namespace AppCanzoniere.MAUI;
 
@@ -14,25 +14,10 @@ internal static class UiTestHook
     public static async Task OpenSongAsync(Shell shell)
     {
         var edit = string.Equals(Environment.GetEnvironmentVariable(Variable), "edit", StringComparison.OrdinalIgnoreCase);
-        var song = new Song { Title = "Prova automatica", Artist = "Test", ChordProContent = SyntheticSong() };
+        var song = SyntheticSong.Create();
         await shell.GoToAsync("songdetail", new Dictionary<string, object> { { "Song", song } });
         if (edit && shell.CurrentPage?.BindingContext is ViewModels.SongDetailViewModel vm)
             vm.ToggleEditModeCommand.Execute(null);
-    }
-
-    // Long enough for several screens at any window size used by the tests.
-    private static string SyntheticSong()
-    {
-        var lines = new List<string> { "{title: Prova automatica}", "{key: C}" };
-        for (var verse = 1; verse <= 12; verse++)
-        {
-            lines.Add($"{{comment: Strofa {verse}}}");
-            for (var row = 1; row <= 6; row++)
-                lines.Add($"[C]Riga {verse}.{row} di prova [G]per il [Am]leggio [F]automatico");
-            lines.Add(string.Empty);
-        }
-
-        return string.Join('\n', lines);
     }
 }
 #endif

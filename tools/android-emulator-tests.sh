@@ -6,7 +6,6 @@ set -u
 APK=${1:?usage: android-emulator-tests.sh <apk> [output-dir]}
 OUT=${2:-emulator-artifacts}
 PKG=com.companyname.appcanzoniere.maui
-ACTIVITY=$PKG/$PKG.MainActivity
 TAG=AppCanzoniereSelfTest
 mkdir -p "$OUT"
 
@@ -20,6 +19,16 @@ check() { # check <name> <exit status of the condition>
 log() { adb logcat -d -s "$TAG:I" | tr -d '\r'; }
 shot() { adb exec-out screencap -p > "$OUT/$1.png"; }
 key() { adb shell input keyevent "$@"; sleep 1.5; }
+# launch <selftest>: starts the app through its launcher intent, so no activity name is needed.
+launch() { adb shell am start -a android.intent.action.MAIN -c android.intent.category.LAUNCHER -p "$PKG" --es selftest "$1" > /dev/null; }
+# tap_song: taps inside the song area (horizontal centre, two thirds down the screen).
+tap_song() {
+  local size w h
+  size=$(adb shell wm size | tr -d '' | grep -Eo '[0-9]+x[0-9]+' | tail -1)
+  w=${size%x*}; h=${size#*x}
+  adb shell input tap $((w / 2)) $((h * 2 / 3))
+  sleep 1
+}
 audio_state() { adb shell dumpsys audio | tr -d '\r' | grep -E '^- STREAM_|Current:'; }
 
 # wait_log <regex> <seconds>: waits until a self-test log line matches.
@@ -68,7 +77,7 @@ adb shell settings put global animator_duration_scale 0
 echo "== 1. OCR self-test"
 adb shell am force-stop $PKG
 adb logcat -c
-adb shell am start -n "$ACTIVITY" --es selftest ocr > /dev/null
+launch ocr
 wait_log 'OCR (OK|FAIL)' 180
 log | grep OCR
 log | grep -q 'OCR INFO bundled=True'; check "OCR uses the bundled model" $?
@@ -77,10 +86,12 @@ log | grep 'OCR OK' | grep -qi alleluia && log | grep 'OCR OK' | grep -qi nuovo;
 echo "== 2. Song screen opens"
 adb shell am force-stop $PKG
 adb logcat -c
-adb shell am start -n "$ACTIVITY" --es selftest song > /dev/null
+launch song
 wait_log 'SONG (OPENED|FAIL)' 180
 log | grep -q 'SONG OPENED'; check "Song screen opens on the synthetic song" $?
 sleep 5
+log | grep 'FOCUS ' | tail -1
+log | grep 'FOCUS ' | tail -1 | grep -qv 'FOCUS none'; check "The song view has focus when the page appears" $?
 shot 01-song-before
 
 echo "== 6a. Screen stays on while the song is open"
@@ -89,13 +100,19 @@ adb shell dumpsys power | tr -d '\r' > "$OUT/power-song.txt"
 grep -q "WAKE_LOCK.*'WindowManager/" "$OUT/power-song.txt"; check "dumpsys power shows a window wake lock on the song screen" $?
 
 echo "== 3. Page keys"
-# Android swallows the first navigation key after a touch to leave touch mode (a real pedal behaves the same), so Tab goes first.
-key KEYCODE_TAB
+# The very first key after a touch must turn the page: a tap goes before each of these.
 adb logcat -c
-turn "PAGE_DOWN forward" 1 KEYCODE_PAGE_DOWN
+tap_song
+turn "PAGE_DOWN forward (first key after a tap)" 1 KEYCODE_PAGE_DOWN
 shot 02-song-after-page-down
-turn "SPACE forward" 1 KEYCODE_SPACE
-turn "DPAD_DOWN forward" 1 KEYCODE_DPAD_DOWN
+tap_song
+turn "SPACE forward (first key after a tap)" 1 KEYCODE_SPACE
+tap_song
+turn "DPAD_DOWN forward (first key after a tap)" 1 KEYCODE_DPAD_DOWN
+# Tab, tap, key: a navigation key before the touch must not cost the key after it.
+key KEYCODE_TAB
+tap_song
+turn "PAGE_DOWN forward (after Tab and a tap)" 1 KEYCODE_PAGE_DOWN
 turn "DPAD_RIGHT forward" 1 KEYCODE_DPAD_RIGHT
 turn "PAGE_UP back" -1 KEYCODE_PAGE_UP
 turn "DPAD_UP back" -1 KEYCODE_DPAD_UP

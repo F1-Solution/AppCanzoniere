@@ -25,6 +25,9 @@ public partial class App : global::Microsoft.Maui.Controls.Application
         // Seed initial data
         var seeder = new DatabaseSeeder(dbContext);
         await seeder.SeedAsync();
+#if DEBUG
+        await DebugSongs.EnsureAsync(dbContext);
+#endif
     }
 
     protected override Window CreateWindow(IActivationState? activationState)
