@@ -80,6 +80,12 @@ public static class MauiProgram
         // Uncomment to use Azure Computer Vision (requires API key):
         // builder.Services.AddHttpClient<IOcrService, AzureComputerVisionService>();
 
+#if ANDROID
+        // On-device page OCR with the bundled ML Kit model.
+        builder.Services.AddSingleton<AppCanzoniere.Application.PdfImport.IOcrEngine, Ocr.AndroidMlKitOcrEngine>();
+        builder.Services.AddSingleton<Ocr.AndroidPdfPageRenderer>();
+#endif
+
         // Audio Recognition Services - Use Mock by default
         builder.Services.AddSingleton<IAudioRecognitionService, MockAudioRecognitionService>();
         // Uncomment to use ACRCloud (requires API key):

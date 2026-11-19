@@ -57,6 +57,10 @@
 		<PackageReference Include="Microsoft.Extensions.Logging.Debug" />
 	</ItemGroup>
 
+	<ItemGroup Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'android'">
+		<PackageReference Include="Xamarin.Google.MLKit.TextRecognition" />
+	</ItemGroup>
+
 	<ItemGroup>
 	  <ProjectReference Include="..\AppCanzoniere.Domain\AppCanzoniere.Domain.csproj" />
 	  <ProjectReference Include="..\AppCanzoniere.Application\AppCanzoniere.Application.csproj" />
