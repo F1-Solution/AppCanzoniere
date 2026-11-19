@@ -69,7 +69,7 @@ internal sealed class SongFocus : IDisposable
                 blockers.Add(blocking.Class?.SimpleName ?? "?");
         }
 
-        return $"{root?.FindFocus()?.Class?.SimpleName ?? "none"} target={target?.Class?.SimpleName ?? "none"} focusable={target?.Focusable} shown={target?.IsShown} request={_lastRequest} blockers=[{string.Join(",", blockers)}] touch={(root?.IsInTouchMode ?? false).ToString().ToLowerInvariant()}";
+        return $"{root?.FindFocus()?.Class?.SimpleName ?? "none"} target={target?.Class?.SimpleName ?? "none"} focusable={target?.Focusable} shown={target?.IsShown} enabled={target?.Enabled} fit={target?.FocusableInTouchMode} size={target?.Width}x{target?.Height} attached={target?.IsAttachedToWindow} windowFocus={target?.HasWindowFocus} vis={target?.Visibility} request={_lastRequest} blockers=[{string.Join(",", blockers)}] touch={(root?.IsInTouchMode ?? false).ToString().ToLowerInvariant()}";
     }
 
     public void Dispose() => Detach();
