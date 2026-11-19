@@ -9,6 +9,10 @@ Data della verifica: **19/11/2026**. La parte di V-07 su Google Mobile Ads, UMP 
 - Il pacchetto ha un gruppo di dipendenze per `net10.0-android36.0`. Il codice è nel progetto MAUI, solo per il target Android.
 - La versione è fissata in `Directory.Packages.props`. Il riferimento sta nel progetto MAUI con condizione sul target Android.
 
+## Effetto sull'app: Android minimo 23
+
+Le librerie di ML Kit (tramite `androidx.tracing`) dichiarano `minSdkVersion` 23. L'app era a 21, e la build in CI è fallita con XAAMM0000. Il minimo è stato alzato a **Android 6.0 (API 23)**: si perdono i dispositivi con Android 5.x, ormai trascurabili.
+
 ## Dati del pacchetto
 
 | Voce | Valore |
