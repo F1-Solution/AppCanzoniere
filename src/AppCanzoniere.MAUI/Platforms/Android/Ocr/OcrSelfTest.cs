@@ -49,8 +49,8 @@ internal static class OcrSelfTest
         const int height = 400;
         using var bitmap = Bitmap.CreateBitmap(width, height, Bitmap.Config.Argb8888!)!;
         using var canvas = new Canvas(bitmap);
-        canvas.DrawColor(Color.White);
-        using var paint = new Paint(PaintFlags.AntiAlias) { Color = Color.Black, TextSize = 80 };
+        canvas.DrawColor(Android.Graphics.Color.White);
+        using var paint = new Android.Graphics.Paint(PaintFlags.AntiAlias) { Color = Android.Graphics.Color.Black, TextSize = 80 };
         for (var i = 0; i < Lines.Length; i++)
             canvas.DrawText(Lines[i], 40, 130 + (i * 140), paint);
 

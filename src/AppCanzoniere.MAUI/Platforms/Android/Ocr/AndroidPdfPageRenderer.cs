@@ -33,7 +33,7 @@ public sealed class AndroidPdfPageRenderer
 
         cancellationToken.ThrowIfCancellationRequested();
         using var bitmap = Bitmap.CreateBitmap(size.Width, size.Height, Bitmap.Config.Argb8888!)!;
-        bitmap.EraseColor(Color.White);
+        bitmap.EraseColor(Android.Graphics.Color.White);
         page.Render(bitmap, null, null, PdfRenderMode.ForDisplay);
 
         using var stream = new MemoryStream();
