@@ -121,15 +121,47 @@ public class AllCapsChordRowTests
     }
 
     [Fact]
-    public void AllCapsEnglishChordNames_AreRecognisedExceptInAnAmbiguousFirstRow()
+    public void AllCapsEnglishChordNames_AreRecognised_IncludingACapitalFlatInTheFirstRow()
     {
         var result = Run(Song("AM        BB", "CM7      G", "DM         F", "AM7     E"));
 
-        // Pins current behaviour: "AM BB" stays a lyric, and "CM7" and "AM7" keep their capitals (only "DM" becomes "Dm").
-        Assert.Equal(SheetLineKind.Lyric, result.Diag(1).Kind);
-        Assert.All(new[] { 3, 5, 7 }, n => Assert.Equal(SheetLineKind.ChordLine, result.Diag(n).Kind));
+        // "CM7" and "AM7" keep their capitals, as "M7" is a major seventh.
+        Assert.All(new[] { 1, 3, 5, 7 }, n => Assert.Equal(SheetLineKind.ChordLine, result.Diag(n).Kind));
+        Assert.Contains("[Am]", result.ChordPro);
+        Assert.Contains("[Bb]", result.ChordPro);
         Assert.Contains("[CM7]", result.ChordPro);
         Assert.Contains("[Dm]", result.ChordPro);
         Assert.Contains("[AM7]", result.ChordPro);
+    }
+
+    [Theory]
+    [InlineData("BB")]
+    [InlineData("BB KING")]
+    public void CapitalFlatWithoutChordCompany_StaysALyric_InAnEnglishCapsSong(string lyric)
+    {
+        var result = Run("CM7      G", CapsLyrics[0], "DM         F", CapsLyrics[1], lyric, CapsLyrics[2], "AM7     E", CapsLyrics[3]);
+
+        Assert.Equal(SheetLineKind.Lyric, result.Diag(5).Kind);
+    }
+
+    [Fact]
+    public void BarMarksStuckToChords_DoNotHideAChordRow()
+    {
+        // OCR reads the bars between chords as slashes, attaches one to a minor marker and one to a name as a leading I.
+        var result = Run(
+            "SOL / m/ DO IRE", string.Empty, "SOL           SI m", CapsLyrics[0], "DO        LAM", CapsLyrics[1],
+            "SOL        DO", CapsLyrics[2], "RE         SOL", CapsLyrics[3]);
+
+        Assert.Equal(SheetLineKind.ChordLine, result.Diag(1).Kind);
+        Assert.Contains("[Re]", result.ChordPro);
+        Assert.DoesNotContain("IRE", result.ChordPro);
+    }
+
+    [Fact]
+    public void CapsLyricWithLeadingIWords_IsNotTurnedIntoAChordRow()
+    {
+        var result = Run("SOL           SI m", CapsLyrics[0], "DO        LAM", CapsLyrics[1], "ILA IRE", CapsLyrics[2]);
+
+        Assert.Equal(SheetLineKind.Lyric, result.Diag(5).Kind);
     }
 }

@@ -56,8 +56,9 @@ public static class AlignedTextRenderer
 
     // Rows laid out with their own spacing: dense rows that are not chords, and any row right under a chord row,
     // however spread out its syllables are. Chord rows and other sparse rows are mapped onto them.
-    private static bool[] LyricRows(IReadOnlyList<TextRow> rows)
+    private static bool[] LyricRows(IReadOnlyList<TextRow> placedRows)
     {
+        var rows = placedRows.Select(WithMinorMarkersJoined).ToList();
         var chord = rows.Select(IsChordRow).ToArray();
         for (var i = 1; i < rows.Count; i++)
         {
@@ -67,6 +68,21 @@ public static class AlignedTextRenderer
         }
 
         return rows.Select((row, i) => !chord[i] && (IsDense(row) || (i > 0 && chord[i - 1] && IsClose(rows[i - 1], row)))).ToArray();
+    }
+
+    // A lone "m" right after a chord is its minor marker, so "SI m" is one chord and not two dense words.
+    private static TextRow WithMinorMarkersJoined(TextRow row)
+    {
+        var words = new List<PositionedWord>(row.Words.Count);
+        foreach (var word in row.Words)
+        {
+            if (word.Text == "m" && words.Count > 0 && IsChord(words[^1].Text) && word.Box.Left - words[^1].Box.Right <= row.Height)
+                words[^1] = new PositionedWord(words[^1].Text + "m", words[^1].Box with { Right = word.Box.Right });
+            else
+                words.Add(word);
+        }
+
+        return words.Count == row.Words.Count ? row : new TextRow(words);
     }
 
     private static bool IsChordRow(TextRow row)
