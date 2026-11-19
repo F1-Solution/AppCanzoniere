@@ -29,6 +29,19 @@ public partial class App : global::Microsoft.Maui.Controls.Application
 
     protected override Window CreateWindow(IActivationState? activationState)
     {
-        return new Window(new AppShell());
+        var shell = new AppShell();
+#if DEBUG
+        if (UiTestHook.IsRequested)
+        {
+            EventHandler? open = null;
+            open = async (_, _) =>
+            {
+                shell.Loaded -= open;
+                await UiTestHook.OpenSongAsync(shell);
+            };
+            shell.Loaded += open;
+        }
+#endif
+        return new Window(shell);
     }
 }

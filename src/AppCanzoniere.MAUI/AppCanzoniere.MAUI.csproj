@@ -61,6 +61,16 @@
 	  <ProjectReference Include="..\AppCanzoniere.Domain\AppCanzoniere.Domain.csproj" />
 	  <ProjectReference Include="..\AppCanzoniere.Application\AppCanzoniere.Application.csproj" />
 	  <ProjectReference Include="..\AppCanzoniere.Infrastructure\AppCanzoniere.Infrastructure.csproj" />
+	  <!-- Restored with the app; published into the Windows output by PublishPdfWorker. -->
+	  <ProjectReference Include="..\AppCanzoniere.PdfWorker\AppCanzoniere.PdfWorker.csproj" ReferenceOutputAssembly="false" Private="false" />
 	</ItemGroup>
+
+	<!-- The PDF reader runs as its own process, so the Windows output carries it in a PdfWorker subfolder. -->
+	<Target Name="PublishPdfWorker" AfterTargets="Build" Condition="'$(TargetFramework)' == 'net10.0-windows10.0.19041.0'">
+		<MSBuild Projects="..\AppCanzoniere.PdfWorker\AppCanzoniere.PdfWorker.csproj"
+				 Targets="Publish"
+				 Properties="PublishDir=$([System.IO.Path]::GetFullPath('$(OutDir)PdfWorker'))\;Configuration=$(Configuration)"
+				 RemoveProperties="TargetFramework;TargetFrameworks;RuntimeIdentifier;OutDir;OutputPath;Platform;SelfContained" />
+	</Target>
 
 </Project>
