@@ -31,9 +31,6 @@ public class MainActivity : MauiAppCompatActivity
 
     public override bool DispatchKeyEvent(KeyEvent? e)
     {
-#if DEBUG
-        Android.Util.Log.Info("AppCanzoniereSelfTest", $"DISPATCH {e?.KeyCode} {e?.Action} focus={CurrentFocus?.GetType().Name}");
-#endif
         try
         {
             if (e is not null && CurrentFocus is not EditText && NameOf(e.KeyCode) is { } name)
@@ -42,11 +39,7 @@ public class MainActivity : MauiAppCompatActivity
                 if (source is not null)
                 {
                     var phase = e.Action == KeyEventActions.Up ? KeyPhase.Release : e.RepeatCount > 0 ? KeyPhase.Repeat : KeyPhase.Press;
-                    var handled = (e.Action == KeyEventActions.Down || e.Action == KeyEventActions.Up) && source.OnKey(name, e.IsCtrlPressed, e.IsAltPressed, phase);
-#if DEBUG
-                    Android.Util.Log.Info("AppCanzoniereSelfTest", $"KEY {name} {e.Action} handled={handled}");
-#endif
-                    if (handled)
+                    if ((e.Action == KeyEventActions.Down || e.Action == KeyEventActions.Up) && source.OnKey(name, e.IsCtrlPressed, e.IsAltPressed, phase))
                         return true;
                 }
             }

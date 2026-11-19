@@ -89,9 +89,8 @@ adb shell dumpsys power | tr -d '\r' > "$OUT/power-song.txt"
 grep -q "WAKE_LOCK.*'WindowManager/" "$OUT/power-song.txt"; check "dumpsys power shows a window wake lock on the song screen" $?
 
 echo "== 3. Page keys"
-# The first key sent after the screen opens never reaches the app on the emulator, so a neutral key goes first.
-key KEYCODE_SHIFT_LEFT
-log | grep -E "DISPATCH|KEY " | tail -4
+# Android swallows the first navigation key after a touch to leave touch mode (a real pedal behaves the same), so Tab goes first.
+key KEYCODE_TAB
 adb logcat -c
 turn "PAGE_DOWN forward" 1 KEYCODE_PAGE_DOWN
 shot 02-song-after-page-down
