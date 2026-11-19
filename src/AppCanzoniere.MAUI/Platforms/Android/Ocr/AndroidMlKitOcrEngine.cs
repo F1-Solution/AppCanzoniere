@@ -76,7 +76,7 @@ public sealed class AndroidMlKitOcrEngine : IOcrEngine, IDisposable
         }
     }
 
-    private static RawTextElement ToRaw(string? text, Rect? box) =>
+    private static RawTextElement ToRaw(string? text, Android.Graphics.Rect? box) =>
         new(text, box?.Left ?? 0, box?.Top ?? 0, box?.Right ?? 0, box?.Bottom ?? 0);
 
     private static OcrPageResult ScaleBack(OcrPageResult result, double factor, int width, int height) =>
