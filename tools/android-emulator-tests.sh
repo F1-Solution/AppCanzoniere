@@ -19,8 +19,15 @@ check() { # check <name> <exit status of the condition>
 log() { adb logcat -d -s "$TAG:I" | tr -d '\r'; }
 shot() { adb exec-out screencap -p > "$OUT/$1.png"; }
 key() { adb shell input keyevent "$@"; sleep 1.5; }
-# launch <selftest>: starts the app through its launcher intent, so no activity name is needed.
-launch() { adb shell am start -a android.intent.action.MAIN -c android.intent.category.LAUNCHER -p "$PKG" --es selftest "$1" > /dev/null; }
+# launch <selftest>: starts the launcher activity the package manager reports, so no activity name is hard-coded.
+launch() {
+  local component
+  component=$(adb shell cmd package resolve-activity --brief -a android.intent.action.MAIN -c android.intent.category.LAUNCHER "$PKG" | tr -d '' | tail -1)
+  case "$component" in
+    */*) adb shell am start -n "$component" --es selftest "$1" > /dev/null ;;
+    *) echo "FAIL: no launcher activity found for $PKG (got '$component')"; FAILED=$((FAILED + 1)) ;;
+  esac
+}
 # tap_song: taps inside the song area (horizontal centre, two thirds down the screen).
 tap_song() {
   local size w h
