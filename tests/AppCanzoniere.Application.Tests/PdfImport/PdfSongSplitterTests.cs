@@ -3,6 +3,7 @@ using static AppCanzoniere.Application.Tests.PdfImport.SyntheticPages;
 
 namespace AppCanzoniere.Application.Tests.PdfImport;
 
+[Collection(TimingCollection.Name)]
 public sealed class PdfSongSplitterTests
 {
     private const string SongA = "Do        Sol\nLa luna sale piano\nLa-       Fa\nsopra il mare scuro";

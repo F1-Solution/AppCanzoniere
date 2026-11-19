@@ -36,7 +36,7 @@ public sealed class PdfSongSplitterMissedSongsTests
     public void A_centred_title_with_a_comma_starts_a_song()
     {
         var page = "                 Prima canzone\n\nDo   Sol\nIl canto sale\nLa-  Fa\nsopra la valle\n\n"
-            + "              Dammi la mano, amico\n\nDo   Sol\nIl vento canta forte\nLa-  Fa\nsulla collina verde";
+            + "^              Dammi la mano, amico\n\nDo   Sol\nIl vento canta forte\nLa-  Fa\nsulla collina verde";
 
         var result = PdfSongSplitter.Split(new[] { Page(1, page) });
 
@@ -47,7 +47,7 @@ public sealed class PdfSongSplitterMissedSongsTests
     public void A_centred_title_over_a_song_without_chords_starts_a_song()
     {
         var page = "                 Prima canzone\n\nDo   Sol\nIl canto sale\nLa-  Fa\nsopra la valle\n\n"
-            + "              Il mare (Sal 12)\n\nIl mare canta forte\nsulla spiaggia chiara\n1. Le onde vanno lente\ne tornano a riva";
+            + "^              Il mare (Sal 12)\n\nIl mare canta forte\nsulla spiaggia chiara\n1. Le onde vanno lente\ne tornano a riva";
 
         var result = PdfSongSplitter.Split(new[] { Page(1, page) });
 
@@ -67,7 +67,7 @@ public sealed class PdfSongSplitterMissedSongsTests
     [Fact]
     public void A_centred_title_over_a_right_aligned_author_is_the_title_not_the_author()
     {
-        var page = "                                  Dov'e il canto\n\n                                                                                       a. Rossi\n\nCapotasto al I                                                                         trasc. b.c.\n\n"
+        var page = "^                                  Dov'e il canto\n\n                                                                                       a. Rossi\n\nCapotasto al I                                                                         trasc. b.c.\n\n"
             + "         Do      v'e  ca  ri   ta\n\n                      II       II";
 
         var result = PdfSongSplitter.Split(new[] { Page(1, page) }, null, "sheet.pdf");

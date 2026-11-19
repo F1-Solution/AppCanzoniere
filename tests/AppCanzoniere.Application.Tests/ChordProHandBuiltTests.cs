@@ -5,6 +5,7 @@ using AppCanzoniere.Application.Services;
 namespace AppCanzoniere.Application.Tests;
 
 /// <summary>Documents created with <c>new ChordProDocument</c> render from their typed members alone.</summary>
+[Collection(TimingCollection.Name)]
 public class ChordProHandBuiltTests
 {
     private readonly ChordProParser _parser = new();
@@ -202,7 +203,7 @@ public class ChordProHandBuiltTests
     [Fact]
     public void LargeDocument_RendersInLinearTime()
     {
-        // Quadratic rendering would cost 16x for 4x the lines, above the 8x allowed by the scaling check.
+        // Quadratic rendering would cost 64x for 8x the lines, above the 24x allowed by the scaling check.
         ScalingAssert.StaysLinear(
             lines =>
             {

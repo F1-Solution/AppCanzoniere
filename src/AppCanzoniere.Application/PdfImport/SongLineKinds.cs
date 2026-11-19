@@ -4,9 +4,42 @@ using AppCanzoniere.Application.Import;
 namespace AppCanzoniere.Application.PdfImport;
 
 /// <summary>One column of one page with the converter's verdict on which lines carry chords.</summary>
-internal sealed record Region(int Page, IReadOnlyList<string> Lines, IReadOnlyList<bool> IsChord)
+internal sealed record Region(int Page, IReadOnlyList<string> Lines, IReadOnlyList<bool> IsChord, IReadOnlyList<double>? Heights = null)
 {
-    public static Region Of(int page, IReadOnlyList<string> lines) => new(page, lines, ChordFlags(lines));
+    // A heading must be at least this much taller than the median row to count as set in a larger font.
+    private const double TallerFactor = 1.15;
+
+    public static Region Of(int page, IReadOnlyList<string> lines, IReadOnlyList<double>? heights = null) =>
+        new(page, lines, ChordFlags(lines), heights is not null && heights.Count == lines.Count ? heights : null);
+
+    /// <summary>True when the row at index i is set in a larger font than the median of the region's text rows.</summary>
+    public bool IsTallerThanBody(int i)
+    {
+        if (Heights is null || Heights[i] <= 0)
+            return false;
+
+        if (!_medianKnown)
+        {
+            _median = MedianHeight();
+            _medianKnown = true;
+        }
+
+        return _median is { } median && Heights[i] > median * TallerFactor;
+    }
+
+    // Cache of the median row height, so a long region is not sorted for every line.
+    private double? _median;
+    private bool _medianKnown;
+
+    private double? MedianHeight()
+    {
+        var known = Enumerable.Range(0, Lines.Count)
+            .Where(j => Heights![j] > 0 && !SongLineKinds.IsBlank(Lines[j]))
+            .Select(j => Heights![j])
+            .Order()
+            .ToList();
+        return known.Count > 1 ? known[known.Count / 2] : null;
+    }
 
     /// <summary>True when a chord row lies above the line at index i.</summary>
     public bool HasChordAbove(int i) => IsChord.Take(i).Any(c => c);
@@ -82,9 +115,18 @@ internal static partial class SongLineKinds
         return letters >= minLetters;
     }
 
-    /// <summary>True when every letter of the text is I, V or X, as in a row of finger positions.</summary>
-    public static bool IsRomanNumerals(string text) =>
-        text.Any(char.IsLetter) && text.Where(char.IsLetter).All(c => "IVXivx".Contains(c));
+    [GeneratedRegex(@"^X{0,3}(IX|IV|V?I{0,3})$")]
+    private static partial Regex RomanNumeral();
+
+    /// <summary>True when every word of the text is a valid upper case Roman numeral, as in a row of finger positions.</summary>
+    public static bool IsRomanNumerals(string text)
+    {
+        var tokens = text.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries)
+            .Select(t => new string(t.Where(char.IsLetter).ToArray()))
+            .Where(t => t.Length > 0)
+            .ToList();
+        return tokens.Count > 0 && tokens.All(t => RomanNumeral().IsMatch(t));
+    }
 
     public static int WordCount(string text) => text.Split(' ', StringSplitOptions.RemoveEmptyEntries).Length;
 
