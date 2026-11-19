@@ -19,6 +19,11 @@ public partial class SongDetailPage : ContentPage
         _wake = wake;
         BindingContext = _viewModel;
         SongView.LayoutFailed += (_, _) => _viewModel.ShowAsStored();
+#if DEBUG && ANDROID
+        // Debug-only: lets the emulator tests read the scroll position from logcat.
+        SongScroll.Scrolled += (_, e) => Android.Util.Log.Info("AppCanzoniereSelfTest", FormattableString.Invariant(
+            $"SCROLL y={e.ScrollY:F1} viewport={SongScroll.Height:F1} content={SongScroll.ContentSize.Height + SongScroll.Padding.VerticalThickness:F1} row={SongView.RowHeight:F1}"));
+#endif
     }
 
     protected override async void OnAppearing()
