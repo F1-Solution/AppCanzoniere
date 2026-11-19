@@ -2,9 +2,10 @@ using AppCanzoniere.Application.Import;
 
 namespace AppCanzoniere.Application.Tests.Import;
 
+[Collection(TimingCollection.Name)]
 public class PerformanceTests
 {
-    // Quadratic tokenising would cost 16x for 4x the marks, above the 8x allowed by the scaling check.
+    // Quadratic tokenising would cost 64x for 8x the marks, above the 24x allowed by the scaling check.
     [Fact]
     public void ThousandsOfRepeatMarksOnOneLine_AreTokenisedInLinearTime()
     {
@@ -17,7 +18,7 @@ public class PerformanceTests
             5_000);
     }
 
-    // Quadratic merging would cost 16x for 4x the chords, above the 8x allowed by the scaling check.
+    // Quadratic merging would cost 64x for 8x the chords, above the 24x allowed by the scaling check.
     [Fact]
     public void HugeChordLineOverAHugeLyric_IsMergedInLinearTime()
     {

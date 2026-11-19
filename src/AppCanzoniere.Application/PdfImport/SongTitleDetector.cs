@@ -85,7 +85,7 @@ internal static class SongTitleDetector
         return region.IsChord[next] || IsAuthorLine(region, next) || centered;
     }
 
-    // A deeply indented line set off by blank lines, over text at the margin or a short author line, is a heading.
+    // A deeply indented line set off by blank lines, in a larger font than the body and not repeated, over text at the margin or a short author line, is a heading.
     private static bool IsCenteredHeading(Region region, int i)
     {
         if (SongLineKinds.Indent(region.Lines[i]) < CenteredHeadingIndent || i + 1 >= region.Lines.Count || !SongLineKinds.IsBlank(region.Lines[i + 1]))
@@ -96,8 +96,14 @@ internal static class SongTitleDetector
             return false;
 
         var next = NextContent(region, i);
-        return next >= 0 && (SongLineKinds.Indent(region.Lines[next]) < CenteredIndent || (IsFirstContent(region, i) && IsShortIndented(region.Lines[next])));
+        return next >= 0
+            && (SongLineKinds.Indent(region.Lines[next]) < CenteredIndent || (IsFirstContent(region, i) && IsShortIndented(region.Lines[next])))
+            && region.IsTallerThanBody(i)
+            && !AppearsAgain(region, i);
     }
+
+    private static bool AppearsAgain(Region region, int i) =>
+        Enumerable.Range(0, region.Lines.Count).Any(j => j != i && string.Equals(region.Lines[j].Trim(), region.Lines[i].Trim(), StringComparison.OrdinalIgnoreCase));
 
     private static int PreviousContent(Region region, int i)
     {
