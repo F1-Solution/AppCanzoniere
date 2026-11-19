@@ -13,19 +13,25 @@ public sealed class AndroidMlKitOcrEngine : IOcrEngine, IDisposable
 {
     private readonly Lazy<ITextRecognizer> _recognizer = new(() => TextRecognition.GetClient(TextRecognizerOptions.DefaultOptions));
 
-    /// <summary>Why the last page could not be read; null when it was read.</summary>
-    public string? LastFailure { get; private set; }
-
     /// <summary>True when the recogniser carries its model in the app (no Play Services download).</summary>
     public static bool IsBundledModel => TextRecognizerOptions.DefaultOptions.IsThickClient;
 
+    /// <summary>Recognises an encoded page image; callers must await it and never block on the UI thread, because ML Kit completes there.</summary>
     public async Task<OcrPageResult> RecognizeAsync(OcrPageImage image, CancellationToken cancellationToken = default)
     {
-        LastFailure = null;
         try
         {
             cancellationToken.ThrowIfCancellationRequested();
-            return await RecognizeCoreAsync(image, cancellationToken).ConfigureAwait(false);
+            var decoded = Decode(image.Content.ToArray());
+            try
+            {
+                return await RecognizeCoreAsync(decoded, cancellationToken).ConfigureAwait(false);
+            }
+            finally
+            {
+                decoded.Recycle();
+                decoded.Dispose();
+            }
         }
         catch (OperationCanceledException)
         {
@@ -33,34 +39,78 @@ public sealed class AndroidMlKitOcrEngine : IOcrEngine, IDisposable
         }
         catch (Exception ex)
         {
-            LastFailure = ex.Message;
-            return new OcrPageResult(0, 0, Array.Empty<OcrLine>());
+            return OcrPageResult.Failure(ex.Message);
+        }
+    }
+
+    /// <summary>Recognises a bitmap without encoding it; the caller keeps ownership and recycles it. Do not block on the result on the UI thread.</summary>
+    public async Task<OcrPageResult> RecognizeBitmapAsync(Bitmap bitmap, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            return await RecognizeCoreAsync(bitmap, cancellationToken).ConfigureAwait(false);
+        }
+        catch (OperationCanceledException)
+        {
+            throw;
+        }
+        catch (Exception ex)
+        {
+            return OcrPageResult.Failure(ex.Message);
         }
     }
 
     public void Dispose()
     {
         if (_recognizer.IsValueCreated)
-            _recognizer.Value.Dispose();
+            _recognizer.Value.Close();
     }
 
-    private async Task<OcrPageResult> RecognizeCoreAsync(OcrPageImage image, CancellationToken cancellationToken)
+    // Reads the bounds first, then decodes at a power-of-two sample size within the render caps.
+    private static Bitmap Decode(byte[] content)
     {
-        using var decoded = BitmapFactory.DecodeByteArray(image.Content.ToArray(), 0, image.Content.Length)
+        var bounds = new BitmapFactory.Options { InJustDecodeBounds = true };
+        BitmapFactory.DecodeByteArray(content, 0, content.Length, bounds);
+        if (bounds.OutWidth <= 0 || bounds.OutHeight <= 0)
+            throw new InvalidOperationException("The page image cannot be decoded.");
+
+        var options = new BitmapFactory.Options { InSampleSize = OcrRenderPlan.SampleSizeFor(bounds.OutWidth, bounds.OutHeight) };
+        return BitmapFactory.DecodeByteArray(content, 0, content.Length, options)
             ?? throw new InvalidOperationException("The page image cannot be decoded.");
-        var originalWidth = decoded.Width;
-        var originalHeight = decoded.Height;
-        var reduced = OcrRenderPlan.ComputeOrNull(originalWidth * 72.0 / OcrRenderPlan.Dpi, originalHeight * 72.0 / OcrRenderPlan.Dpi);
+    }
+
+    private async Task<OcrPageResult> RecognizeCoreAsync(Bitmap source, CancellationToken cancellationToken)
+    {
+        var reduced = OcrRenderPlan.ComputeOrNull(source.Width * 72.0 / OcrRenderPlan.Dpi, source.Height * 72.0 / OcrRenderPlan.Dpi);
         var shrink = reduced is { Capped: true };
-        using var scaled = shrink ? Bitmap.CreateScaledBitmap(decoded, reduced!.Width, reduced.Height, true) : null;
-        var bitmap = scaled ?? decoded;
+        var scaled = shrink ? Bitmap.CreateScaledBitmap(source, reduced!.Width, reduced.Height, true) : null;
+        try
+        {
+            var bitmap = scaled ?? source;
+            using var input = InputImage.FromBitmap(bitmap, 0);
+            var raw = await _recognizer.Value.Process(input).AsAsync<MlText>().ConfigureAwait(false);
+            cancellationToken.ThrowIfCancellationRequested();
 
-        using var input = InputImage.FromBitmap(bitmap, 0);
-        var raw = await _recognizer.Value.Process(input).AsAsync<MlText>().ConfigureAwait(false);
-        cancellationToken.ThrowIfCancellationRequested();
-
-        var result = MlKitTextMapper.Map(bitmap.Width, bitmap.Height, ToRawLines(raw));
-        return shrink ? ScaleBack(result, (double)originalWidth / bitmap.Width, originalWidth, originalHeight) : result;
+            // The task completes on the main thread, so the mapping moves to the thread pool.
+            var width = bitmap.Width;
+            var height = bitmap.Height;
+            var originalWidth = source.Width;
+            var originalHeight = source.Height;
+            return await Task.Run(() =>
+            {
+                var result = MlKitTextMapper.Map(width, height, ToRawLines(raw));
+                return shrink ? ScaleBack(result, (double)originalWidth / width, originalWidth, originalHeight) : result;
+            }, cancellationToken).ConfigureAwait(false);
+        }
+        finally
+        {
+            if (scaled is not null)
+            {
+                scaled.Recycle();
+                scaled.Dispose();
+            }
+        }
     }
 
     private static IEnumerable<RawTextLine> ToRawLines(MlText text)

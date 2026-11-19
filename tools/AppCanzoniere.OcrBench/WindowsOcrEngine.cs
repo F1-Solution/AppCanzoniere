@@ -39,12 +39,8 @@ internal sealed class WindowsOcrEngine : IOcrEngine
             : null;
     }
 
-    /// <summary>Why the last page could not be read; null when it was read.</summary>
-    public string? LastFailure { get; private set; }
-
     public async Task<OcrPageResult> RecognizeAsync(OcrPageImage image, CancellationToken cancellationToken = default)
     {
-        LastFailure = null;
         try
         {
             return await RecognizeCoreAsync(image, cancellationToken);
@@ -55,8 +51,7 @@ internal sealed class WindowsOcrEngine : IOcrEngine
         }
         catch (Exception ex)
         {
-            LastFailure = ex.Message;
-            return new OcrPageResult(0, 0, Array.Empty<AppLine>(), Language);
+            return OcrPageResult.Failure(ex.Message, Language);
         }
     }
 

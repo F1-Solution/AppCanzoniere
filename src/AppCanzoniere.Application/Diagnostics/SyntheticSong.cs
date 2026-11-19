@@ -11,19 +11,20 @@ public static class SyntheticSong
 
     public const int VerseCount = 24;
 
-    public static Song Create() => new()
+    /// <summary>The synthetic song; a title can be given, for example to list it in a debug build.</summary>
+    public static Song Create(string title = Title) => new()
     {
-        Title = Title,
+        Title = title,
         Artist = "Self Test",
         OriginalKey = "G",
         PrimaryFormat = ContentFormat.ChordPro,
-        ChordProContent = ChordPro()
+        ChordProContent = ChordPro(title)
     };
 
-    public static string ChordPro()
+    public static string ChordPro(string title = Title)
     {
         var builder = new StringBuilder();
-        builder.Append("{title:").Append(Title).Append("}\n{artist:Self Test}\n{key:G}\n");
+        builder.Append("{title:").Append(title).Append("}\n{artist:Self Test}\n{key:G}\n");
         for (var verse = 1; verse <= VerseCount; verse++)
         {
             builder.Append("\n{start_of_verse}\n");

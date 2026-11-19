@@ -37,6 +37,22 @@ public static class OcrRenderPlan
         return new OcrRenderSize(w, h, capped);
     }
 
+    /// <summary>Power-of-two decode sample size that keeps the decoded image at least as large as the capped size (1 when no reduction is needed).</summary>
+    public static int SampleSizeFor(int imageWidth, int imageHeight)
+    {
+        if (imageWidth <= 0 || imageHeight <= 0)
+            return 1;
+
+        if (ComputeOrNull(imageWidth * 72.0 / Dpi, imageHeight * 72.0 / Dpi) is not { Capped: true } target)
+            return 1;
+
+        var sample = 1;
+        while (imageWidth / (sample * 2) >= target.Width && imageHeight / (sample * 2) >= target.Height)
+            sample *= 2;
+
+        return sample;
+    }
+
     /// <summary>Scales a word box by a factor, for example from a reduced bitmap back to the rendered page.</summary>
     public static OcrWord ScaleWord(OcrWord word, double factor) =>
         new(word.Text, word.Left * factor, word.Top * factor, word.Width * factor, word.Height * factor);

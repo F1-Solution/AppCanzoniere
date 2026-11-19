@@ -28,12 +28,9 @@ public class TextFieldAndScreenTests
         Assert.Equal(before, AppSession.SettledOffset(scroller), 1);
     }
 
-    [WindowsFact]
+    [DisplayRequestFact]
     public void DisplayIsRequested_WhileTheSongScreenIsOpen_AndReleasedWhenMinimizedOrLeft()
     {
-        if (!PowerRequests.CanRead)
-            return;
-
         using var session = AppSession.Launch("open");
         session.WaitForScroller();
         session.EnsureForeground();
@@ -48,6 +45,18 @@ public class TextFieldAndScreenTests
 
         session.Window.FindFirstDescendant(c => c.ByAutomationId("NavigationViewBackButton"))!.AsButton().Invoke();
         Assert.True(PowerRequests.WaitUntil(session.ProcessId, held: false), "the display request stays after leaving the song screen");
+    }
+}
+
+/// <summary>A fact skipped, with a message, when `powercfg /requests` cannot be read (it needs an elevated process).</summary>
+public sealed class DisplayRequestFactAttribute : FactAttribute
+{
+    public DisplayRequestFactAttribute()
+    {
+        if (!OperatingSystem.IsWindows())
+            Skip = "Runs on Windows only.";
+        else if (!PowerRequests.CanRead)
+            Skip = "powercfg /requests cannot be read here (run elevated); the display request was not checked.";
     }
 }
 

@@ -57,11 +57,11 @@ All'avvio, se l'intent contiene la stringa `selftest=ocr`, l'app disegna due rig
 
 ```
 adb logcat -c
-adb shell am start -n com.companyname.appcanzoniere.maui/com.companyname.appcanzoniere.maui.MainActivity --es selftest ocr
+adb shell am start -n "$(adb shell cmd package resolve-activity --brief -a android.intent.action.MAIN -c android.intent.category.LAUNCHER com.companyname.appcanzoniere.maui | tail -1 | tr -d '')" --es selftest ocr
 adb logcat -d -s AppCanzoniereSelfTest:I
 ```
 
-Il nome dell'attività è fisso (`com.companyname.appcanzoniere.maui.MainActivity`). Se l'attività è già aperta, l'intent arriva a `OnNewIntent` e il test parte lo stesso. L'app va installata prima con `adb install -r` sull'APK firmato; il test gira in un secondo, ma ML Kit può metterne alcuni alla prima chiamata, quindi conviene attendere la riga con un ciclo di ripetizione.
+L'attività è quella di avvio che il gestore dei pacchetti restituisce, quindi il nome non è fisso. Se l'attività è già aperta, l'intent arriva a `OnNewIntent` e il test parte lo stesso. L'app va installata prima con `adb install -r` sull'APK firmato; il test gira in un secondo, ma ML Kit può metterne alcuni alla prima chiamata, quindi conviene attendere la riga con un ciclo di ripetizione.
 
 Righe attese nel log con tag `AppCanzoniereSelfTest`:
 

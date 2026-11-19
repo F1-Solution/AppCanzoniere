@@ -170,6 +170,18 @@ jobs:
       - name: Job Object tests
         run: dotnet test tests/AppCanzoniere.Infrastructure.Tests --filter "FullyQualifiedName~PdfImport"
 
+      # The reader must also be part of `dotnet publish` output, not only of the build output.
+      - name: Publish Release
+        run: >
+          dotnet publish src/AppCanzoniere.MAUI/AppCanzoniere.MAUI.csproj
+          --framework net10.0-windows10.0.19041.0 --configuration Release
+          -p:MauiPlatforms=windows --output publish
+
+      - name: PDF reader package tests on the published app
+        env:
+          APPCANZONIERE_APP_DIR: ${{ github.workspace }}\publish
+        run: dotnet test tests/AppCanzoniere.Windows.UiTests --configuration Debug --filter "FullyQualifiedName~PdfWorkerPackageTests"
+
       # Launches the built app on the runner's interactive desktop; also checks the PDF reader ships in the output.
       - name: Windows app UI tests
         run: dotnet test tests/AppCanzoniere.Windows.UiTests --configuration Debug

@@ -62,4 +62,21 @@ public class OcrRenderPlanTests
 
         Assert.Equal(new OcrWord("Do", 20, 40, 60, 80), word);
     }
+
+    [Theory]
+    [InlineData(1654, 2339, 1)]
+    [InlineData(0, 100, 1)]
+    [InlineData(8000, 11000, 2)]
+    [InlineData(16000, 22000, 4)]
+    public void SampleSizeFor_ReducesOnlyAsFarAsTheCappedSizeAllows(int width, int height, int expected)
+    {
+        var sample = OcrRenderPlan.SampleSizeFor(width, height);
+
+        Assert.Equal(expected, sample);
+        if (width > 0 && OcrRenderPlan.ComputeOrNull(width * 72.0 / OcrRenderPlan.Dpi, height * 72.0 / OcrRenderPlan.Dpi) is { Capped: true } target)
+        {
+            Assert.True(width / sample >= target.Width);
+            Assert.True(height / sample >= target.Height);
+        }
+    }
 }
