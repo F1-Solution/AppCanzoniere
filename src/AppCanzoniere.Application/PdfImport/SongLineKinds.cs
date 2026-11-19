@@ -82,6 +82,10 @@ internal static partial class SongLineKinds
         return letters >= minLetters;
     }
 
+    /// <summary>True when every letter of the text is I, V or X, as in a row of finger positions.</summary>
+    public static bool IsRomanNumerals(string text) =>
+        text.Any(char.IsLetter) && text.Where(char.IsLetter).All(c => "IVXivx".Contains(c));
+
     public static int WordCount(string text) => text.Split(' ', StringSplitOptions.RemoveEmptyEntries).Length;
 
     /// <summary>True for Rit., Coro, Intro: and friends, which label a part of a song.</summary>
