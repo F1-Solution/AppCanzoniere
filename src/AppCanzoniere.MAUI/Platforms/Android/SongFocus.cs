@@ -30,31 +30,43 @@ internal sealed class SongFocus : IDisposable
         Request();
     }
 
-    /// <summary>Asks for focus unless a text field has it.</summary>
+    /// <summary>Asks for focus unless a text field has it: the drawing first, the scroll view when the drawing cannot take it (hidden or not laid out yet).</summary>
     public void Request()
     {
         try
         {
-            if (Target() is not { } view || view.RootView?.FindFocus() is Android.Widget.EditText)
+            if (Scroll() is not { } scroll || scroll.RootView?.FindFocus() is Android.Widget.EditText)
                 return;
 
             Prepare();
-            var granted = view.RequestFocus();
-            _lastRequest = granted ? "granted" : "refused";
-            if (!granted)
+            if (TryFocus())
+                return;
+
+            // The views may not be laid out yet, so focus is asked for again shortly.
+            scroll.PostDelayed(() =>
             {
-                // The view may not be shown or laid out yet, so it asks again shortly.
-                view.PostDelayed(() =>
-                {
-                    if (view.RootView?.FindFocus() is not Android.Widget.EditText)
-                        view.RequestFocus();
-                }, 200);
-            }
+                if (scroll.RootView?.FindFocus() is not Android.Widget.EditText)
+                    TryFocus();
+            }, 200);
         }
         catch (Exception ex)
         {
             System.Diagnostics.Debug.WriteLine($"Song focus failed: {ex}");
         }
+    }
+
+    private bool TryFocus()
+    {
+        var drawing = _drawing.IsVisible ? _drawing.Handler?.PlatformView as Android.Views.View : null;
+        var granted = drawing?.RequestFocus() == true;
+        _lastRequest = granted ? "drawing" : "none";
+        if (!granted && Scroll() is { } scroll && scroll.RequestFocus())
+        {
+            granted = true;
+            _lastRequest = "scroll";
+        }
+
+        return granted;
     }
 
     /// <summary>The view class that has focus and the touch mode, for the emulator tests.</summary>
@@ -83,6 +95,8 @@ internal sealed class SongFocus : IDisposable
     }
 
     // The drawing when it is shown, otherwise the scroll view that holds the plain text.
+    private Android.Views.View? Scroll() => _scroll.Handler?.PlatformView as Android.Views.View;
+
     private Android.Views.View? Target() => _drawing.IsVisible ? _drawing.Handler?.PlatformView as Android.Views.View : _scroll.Handler?.PlatformView as Android.Views.View;
 
     private void Prepare()

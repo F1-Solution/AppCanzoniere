@@ -108,7 +108,7 @@ wait_log 'SONG (OPENED|FAIL)' 180
 log | grep -q 'SONG OPENED'; check "Song screen opens on the synthetic song" $?
 sleep 5
 log | grep 'FOCUS ' | tail -1
-# Informational: the focus state is logged; the key checks below are what must pass.
+log | grep 'FOCUS ' | tail -1 | grep -qv 'FOCUS none'; check "The song screen holds focus when the page appears" $?
 shot 01-song-before
 
 echo "== 6a. Screen stays on while the song is open"
