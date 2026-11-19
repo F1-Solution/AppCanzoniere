@@ -18,7 +18,10 @@
 - I PDF troppo grandi, danneggiati o costruiti per consumare memoria vengono rifiutati con un messaggio.
 - I libretti in PDF si dividono in canti, e ogni canto viene convertito in ChordPro con il suo titolo; l'import dai PDF non è ancora disponibile nell'app.
 - I PDF si leggono in un processo separato con limiti di tempo e memoria; un file che non si può leggere viene segnalato come illeggibile.
-- Le pagine scansionate si possono leggere con il riconoscimento del testo del dispositivo (solo banco di prova Windows).
+- Le pagine scansionate si possono leggere con il riconoscimento del testo del dispositivo (su Windows solo nel banco di prova).
+- Su Android le pagine scansionate si leggono con il riconoscimento del testo incluso nell'app, anche senza rete.
+- Il pacchetto Windows include il lettore dei PDF, anche nella versione pubblicata.
+- Nelle versioni di prova l'elenco della Home mostra un canto lungo, il "Canto di prova".
 - Il pedale Bluetooth e la tastiera girano pagina nella schermata del canto: avanti con Pagina giù, Freccia giù, Freccia destra o Spazio, indietro con Pagina su, Freccia su o Freccia sinistra.
 - Su Android i tasti del volume girano pagina nella schermata del canto (su indietro, giù avanti); altrove regolano il volume.
 - Lo schermo resta acceso solo mentre è aperta la schermata di un canto, su Android e Windows.
@@ -32,6 +35,7 @@
 - Girare pagina scorre di un'altezza dello schermo meno una riga, così l'ultima riga letta resta visibile.
 - Su Windows lo schermo si spegne quando l'app è ridotta a icona durante la lettura di un canto.
 - Tenendo premuto un tasto di pagina si gira una sola pagina, e i tasti di pagina non fanno nulla mentre si scrive in un campo di testo.
+- Il minimo di Android è ora la versione 6.0: i dispositivi con Android 5.x non possono più installare l'app.
 
 ### Corretto
 - Gli accordi di un canto ChordPro vengono riscritti nella posizione in cui erano.
@@ -51,3 +55,5 @@
 - Una scansione il cui unico testo è un piè di pagina viene segnalata come senza testo.
 - Nelle schede scansionate tutte maiuscole le righe di accordi vengono riconosciute e scritte in notazione normale (Sol, Lam), mentre le righe di testo maiuscolo restano testo (solo banco di prova Windows).
 - Nelle scansioni gli accordi cadono sulla sillaba giusta, anche con "SI m" staccato, e le righe con barre o "BB" in maiuscolo vengono riconosciute.
+- I libretti si dividono in canti con più precisione: intestazioni in fondo a una colonna, righe con numeri romani, titoli centrati, pagine ripetute in un'altra tonalità, e i ritornelli rientrati non iniziano più un nuovo canto.
+- Su Android il primo tasto del pedale dopo un tocco sul canto gira pagina.
