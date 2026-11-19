@@ -67,8 +67,9 @@ public partial class SongDetailPage : ContentPage
 #if ANDROID
         // The drawing may have appeared only now, so focus is requested again and reported for the emulator tests.
         _focus.Attach();
+        Dispatcher.DispatchDelayed(TimeSpan.FromMilliseconds(300), () => _focus?.Request());
 #if DEBUG
-        Dispatcher.DispatchDelayed(TimeSpan.FromMilliseconds(300), () =>
+        Dispatcher.DispatchDelayed(TimeSpan.FromMilliseconds(800), () =>
             Android.Util.Log.Info("AppCanzoniereSelfTest", $"FOCUS {_focus?.Describe()}"));
 #endif
 #endif

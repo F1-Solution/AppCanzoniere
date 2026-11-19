@@ -37,7 +37,16 @@ internal sealed class SongFocus : IDisposable
             if (Target() is not { } view || view.RootView?.FindFocus() is Android.Widget.EditText)
                 return;
 
-            view.RequestFocus();
+            Prepare();
+            if (!view.RequestFocus())
+            {
+                // The view may not be shown or laid out yet, so it asks again shortly.
+                view.PostDelayed(() =>
+                {
+                    if (view.RootView?.FindFocus() is not Android.Widget.EditText)
+                        view.RequestFocus();
+                }, 200);
+            }
         }
         catch (Exception ex)
         {
@@ -49,7 +58,8 @@ internal sealed class SongFocus : IDisposable
     public string Describe()
     {
         var root = Target()?.RootView;
-        return $"{root?.FindFocus()?.Class?.SimpleName ?? "none"} touch={(root?.IsInTouchMode ?? false).ToString().ToLowerInvariant()}";
+        var target = Target();
+        return $"{root?.FindFocus()?.Class?.SimpleName ?? "none"} target={target?.Class?.SimpleName ?? "none"} focusable={target?.Focusable} shown={target?.IsShown} touch={(root?.IsInTouchMode ?? false).ToString().ToLowerInvariant()}";
     }
 
     public void Dispose() => Detach();
