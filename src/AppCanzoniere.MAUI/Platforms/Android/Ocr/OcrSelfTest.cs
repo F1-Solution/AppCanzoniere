@@ -27,9 +27,9 @@ internal static class OcrSelfTest
             using var engine = new AndroidMlKitOcrEngine();
             Log.Info(LogTag, $"OCR INFO bundled={AndroidMlKitOcrEngine.IsBundledModel}");
             var result = await engine.RecognizeAsync(Draw()).ConfigureAwait(false);
-            if (engine.LastFailure is { } failure)
+            if (result.IsFailure)
             {
-                Log.Info(LogTag, $"OCR FAIL {failure}");
+                Log.Info(LogTag, $"OCR FAIL {result.FailureReason}");
                 return;
             }
 
