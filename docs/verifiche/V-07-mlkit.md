@@ -26,23 +26,19 @@ Le librerie di ML Kit (tramite `androidx.tracing`) dichiarano `minSdkVersion` 23
 
 Punto da sapere: il binding .NET mette le classi pubbliche (`TextRecognition`, `TextRecognizerOptions`, `Text`) nel pacchetto `Xamarin.GooglePlayServices.MLKit.Text.Recognition`, che di per sé è la variante senza modello incluso. Il modello incluso arriva dal pacchetto `Bundled.Common` e dal descrittore `text-latin` del pacchetto principale. Che a runtime venga usata la variante inclusa si controlla con il valore `IsThickClient` di `TextRecognizerOptions.DefaultOptions`. Il test automatico scrive `bundled=True` o `bundled=False` nel log (riga `OCR INFO`). Se risulta `False`, la decisione DEC 32 non è rispettata e va riaperta.
 
-## Controlli che non si sono potuti fare in locale
+## Misure di CI (esecuzione 44519461572, verde)
 
-Sul portatile `dotnet restore` del progetto MAUI per Android fallisce con NETSDK1147 (workload `macos` mancante): è un problema locale del carico di lavoro, non del codice. Per questo i punti seguenti si leggono dall'esecuzione di CI del ramo:
-
-- Esito di `dotnet restore` e assenza di NU1902-NU1904 (avvisi di vulnerabilità, errori in questo repository).
-- Dimensione dell'APK di debug con e senza il pacchetto.
-- Comportamento di `IsThickClient`.
-
-I valori misurati sono riportati nella tabella seguente.
+Sul portatile `dotnet restore` per Android fallisce con NETSDK1147 (workload `macos` mancante): è un problema locale. Le misure vengono dalla CI.
 
 | Misura | Valore |
 |---|---|
-| Restore e avvisi NU19xx | da compilare dopo la CI |
-| APK di debug prima | da compilare dopo la CI |
-| APK di debug dopo | da compilare dopo la CI |
+| Restore e avvisi NU1902-NU1904 | Nessun avviso di vulnerabilità; il restore è passato |
+| Artefatto APK di debug prima (main) | 94,86 MB |
+| Artefatto APK di debug dopo | 110,45 MB (circa +15,6 MB, APK universale di debug) |
+| Build Android, Windows, core | Tutte verdi |
+| `IsThickClient` / `bundled=` a runtime | Da leggere dal test su emulatore (riga `OCR INFO`) |
 
-Il modello Latin incluso pesa circa 4 MB per architettura secondo la documentazione di ML Kit; il binding aggiunge alcuni MB di librerie. L'APK finale per lo Store (con `AndroidPackageFormat=aab`, un'architettura per dispositivo) sarà più leggero di quello di debug universale.
+Due problemi di build emersi e risolti: il pacchetto aggiornava `androidx.fragment` e produceva classi duplicate con `fragment-ktx` (D8, `FragmentKt` definito due volte); in `Directory.Packages.props` il pacchetto `Xamarin.AndroidX.Fragment.Ktx` è fissato a 1.9.1. In più serviva `minSdk` 23 (vedi sopra). L'APK per lo Store (formato `aab`, una architettura per dispositivo) sarà più leggero di quello di debug universale.
 
 ## Come funziona nell'app
 
@@ -75,7 +71,7 @@ Righe attese nel log con tag `AppCanzoniereSelfTest`:
 
 ## Punti aperti
 
-1. Misure di CI (restore, avvisi, dimensione APK, `bundled=True`) da leggere dopo l'esecuzione.
+1. Verificare su emulatore che il test scriva `bundled=True` (DEC 32) e `OCR OK`.
 2. Servizio in processo `:pdf` per Android (F7).
 3. Collegare motore e rendering a una schermata di importazione.
 4. Qualità su scansioni reali di spartiti: da provare con il banco di prova (non incluso in questo round).
