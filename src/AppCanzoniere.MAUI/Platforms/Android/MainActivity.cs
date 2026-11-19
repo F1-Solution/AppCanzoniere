@@ -16,6 +16,7 @@ public class MainActivity : MauiAppCompatActivity
         base.OnCreate(savedInstanceState);
 #if DEBUG
         Ocr.OcrSelfTest.RunIfRequested(Intent?.GetStringExtra(Ocr.OcrSelfTest.ExtraName));
+        SongSelfTest.RunIfRequested(Intent?.GetStringExtra(Ocr.OcrSelfTest.ExtraName));
 #endif
     }
 
@@ -24,6 +25,7 @@ public class MainActivity : MauiAppCompatActivity
     {
         base.OnNewIntent(intent);
         Ocr.OcrSelfTest.RunIfRequested(intent?.GetStringExtra(Ocr.OcrSelfTest.ExtraName));
+        SongSelfTest.RunIfRequested(intent?.GetStringExtra(Ocr.OcrSelfTest.ExtraName));
     }
 #endif
 
