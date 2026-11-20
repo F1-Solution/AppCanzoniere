@@ -30,8 +30,17 @@ public static class MauiProgram
             });
 
 #if WINDOWS
-        builder.ConfigureLifecycleEvents(events => events.AddWindows(windows => windows.OnActivated((window, _) =>
-            Platforms.Windows.WindowKeyHook.Attach(window))));
+        builder.ConfigureLifecycleEvents(events => events.AddWindows(windows => windows
+            .OnActivated((window, _) => Platforms.Windows.WindowKeyHook.Attach(window))
+            .OnWindowCreated(window => Platforms.Windows.MinimizeWatcher.Attach(window))));
+#endif
+
+#if WINDOWS
+        // The reader is started on demand from the PdfWorker folder next to the app.
+        builder.Services.AddSingleton<AppCanzoniere.Application.PdfImport.IPdfWordExtractor>(_ =>
+            new AppCanzoniere.Infrastructure.PdfImport.IsolatedPdfWordExtractor(
+                AppCanzoniere.Infrastructure.PdfImport.PdfWorkerLaunch.LocateForApp(AppContext.BaseDirectory)
+                ?? throw new FileNotFoundException("The PDF reader is missing from the app folder.")));
 #endif
 
 #if DEBUG
@@ -56,7 +65,13 @@ public static class MauiProgram
         builder.Services.AddSingleton<ISongDisplayService, SongDisplayService>();
         builder.Services.AddSingleton<SongScreenPresenter>();
         builder.Services.AddSingleton<IHardwareKeySource, HardwareKeySource>();
-        builder.Services.AddSingleton(_ => new ScreenWakeLock(on => DeviceDisplay.Current.KeepScreenOn = on));
+        builder.Services.AddSingleton(_ => new ScreenWakeLock(on =>
+        {
+            DeviceDisplay.Current.KeepScreenOn = on;
+#if DEBUG && ANDROID
+            Android.Util.Log.Info("AppCanzoniereSelfTest", $"KEEPSCREENON {on}");
+#endif
+        }));
         builder.Services.AddSingleton<IPreferenceStorage, PreferencesStorage>();
         builder.Services.AddSingleton<IChordDisplaySettingsStore, ChordDisplaySettingsStore>();
 
@@ -79,6 +94,12 @@ public static class MauiProgram
         builder.Services.AddSingleton<IOcrService, MockOcrService>();
         // Uncomment to use Azure Computer Vision (requires API key):
         // builder.Services.AddHttpClient<IOcrService, AzureComputerVisionService>();
+
+#if ANDROID
+        // On-device page OCR with the bundled ML Kit model.
+        builder.Services.AddSingleton<AppCanzoniere.Application.PdfImport.IOcrEngine, Ocr.AndroidMlKitOcrEngine>();
+        builder.Services.AddSingleton<Ocr.AndroidPdfPageRenderer>();
+#endif
 
         // Audio Recognition Services - Use Mock by default
         builder.Services.AddSingleton<IAudioRecognitionService, MockAudioRecognitionService>();

@@ -5,6 +5,7 @@ using AppCanzoniere.Application.Services;
 namespace AppCanzoniere.Application.Tests;
 
 /// <summary>A parsed document renders byte for byte until a caller edits it; then it renders from its typed members.</summary>
+[Collection(TimingCollection.Name)]
 public class ChordProEditedDocumentTests
 {
     private const string Song = "{title:T}\n{artist:A}\n{key:C}\n{capo:1}\n{tempo:90}\n{time:3/4}\n[C]Line\n";
@@ -129,7 +130,7 @@ public class ChordProEditedDocumentTests
     [Fact]
     public void ChecksOnALargeDocument_StayLinear()
     {
-        // Quadratic checks would cost 16x for 4x the lines, above the 8x allowed by the scaling check.
+        // Quadratic checks would cost 64x for 8x the lines, above the 24x allowed by the scaling check.
         ScalingAssert.StaysLinear(
             lines =>
             {

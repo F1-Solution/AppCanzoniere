@@ -26,7 +26,7 @@
 		<!-- To develop, package, and publish an app to the Microsoft Store, see: https://aka.ms/MauiTemplateUnpackaged -->
 		<WindowsPackageType>None</WindowsPackageType>
 
-		<SupportedOSPlatformVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'android'">21.0</SupportedOSPlatformVersion>
+		<SupportedOSPlatformVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'android'">23.0</SupportedOSPlatformVersion>
 		<SupportedOSPlatformVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'windows'">10.0.17763.0</SupportedOSPlatformVersion>
 		<TargetPlatformMinVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'windows'">10.0.17763.0</TargetPlatformMinVersion>
 	</PropertyGroup>
@@ -57,10 +57,32 @@
 		<PackageReference Include="Microsoft.Extensions.Logging.Debug" />
 	</ItemGroup>
 
+	<ItemGroup Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'android'">
+		<PackageReference Include="Xamarin.Google.MLKit.TextRecognition" />
+	</ItemGroup>
+
 	<ItemGroup>
 	  <ProjectReference Include="..\AppCanzoniere.Domain\AppCanzoniere.Domain.csproj" />
 	  <ProjectReference Include="..\AppCanzoniere.Application\AppCanzoniere.Application.csproj" />
 	  <ProjectReference Include="..\AppCanzoniere.Infrastructure\AppCanzoniere.Infrastructure.csproj" />
+	  <!-- Restored with the app; published into the Windows output by PublishPdfWorker. -->
+	  <ProjectReference Include="..\AppCanzoniere.PdfWorker\AppCanzoniere.PdfWorker.csproj" ReferenceOutputAssembly="false" Private="false" Condition="'$(TargetFramework)' == 'net10.0-windows10.0.19041.0'" />
 	</ItemGroup>
+
+	<!-- The PDF reader runs as its own process, so the Windows output carries it in a PdfWorker subfolder. -->
+	<Target Name="PublishPdfWorker" AfterTargets="Build" Condition="'$(TargetFramework)' == 'net10.0-windows10.0.19041.0'">
+		<MSBuild Projects="..\AppCanzoniere.PdfWorker\AppCanzoniere.PdfWorker.csproj"
+				 Targets="Publish"
+				 Properties="PublishDir=$([System.IO.Path]::GetFullPath('$(OutDir)PdfWorker'))\;Configuration=$(Configuration)"
+				 RemoveProperties="TargetFramework;TargetFrameworks;RuntimeIdentifier;OutDir;OutputPath;Platform;SelfContained" />
+	</Target>
+
+	<!-- dotnet publish copies only the app's own files, so the reader built above is added to the publish list. -->
+	<Target Name="IncludePdfWorkerInPublish" AfterTargets="ComputeResolvedFilesToPublishList" Condition="'$(TargetFramework)' == 'net10.0-windows10.0.19041.0'">
+		<ItemGroup>
+			<_PdfWorkerFile Include="$(OutDir)PdfWorker\**" />
+			<ResolvedFileToPublish Include="@(_PdfWorkerFile)" RelativePath="PdfWorker\%(RecursiveDir)%(Filename)%(Extension)" CopyToPublishDirectory="PreserveNewest" />
+		</ItemGroup>
+	</Target>
 
 </Project>

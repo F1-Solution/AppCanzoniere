@@ -49,6 +49,35 @@ public class OcrWordAdapterTests
     }
 
     [Fact]
+    public void ToPageWords_ReportsTheFailure_WhenTheEngineCouldNotReadThePage()
+    {
+        var failed = OcrPageResult.Failure("model missing", "it");
+
+        var result = OcrWordAdapter.ToPageWords(failed, 2);
+
+        Assert.True(failed.IsFailure);
+        Assert.Equal(OcrPageStatus.Failed, failed.Status);
+        Assert.True(result.IsFailure);
+        Assert.Equal("model missing", result.FailureReason);
+        Assert.Empty(result.Page.Words);
+    }
+
+    [Fact]
+    public void ToPageWords_DoesNotReportAFailure_WhenThePageIsSimplyBlank()
+    {
+        var blank = new OcrPageResult(Width, Height, Array.Empty<OcrLine>());
+
+        Assert.False(blank.IsFailure);
+        Assert.False(OcrWordAdapter.ToPageWords(blank, 1).IsFailure);
+    }
+
+    [Fact]
+    public void Failure_GivesAReasonEvenWhenNoneWasSupplied()
+    {
+        Assert.False(string.IsNullOrWhiteSpace(OcrPageResult.Failure(" ").FailureReason));
+    }
+
+    [Fact]
     public void ToPageWords_ReturnsNoText_WhenThePageIsEmpty()
     {
         var result = OcrWordAdapter.ToPageWords(new OcrPageResult(Width, Height, Array.Empty<OcrLine>()), 1);

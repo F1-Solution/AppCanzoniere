@@ -1,3 +1,5 @@
+using System.Text.RegularExpressions;
+
 namespace AppCanzoniere.Application.PdfImport;
 
 /// <summary>Cuts the laid-out pages of a songbook into songs, skipping covers, blank pages and indexes.</summary>
@@ -15,7 +17,7 @@ public static class PdfSongSplitter
         {
             foreach (var block in page.Blocks)
             {
-                var region = Region.Of(page.PageNumber, block.Lines.Select(l => l.Text).ToList());
+                var region = Region.Of(page.PageNumber, block.Lines.Select(l => l.Text).ToList(), block.Lines.Select(l => l.Row?.Height ?? 0).ToList());
                 var entries = IndexRegionDetector.CountEntries(region, followsIndex);
                 followsIndex = entries is not null;
                 if (entries is { } count)
@@ -42,7 +44,7 @@ public static class PdfSongSplitter
 }
 
 /// <summary>Collects the lines of the song being read and the finished songs.</summary>
-internal sealed class SongCollector
+internal sealed partial class SongCollector
 {
     private readonly List<SplitSong> _songs = new();
     private string? _title;
@@ -89,8 +91,18 @@ internal sealed class SongCollector
     // A title repeated for another key or instrument, with the same number, continues the song.
     private bool IsSameSongAgain(SongTitleDetector.Found found) =>
         _title is not null
-        && (found.Number is null ? found.HadNote : found.Number == _lastNumber)
-        && (string.Equals(found.Title, _title, StringComparison.OrdinalIgnoreCase) || (found.Number is not null && found.Title.StartsWith(_title, StringComparison.OrdinalIgnoreCase)));
+        && (found.Number is null ? found.HadNote || IsKeyVariant(found.Title) : found.Number == _lastNumber)
+        && (string.Equals(found.Title, _title, StringComparison.OrdinalIgnoreCase) || (found.Number is not null && found.Title.StartsWith(_title, StringComparison.OrdinalIgnoreCase)) || IsKeyVariant(found.Title));
+
+    // The previous title followed by a word such as "abbassato" is the same song in another key.
+    private bool IsKeyVariant(string title) =>
+        _title is not null
+        && title.Length > _title.Length
+        && title.StartsWith(_title, StringComparison.OrdinalIgnoreCase)
+        && KeyVariantWord().IsMatch(title[_title.Length..]);
+
+    [GeneratedRegex(@"^[\s\-–—()\[\]]*(abbassat[oa]|alzat[oa])[\s\-–—()\[\]]*$", RegexOptions.IgnoreCase)]
+    private static partial Regex KeyVariantWord();
 
     public void EndSong()
     {

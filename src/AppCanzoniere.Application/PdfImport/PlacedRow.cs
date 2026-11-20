@@ -31,6 +31,9 @@ internal sealed record CharacterGrid(double Left, double CharWidth)
 internal sealed record PlacedRow(TextRow Row, IReadOnlyList<int> Starts, string Text)
 {
 
+    // A chord within this share of an average letter width from a word start is placed at the start (OCR words only).
+    private const double WordStartSnapShare = 0.6;
+
     // Lyrics: words keep their own text and are separated by as many spaces as their gap holds, at least one.
     public static PlacedRow Natural(TextRow row, CharacterGrid grid)
     {
@@ -71,7 +74,7 @@ internal sealed record PlacedRow(TextRow Row, IReadOnlyList<int> Starts, string 
     {
         var words = Row.Words;
         if (x <= words[0].Box.Left)
-            return Math.Max(0, Starts[0] - grid.Columns(words[0].Box.Left - x));
+            return IsNearStart(words[0], x) ? Starts[0] : Math.Max(0, Starts[0] - grid.Columns(words[0].Box.Left - x));
 
         for (var i = 0; i < words.Count; i++)
         {
@@ -81,23 +84,49 @@ internal sealed record PlacedRow(TextRow Row, IReadOnlyList<int> Starts, string 
                 return Starts[i] + LetterAt(words[i], x);
 
             if (i + 1 < words.Count && x < words[i + 1].Box.Left)
-                return Interpolate(x, box.Right, Starts[i] + length, words[i + 1].Box.Left, Starts[i + 1]);
+                return IsNearStart(words[i + 1], x)
+                    ? Starts[i + 1]
+                    : Interpolate(x, box.Right, Starts[i] + length, words[i + 1].Box.Left, Starts[i + 1]);
         }
 
         return Starts[^1] + words[^1].Text.Length + grid.Columns(x - words[^1].Box.Right);
     }
 
-    // Index of the letter under x: the last letter starting at or before x, or the average letter width when unknown.
+    // A word without letter positions (OCR) takes a chord slightly before or after its start as sitting at the start.
+    private static bool IsNearStart(PositionedWord word, double x) =>
+        word.LetterLefts is null && Math.Abs(x - word.Box.Left) <= WordStartSnapShare * word.Box.Width / word.Text.Length;
+
+    // Index of the letter under x: the last letter starting at or before x, or, when unknown, the letter start nearest to x by glyph widths.
     private static int LetterAt(PositionedWord word, double x)
     {
         var length = word.Text.Length;
         if (word.LetterLefts is not { } lefts || lefts.Count != length)
-            return Math.Min(length - 1, Round((x - word.Box.Left) / (word.Box.Width / length)));
+            return IsNearStart(word, x) ? 0 : NearestLetter(word, x);
 
         var index = 0;
         while (index + 1 < length && lefts[index + 1] <= x)
             index++;
         return index;
+    }
+
+    private static int NearestLetter(PositionedWord word, double x)
+    {
+        var target = (x - word.Box.Left) / word.Box.Width * word.Text.Sum(GlyphWidths.Of);
+        var best = 0;
+        var bestDistance = double.MaxValue;
+        var start = 0.0;
+        for (var i = 0; i < word.Text.Length; i++)
+        {
+            if (Math.Abs(start - target) < bestDistance)
+            {
+                best = i;
+                bestDistance = Math.Abs(start - target);
+            }
+
+            start += GlyphWidths.Of(word.Text[i]);
+        }
+
+        return best;
     }
 
     private static int Round(double value) => CharacterGrid.SafeRound(value);

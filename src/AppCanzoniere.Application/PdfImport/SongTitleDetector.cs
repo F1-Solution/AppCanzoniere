@@ -16,6 +16,7 @@ internal static class SongTitleDetector
     private const int MaxAuthorLength = 30;
     private const int MaxSubtitles = 2;
     private const int CenteredIndent = 4;
+    private const int CenteredHeadingIndent = 8;
 
     /// <summary>A title found at a line: its text, its number if any, and the line after its last subtitle.</summary>
     public sealed record Found(string Title, int? Number, IReadOnlyList<string> Subtitles, int NextLine, bool HadNote = false);
@@ -43,7 +44,7 @@ internal static class SongTitleDetector
     private static bool IsTitle(Region region, int i, int? number, string text, TitleContext context)
     {
         var line = region.Lines[i];
-        if (SongLineKinds.IsBlank(line) || region.IsChord[i] || SongLineKinds.IsNoise(line) || !LooksLikeTitleText(text))
+        if (SongLineKinds.IsBlank(line) || region.IsChord[i] || SongLineKinds.IsNoise(line) || !LooksLikeTitleText(text) || SongLineKinds.IsRomanNumerals(text))
             return false;
         if (number is not null && number == context.NextVerse && !SongLineKinds.IsUpperCase(text, MinTitleLetters))
             return false;
@@ -54,7 +55,7 @@ internal static class SongTitleDetector
 
         var next = NextContent(region, i);
         if (number is not null)
-            return next >= 0 && (SongLineKinds.IsUpperCase(text, MinTitleLetters) || region.IsChord[next] || IsNextInSequence(number, text, context));
+            return next >= 0 ? SongLineKinds.IsUpperCase(text, MinTitleLetters) || region.IsChord[next] || IsNextInSequence(number, text, context) : IsNextInSequence(number, text, context);
         if (SongLineKinds.IsUpperCase(text, MinUpperLetters))
             return next >= 0;
 
@@ -75,12 +76,44 @@ internal static class SongTitleDetector
 
     private static bool LooksLikeMixedCaseTitle(Region region, int i, string text, int next)
     {
-        if (text.Contains(',') || text[^1] == '.' || next < 0)
+        var centered = IsCenteredHeading(region, i);
+        if ((text.Contains(',') && !centered) || text[^1] == '.' || next < 0)
             return false;
         if (!IsFirstContent(region, i) && SongLineKinds.Indent(region.Lines[i]) < CenteredIndent)
             return false;
 
-        return region.IsChord[next] || IsAuthorLine(region, next);
+        return region.IsChord[next] || IsAuthorLine(region, next) || centered;
+    }
+
+    // A deeply indented line set off by blank lines, in a larger font than the body and not repeated, over text at the margin or a short author line, is a heading.
+    private static bool IsCenteredHeading(Region region, int i)
+    {
+        if (SongLineKinds.Indent(region.Lines[i]) < CenteredHeadingIndent || i + 1 >= region.Lines.Count || !SongLineKinds.IsBlank(region.Lines[i + 1]))
+            return false;
+        if (i > 0 && !SongLineKinds.IsBlank(region.Lines[i - 1]))
+            return false;
+        if (PreviousContent(region, i) is var before and >= 0 && SongLineKinds.Indent(region.Lines[before]) >= CenteredHeadingIndent)
+            return false;
+
+        var next = NextContent(region, i);
+        return next >= 0
+            && (SongLineKinds.Indent(region.Lines[next]) < CenteredIndent || (IsFirstContent(region, i) && IsShortIndented(region.Lines[next])))
+            && region.IsTallerThanBody(i)
+            && !AppearsAgain(region, i);
+    }
+
+    private static bool AppearsAgain(Region region, int i) =>
+        Enumerable.Range(0, region.Lines.Count).Any(j => j != i && string.Equals(region.Lines[j].Trim(), region.Lines[i].Trim(), StringComparison.OrdinalIgnoreCase));
+
+    private static int PreviousContent(Region region, int i)
+    {
+        for (var j = i - 1; j >= 0; j--)
+        {
+            if (!SongLineKinds.IsBlank(region.Lines[j]))
+                return j;
+        }
+
+        return -1;
     }
 
     // A short indented line under the title, followed by chords, is the author; the title above it is still a title.

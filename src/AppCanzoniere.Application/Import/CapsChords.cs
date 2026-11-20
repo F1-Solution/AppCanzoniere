@@ -10,6 +10,10 @@ internal static class CapsChords
     private const int MinLongLetters = 4;
     private const int RootRegion = 4;
     private const int MaxFixLength = 8;
+    private const int MinFlatRowTokens = 2;
+
+    // Bar marks that OCR leaves stuck to a chord name.
+    private static readonly char[] StrayMarks = { '/', '|', '\\' };
 
     private static readonly Regex ItalianRoot = new("^(?i:sol|do|re|mi|fa|la|si)", RegexOptions.Compiled | RegexOptions.CultureInvariant);
 
@@ -42,6 +46,7 @@ internal static class CapsChords
     {
         var result = new List<SheetToken>(tokens.Count);
         var changed = false;
+        var hasChord = tokens.Any(t => t.Kind == TokenKind.Chord && !t.Bracketed);
         foreach (var token in tokens)
         {
             if (token.Kind != TokenKind.Word || token.Bracketed || token.Parenthesised)
@@ -50,10 +55,16 @@ internal static class CapsChords
                 continue;
             }
 
-            if (token.Text == "m" && result.Count > 0 && Joined(result[^1], token, notation) is { } joined)
+            var core = token.Text.Trim(StrayMarks);
+            var cleaned = token with { Text = core, Column = token.Column + Math.Max(0, token.Text.IndexOf(core, StringComparison.Ordinal)) };
+            if (core == "m" && result.Count > 0 && Joined(result[^1], cleaned, notation) is { } joined)
                 result[^1] = joined;
-            else if (Fix(token.Text, notation) is { } fixedName)
-                result.Add(SheetTokenizer.Chord(token.Text, token.Column, fixedName, notation, false));
+            else if (core == "m" && core != token.Text)
+            {
+                // A minor marker whose chord OCR lost, left beside a bar mark, is dropped.
+            }
+            else if (Fix(core, notation, hasChord, tokens.Count) is { } fixedName)
+                result.Add(SheetTokenizer.Chord(core, cleaned.Column, fixedName, notation, false));
             else
                 return null;
             changed = true;
@@ -72,10 +83,26 @@ internal static class CapsChords
         return chord with { Text = chord.Text + new string(' ', gap) + marker.Text, Chord = chord.Chord + "m", Ambiguous = false };
     }
 
-    // Zero, one and a lower-case l in the name stand for O, I or L; only the first characters are tried.
-    private static string? Fix(string text, Notation notation)
+    // An English "BB" is B flat and a bar read as a leading I or l is dropped, both only beside real chords; then digits and l are read as letters.
+    private static string? Fix(string text, Notation notation, bool rowHasChord, int rowTokens)
     {
-        if (text.Length is < 2 or > MaxFixLength || text.IndexOfAny(new[] { '0', '1', 'l' }) < 0)
+        if (text.Length < 2)
+            return null;
+
+        if (notation == Notation.English && rowHasChord && rowTokens >= MinFlatRowTokens && text[0] is >= 'A' and <= 'G' && text[1] == 'B' &&
+            SheetTokenizer.TryChord(text[0] + "b" + text[2..], notation))
+            return text[0] + "b" + text[2..];
+
+        if (rowHasChord && text.Length > 2 && text[0] is 'I' or 'l' or '1' && SheetTokenizer.TryChord(text[1..], notation))
+            return text[1..];
+
+        return FixDigits(text, notation);
+    }
+
+    // Zero, one and a lower-case l in the name stand for O, I or L; only the first characters are tried.
+    private static string? FixDigits(string text, Notation notation)
+    {
+        if (text.Length > MaxFixLength || text.IndexOfAny(new[] { '0', '1', 'l' }) < 0)
             return null;
 
         var candidates = new List<string> { string.Empty };

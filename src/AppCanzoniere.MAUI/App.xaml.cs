@@ -25,10 +25,26 @@ public partial class App : global::Microsoft.Maui.Controls.Application
         // Seed initial data
         var seeder = new DatabaseSeeder(dbContext);
         await seeder.SeedAsync();
+#if DEBUG
+        await DebugSongs.EnsureAsync(dbContext);
+#endif
     }
 
     protected override Window CreateWindow(IActivationState? activationState)
     {
-        return new Window(new AppShell());
+        var shell = new AppShell();
+#if DEBUG
+        if (UiTestHook.IsRequested)
+        {
+            EventHandler? open = null;
+            open = async (_, _) =>
+            {
+                shell.Loaded -= open;
+                await UiTestHook.OpenSongAsync(shell);
+            };
+            shell.Loaded += open;
+        }
+#endif
+        return new Window(shell);
     }
 }
