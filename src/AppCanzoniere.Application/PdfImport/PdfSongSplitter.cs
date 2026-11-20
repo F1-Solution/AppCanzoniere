@@ -9,27 +9,21 @@ public static class PdfSongSplitter
     public static SongSplitResult Split(IReadOnlyList<PageText> pages, string? documentTitle = null, string? fileName = null)
     {
         ArgumentNullException.ThrowIfNull(pages);
-        var builder = new SongCollector();
+        var readings = ReadRegions(pages);
+        var builder = new SongCollector(readings.SelectMany(r => r.Index?.Titles ?? Array.Empty<string>()).ToHashSet());
         var indexEntries = 0;
         var contentRegions = new List<Region>();
-        var followsIndex = false;
-        foreach (var page in pages.Where(p => !p.IsScanned))
+        foreach (var (region, index) in readings)
         {
-            foreach (var block in page.Blocks)
+            if (index is not null)
             {
-                var region = Region.Of(page.PageNumber, block.Lines.Select(l => l.Text).ToList(), block.Lines.Select(l => l.Row?.Height ?? 0).ToList());
-                var entries = IndexRegionDetector.CountEntries(region, followsIndex);
-                followsIndex = entries is not null;
-                if (entries is { } count)
-                {
-                    indexEntries += count;
-                    builder.EndSong();
-                    continue;
-                }
-
-                contentRegions.Add(region);
-                builder.AddRegion(region);
+                indexEntries += index.EntryCount;
+                builder.EndSong();
+                continue;
             }
+
+            contentRegions.Add(region);
+            builder.AddRegion(region);
         }
 
         var songs = builder.Finish();
@@ -39,12 +33,31 @@ public static class PdfSongSplitter
         return new SongSplitResult(songs, indexEntries, SkippedPages(pages, songs));
     }
 
+    // Every column with its index reading, in reading order; the index is read first so that titles it lists can confirm titles before it.
+    private static List<(Region Region, IndexReading? Index)> ReadRegions(IReadOnlyList<PageText> pages)
+    {
+        var result = new List<(Region, IndexReading?)>();
+        var followsIndex = false;
+        foreach (var page in pages.Where(p => !p.IsScanned))
+        {
+            foreach (var block in page.Blocks)
+            {
+                var region = Region.Of(page.PageNumber, block.Lines.Select(l => l.Text).ToList(), block.Lines.Select(l => l.Row?.Height ?? 0).ToList());
+                var index = IndexRegionDetector.Read(region, followsIndex);
+                followsIndex = index is not null;
+                result.Add((region, index));
+            }
+        }
+
+        return result;
+    }
+
     private static IReadOnlyList<int> SkippedPages(IReadOnlyList<PageText> pages, IReadOnlyList<SplitSong> songs) =>
         pages.Select(p => p.PageNumber).Where(n => !songs.Any(s => n >= s.FirstPage && n <= s.LastPage)).ToList();
 }
 
 /// <summary>Collects the lines of the song being read and the finished songs.</summary>
-internal sealed partial class SongCollector
+internal sealed partial class SongCollector(IReadOnlySet<string> indexTitles)
 {
     private readonly List<SplitSong> _songs = new();
     private string? _title;
@@ -62,7 +75,7 @@ internal sealed partial class SongCollector
         var i = 0;
         while (i < region.Lines.Count)
         {
-            var found = SongTitleDetector.Detect(region, i, new TitleContext(_lastNumber, _numberedBook, _verseNumber == 0 ? 0 : _verseNumber + 1));
+            var found = SongTitleDetector.Detect(region, i, new TitleContext(_lastNumber, _numberedBook, _verseNumber == 0 ? 0 : _verseNumber + 1, indexTitles));
             if (found is not null && IsSameSongAgain(found))
             {
                 _lastPage = region.Page;
