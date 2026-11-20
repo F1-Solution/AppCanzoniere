@@ -5,6 +5,7 @@ using System.Text.RegularExpressions;
 using AppCanzoniere.Application.Import;
 using AppCanzoniere.Application.PdfImport;
 using AppCanzoniere.OcrBench;
+using AppCanzoniere.WindowsOcr;
 
 // Usage: dotnet run --project tools/AppCanzoniere.OcrBench -c Release -- <corpus folder> [name filter, default "scan"]
 // Reads <corpus>\pdf\*scan*.pdf and writes <corpus>\report-ocr\index.md; the report stays out of the repository.
