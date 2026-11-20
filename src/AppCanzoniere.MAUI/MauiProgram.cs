@@ -90,11 +90,6 @@ public static class MauiProgram
         // Uncomment to use real Perplexity service (requires API key):
         // builder.Services.AddSingleton<IChordSuggestionService, PerplexityChordSuggestionService>();
 
-        // OCR Services - Use Mock by default
-        builder.Services.AddSingleton<IOcrService, MockOcrService>();
-        // Uncomment to use Azure Computer Vision (requires API key):
-        // builder.Services.AddHttpClient<IOcrService, AzureComputerVisionService>();
-
 #if ANDROID
         // On-device page OCR with the bundled ML Kit model.
         builder.Services.AddSingleton<AppCanzoniere.Application.PdfImport.IOcrEngine, Ocr.AndroidMlKitOcrEngine>();
@@ -116,6 +111,7 @@ public static class MauiProgram
 
         builder.Services.AddSingleton<AppCanzoniere.Application.PdfImport.ISongbookImportService, AppCanzoniere.Application.PdfImport.SongbookImportService>();
         builder.Services.AddSingleton<AppCanzoniere.Application.Display.ISongPreviewService, AppCanzoniere.Application.Display.SongPreviewService>();
+        builder.Services.AddTransient<AppCanzoniere.Application.ImportReview.ImportSaver>();
 
         // Audio Recognition Services - Use Mock by default
         builder.Services.AddSingleton<IAudioRecognitionService, MockAudioRecognitionService>();
@@ -143,7 +139,7 @@ public static class MauiProgram
         builder.Services.AddTransient<SongDetailViewModel>();
         builder.Services.AddTransient<SongMetadataViewModel>();
         builder.Services.AddTransient<AiChordSuggestionViewModel>();
-        builder.Services.AddTransient<OcrImportViewModel>();
+        builder.Services.AddTransient<ImportViewModel>();
         builder.Services.AddTransient<AudioRecognitionViewModel>();
         builder.Services.AddTransient<CloudSyncViewModel>();
         builder.Services.AddTransient<LoginViewModel>();
@@ -158,7 +154,7 @@ public static class MauiProgram
         builder.Services.AddTransient<SongDetailPage>();
         builder.Services.AddTransient<SongMetadataPage>();
         builder.Services.AddTransient<AiChordSuggestionPage>();
-        builder.Services.AddTransient<OcrImportPage>();
+        builder.Services.AddTransient<ImportPage>();
         builder.Services.AddTransient<AudioRecognitionPage>();
         builder.Services.AddTransient<CloudSyncPage>();
         builder.Services.AddTransient<LoginPage>();

@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!-- Provisional tokens of the import screen (light values); TokenPalette swaps the dark ones. F4 replaces the values and keeps the keys. -->
+<ResourceDictionary
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml">
+
+    <Color x:Key="Token.bg">#F6F1E7</Color>
+    <Color x:Key="Token.surface">#FFFCF5</Color>
+    <Color x:Key="Token.surface2">#EFE8DA</Color>
+    <Color x:Key="Token.lyricsBg">#FFFCF5</Color>
+    <Color x:Key="Token.text">#1E1A15</Color>
+    <Color x:Key="Token.text2">#5B5246</Color>
+    <Color x:Key="Token.accent">#8C1E14</Color>
+    <Color x:Key="Token.onAccent">#FFFFFF</Color>
+    <Color x:Key="Token.accentSoft">#F2DED6</Color>
+    <Color x:Key="Token.onAccentSoft">#6A160E</Color>
+    <Color x:Key="Token.border">#D9CEBB</Color>
+    <Color x:Key="Token.danger">#8C1E14</Color>
+    <Color x:Key="Token.focus">#1E1A15</Color>
+    <Color x:Key="Token.scrim">#80000000</Color>
+
+    <x:Double x:Key="Token.space.1">4</x:Double>
+    <x:Double x:Key="Token.space.2">8</x:Double>
+    <x:Double x:Key="Token.space.3">12</x:Double>
+    <x:Double x:Key="Token.space.4">16</x:Double>
+    <x:Double x:Key="Token.space.6">24</x:Double>
+    <x:Double x:Key="Token.space.8">32</x:Double>
+    <Thickness x:Key="Token.pad.page">16</Thickness>
+    <Thickness x:Key="Token.pad.row">16,8</Thickness>
+    <Thickness x:Key="Token.pad.badge">8,4</Thickness>
+
+    <OnPlatform x:Key="Token.touch" x:TypeArguments="x:Double" Default="56">
+        <On Platform="WinUI" Value="48" />
+    </OnPlatform>
+    <x:Double x:Key="Token.touch.primary">56</x:Double>
+    <x:Double x:Key="Token.radius">4</x:Double>
+    <x:Double x:Key="Token.measure">560</x:Double>
+
+    <x:String x:Key="Token.font.regular">OpenSansRegular</x:String>
+    <x:String x:Key="Token.font.semibold">OpenSansSemibold</x:String>
+    <x:String x:Key="Token.font.mono">JetBrainsMono</x:String>
+    <x:Double x:Key="Token.type.title">24</x:Double>
+    <x:Double x:Key="Token.type.heading">20</x:Double>
+    <x:Double x:Key="Token.type.body">16</x:Double>
+    <x:Double x:Key="Token.type.small">14</x:Double>
+    <x:Double x:Key="Token.type.mono">14</x:Double>
+</ResourceDictionary>

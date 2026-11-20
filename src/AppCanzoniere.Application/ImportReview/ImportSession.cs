@@ -85,6 +85,9 @@ public sealed partial class ImportSession
     /// <summary>Shows an unexpected failure as a retryable error.</summary>
     public void Fail(Exception _)
     {
+        if (Phase != ImportPhase.Reading)
+            return;
+
         _clock.Stop(Current);
         Error = ImportMessages.Unexpected;
         Phase = ImportPhase.Error;

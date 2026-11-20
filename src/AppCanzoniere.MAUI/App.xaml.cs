@@ -32,8 +32,21 @@ public partial class App : global::Microsoft.Maui.Controls.Application
 
     protected override Window CreateWindow(IActivationState? activationState)
     {
+        TokenPalette.Apply(RequestedTheme);
+        RequestedThemeChanged += (_, e) => TokenPalette.Apply(e.RequestedTheme);
         var shell = new AppShell();
 #if DEBUG
+        if (ImportTestHook.IsRequested)
+        {
+            EventHandler? openImport = null;
+            openImport = async (_, _) =>
+            {
+                shell.Loaded -= openImport;
+                await ImportTestHook.RunAsync(shell);
+            };
+            shell.Loaded += openImport;
+        }
+
         if (UiTestHook.IsRequested)
         {
             EventHandler? open = null;

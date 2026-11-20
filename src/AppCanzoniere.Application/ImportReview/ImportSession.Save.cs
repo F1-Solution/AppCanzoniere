@@ -65,7 +65,7 @@ public sealed partial class ImportSession
         var failed = new List<string>();
         foreach (var entry in targets)
         {
-            await SaveOneAsync(entry, saveOne, failed, cancellationToken).ConfigureAwait(false);
+            await SaveOneAsync(entry, saveOne, failed, cancellationToken);
             SaveDone++;
             Raise();
         }
@@ -83,7 +83,7 @@ public sealed partial class ImportSession
     {
         try
         {
-            entry.SavedSongId = await saveOne(entry, ct).ConfigureAwait(false);
+            entry.SavedSongId = await saveOne(entry, ct);
             entry.IsSaved = true;
             entry.IsSelected = false;
         }

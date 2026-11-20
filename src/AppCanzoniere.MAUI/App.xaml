@@ -10,6 +10,8 @@
                 <ResourceDictionary Source="Resources/Styles/Colors.xaml" />
                 <ResourceDictionary Source="Resources/Styles/Styles.xaml" />
                 <ResourceDictionary Source="Resources/Styles/Leggio.xaml" />
+                <ResourceDictionary Source="Resources/Styles/Token.xaml" />
+                <ResourceDictionary Source="Resources/Styles/ImportStyles.xaml" />
             </ResourceDictionary.MergedDictionaries>
 
             <!-- Converters -->

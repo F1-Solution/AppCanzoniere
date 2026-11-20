@@ -1,0 +1,278 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage
+    x:Class="AppCanzoniere.MAUI.Pages.ImportPage"
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:vm="clr-namespace:AppCanzoniere.MAUI.ViewModels"
+    xmlns:controls="clr-namespace:AppCanzoniere.MAUI.Controls"
+    Title="Importa"
+    BackgroundColor="{DynamicResource Token.bg}">
+
+    <Grid>
+        <Grid RowDefinitions="Auto,*">
+
+            <!-- S5 banner: stays until closed. -->
+            <Border Grid.Row="0" Style="{StaticResource ImpBanner}" IsVisible="{Binding HasBanner}" Margin="{DynamicResource Token.pad.page}"
+                    AutomationId="ImportBanner">
+                <VerticalStackLayout Spacing="8">
+                    <Label Text="{Binding BannerText}" Style="{StaticResource ImpBody}" TextColor="{DynamicResource Token.onAccentSoft}" />
+                    <FlexLayout Wrap="Wrap" JustifyContent="End">
+                        <Button Text="Apri" Style="{StaticResource ImpTextButton}" Command="{Binding OpenBannerSongCommand}" IsVisible="{Binding BannerShowOpen}" AutomationId="BannerOpen" />
+                        <Button Text="Prossimo &gt;" Style="{StaticResource ImpTextButton}" Command="{Binding NextUnsavedCommand}" IsVisible="{Binding BannerShowNext}" AutomationId="BannerNext" />
+                        <Button Text="Chiudi" Style="{StaticResource ImpTextButton}" Command="{Binding DismissBannerCommand}" AutomationId="BannerClose" />
+                    </FlexLayout>
+                </VerticalStackLayout>
+            </Border>
+
+            <Grid Grid.Row="1">
+
+                <!-- S0 start, S7 cancelled. -->
+                <ScrollView IsVisible="{Binding IsStart}">
+                    <VerticalStackLayout Padding="{DynamicResource Token.pad.page}" Spacing="16" MaximumWidthRequest="560" HorizontalOptions="Center" VerticalOptions="Center">
+                        <Label Text="Importa canti da un PDF" Style="{StaticResource ImpTitle}" />
+                        <Label Text="Un canto singolo o un libretto intero. Tutto avviene sul dispositivo, senza rete." Style="{StaticResource ImpBody}" />
+                        <Button Text="Scegli un PDF" Style="{StaticResource ImpPrimaryButton}" Command="{Binding ChoosePdfCommand}" AutomationId="ChoosePdf" Margin="0,8,0,0" />
+                        <Label Text="Ctrl+O" Style="{StaticResource ImpSmall}" HorizontalOptions="Center" IsVisible="{Binding ShowShortcutHint}" />
+                        <Label Text="Le pagine scansionate richiedono più tempo: anche un minuto su un tablet economico." Style="{StaticResource ImpSmall}" />
+                        <Grid ColumnDefinitions="*,Auto" Margin="0,16,0,0" MinimumHeightRequest="{DynamicResource Token.touch}">
+                            <Label Text="Misura i tempi di correzione (prova Gate 0)" Style="{StaticResource ImpBody}" VerticalOptions="Center" />
+                            <Switch Grid.Column="1" IsToggled="{Binding TimerEnabled}" AutomationId="TimerSwitch" OnColor="{DynamicResource Token.accent}" SemanticProperties.Description="Misura i tempi di correzione" />
+                        </Grid>
+                    </VerticalStackLayout>
+                </ScrollView>
+
+                <ScrollView IsVisible="{Binding IsCancelled}">
+                    <VerticalStackLayout Padding="{DynamicResource Token.pad.page}" Spacing="16" MaximumWidthRequest="560" HorizontalOptions="Center" VerticalOptions="Center">
+                        <Label Text="Lettura annullata. Nessun canto importato." Style="{StaticResource ImpBody}" AutomationId="CancelledMessage" />
+                        <Button Text="Scegli un PDF" Style="{StaticResource ImpPrimaryButton}" Command="{Binding ChoosePdfCommand}" AutomationId="ChoosePdfAgain" />
+                    </VerticalStackLayout>
+                </ScrollView>
+
+                <!-- S1 reading. -->
+                <ScrollView IsVisible="{Binding IsReading}">
+                    <VerticalStackLayout Padding="{DynamicResource Token.pad.page}" Spacing="8" MaximumWidthRequest="560" HorizontalOptions="Center" VerticalOptions="Center">
+                        <Label Text="{Binding FileName}" Style="{StaticResource ImpBodyStrong}" />
+                        <Label Text="{Binding ProgressPhaseText}" Style="{StaticResource ImpBody}" Margin="0,16,0,0" AutomationId="ProgressPhase" />
+                        <Label Text="{Binding ProgressPageText}" Style="{StaticResource ImpBody}" AutomationId="ProgressPage" />
+                        <ProgressBar Progress="{Binding ProgressFraction}" ProgressColor="{DynamicResource Token.accent}" HeightRequest="8" />
+                        <Label Text="{Binding ProgressPercentText}" Style="{StaticResource ImpMono}" HorizontalOptions="End" />
+                        <Button Text="Annulla" Style="{StaticResource ImpSecondaryButton}" HeightRequest="56" Command="{Binding CancelReadingCommand}" AutomationId="CancelImport" Margin="0,24,0,0" />
+                    </VerticalStackLayout>
+                </ScrollView>
+
+                <!-- S6 error. -->
+                <ScrollView IsVisible="{Binding IsError}">
+                    <VerticalStackLayout Padding="{DynamicResource Token.pad.page}" Spacing="8" MaximumWidthRequest="560" HorizontalOptions="Center" VerticalOptions="Center">
+                        <HorizontalStackLayout Spacing="12">
+                            <Border WidthRequest="32" HeightRequest="32" BackgroundColor="{DynamicResource Token.danger}" StrokeShape="RoundRectangle 16" Stroke="Transparent">
+                                <Label Text="!" TextColor="{DynamicResource Token.onAccent}" FontFamily="{DynamicResource Token.font.semibold}" HorizontalOptions="Center" VerticalOptions="Center" />
+                            </Border>
+                            <Label Text="{Binding ErrorTitle}" Style="{StaticResource ImpTitle}" VerticalOptions="Center" AutomationId="ErrorTitle" />
+                        </HorizontalStackLayout>
+                        <Label Text="{Binding ErrorExplanation}" Style="{StaticResource ImpBody}" />
+                        <Button Text="Riprova" Style="{StaticResource ImpPrimaryButton}" Command="{Binding RetryCommand}" IsVisible="{Binding ErrorCanRetry}" Margin="0,16,0,0" AutomationId="ErrorRetry" />
+                        <Button Text="Scegli un altro PDF" Style="{StaticResource ImpPrimaryButton}" Command="{Binding ChoosePdfCommand}" IsVisible="{Binding ErrorOnlyOther}" Margin="0,16,0,0" AutomationId="ErrorChoose" />
+                        <Button Text="Scegli un altro PDF" Style="{StaticResource ImpSecondaryButton}" Command="{Binding ChoosePdfCommand}" IsVisible="{Binding ErrorCanRetry}" />
+                    </VerticalStackLayout>
+                </ScrollView>
+
+                <!-- S2 list and S3 review. -->
+                <Grid x:Name="ResultGrid" IsVisible="{Binding IsResult}" ColumnDefinitions="*,0" ColumnSpacing="8">
+
+                    <Grid x:Name="ListPane" IsVisible="{Binding ShowList}" RowDefinitions="Auto,Auto,Auto,*,Auto">
+                        <Border Grid.Row="0" BackgroundColor="{DynamicResource Token.surface2}" Stroke="Transparent" Padding="16">
+                            <VerticalStackLayout Spacing="4">
+                                <Label Text="{Binding FileName}" Style="{StaticResource ImpBodyStrong}" />
+                                <Label Text="{Binding SummaryPages}" Style="{StaticResource ImpBody}" />
+                                <Label Text="{Binding SummaryFound}" Style="{StaticResource ImpBody}" AutomationId="SummaryFound" />
+                                <Button Text="Perché?" Style="{StaticResource ImpTextButton}" Command="{Binding ExplainIndexCommand}" IsVisible="{Binding HasIndexMismatch}" HorizontalOptions="Start" />
+                                <Label Text="{Binding UnreadText}" Style="{StaticResource ImpBody}" IsVisible="{Binding HasUnread}" TextColor="{DynamicResource Token.onAccentSoft}" BackgroundColor="{DynamicResource Token.accentSoft}" Padding="8" />
+                                <Button Text="Dettagli" Style="{StaticResource ImpTextButton}" Command="{Binding ShowUnreadDetailsCommand}" IsVisible="{Binding HasUnread}" HorizontalOptions="Start" />
+                                <FlexLayout Wrap="Wrap" JustifyContent="Start">
+                                    <Button Text="Altro PDF" Style="{StaticResource ImpTextButton}" Command="{Binding AnotherPdfCommand}" AutomationId="AnotherPdf" />
+                                    <Button Text="Copia i tempi" Style="{StaticResource ImpTextButton}" Command="{Binding CopyTimesCommand}" IsVisible="{Binding ShowCopyTimes}" />
+                                </FlexLayout>
+                            </VerticalStackLayout>
+                        </Border>
+
+                        <FlexLayout Grid.Row="1" Wrap="Wrap" AlignItems="Center" Padding="16,8" BackgroundColor="{DynamicResource Token.surface}">
+                            <Button Text="Tutti" Style="{StaticResource ImpSecondaryButton}" Command="{Binding SelectAllCommand}" AutomationId="SelectAll" Margin="0,0,8,0" />
+                            <Button Text="Nessuno" Style="{StaticResource ImpSecondaryButton}" Command="{Binding SelectNoneCommand}" AutomationId="SelectNone" Margin="0,0,8,0" />
+                            <Switch IsToggled="{Binding OnlyDoubtful}" OnColor="{DynamicResource Token.accent}" AutomationId="OnlyDoubtful" SemanticProperties.Description="Solo da controllare" />
+                            <Label Text="Solo da controllare" Style="{StaticResource ImpBody}" VerticalOptions="Center" />
+                        </FlexLayout>
+
+                        <Label Grid.Row="2" Text="{Binding SelectedText}" Style="{StaticResource ImpSmall}" Padding="16,4" AutomationId="SelectedCount" />
+
+                        <CollectionView Grid.Row="3" ItemsSource="{Binding VisibleRows}" SelectionMode="None" BackgroundColor="{DynamicResource Token.surface}" AutomationId="SongList">
+                            <CollectionView.ItemTemplate>
+                                <DataTemplate x:DataType="vm:ImportRow">
+                                    <Grid ColumnDefinitions="56,*,Auto" ColumnSpacing="8" Padding="{DynamicResource Token.pad.row}" MinimumHeightRequest="72"
+                                          BackgroundColor="Transparent" SemanticProperties.Description="{Binding Description}">
+                                        <Grid.Triggers>
+                                            <DataTrigger TargetType="Grid" Binding="{Binding IsActive}" Value="True">
+                                                <Setter Property="BackgroundColor" Value="{DynamicResource Token.accentSoft}" />
+                                            </DataTrigger>
+                                        </Grid.Triggers>
+                                        <CheckBox IsChecked="{Binding IsSelected, Mode=TwoWay}" IsEnabled="{Binding CanSelect}" Color="{DynamicResource Token.accent}"
+                                                  VerticalOptions="Center" HorizontalOptions="Center" AutomationId="RowCheck" />
+                                        <VerticalStackLayout Grid.Column="1" Spacing="4" VerticalOptions="Center">
+                                            <VerticalStackLayout.GestureRecognizers>
+                                                <TapGestureRecognizer Command="{Binding Source={RelativeSource AncestorType={x:Type vm:ImportViewModel}}, Path=OpenRowCommand}" CommandParameter="{Binding .}" />
+                                            </VerticalStackLayout.GestureRecognizers>
+                                            <Label Text="{Binding Title}" Style="{StaticResource ImpBodyStrong}" />
+                                            <Label Text="{Binding PagesText}" Style="{StaticResource ImpSmall}" />
+                                            <FlexLayout Wrap="Wrap">
+                                                <Border Style="{StaticResource ImpBadge}" IsVisible="{Binding HasBadge}" Margin="0,0,8,4">
+                                                    <Label Text="{Binding BadgeText}" Style="{StaticResource ImpSmall}" TextColor="{DynamicResource Token.onAccentSoft}" FontFamily="{DynamicResource Token.font.semibold}" />
+                                                </Border>
+                                                <Border Style="{StaticResource ImpTag}" IsVisible="{Binding IsScan}" Margin="0,0,8,4">
+                                                    <Label Text="Scansione" Style="{StaticResource ImpSmall}" />
+                                                </Border>
+                                                <Border Style="{StaticResource ImpTag}" IsVisible="{Binding IsModified}" Stroke="{DynamicResource Token.accent}" Margin="0,0,8,4">
+                                                    <Label Text="Modificato" Style="{StaticResource ImpSmall}" TextColor="{DynamicResource Token.accent}" />
+                                                </Border>
+                                            </FlexLayout>
+                                            <Label Text="{Binding StatusText}" Style="{StaticResource ImpSmall}" IsVisible="{Binding HasStatus}" />
+                                        </VerticalStackLayout>
+                                        <Label Grid.Column="2" Text="&gt;" Style="{StaticResource ImpBody}" TextColor="{DynamicResource Token.text2}" VerticalOptions="Center" WidthRequest="40" HorizontalTextAlignment="Center"
+                                               IsVisible="{Binding ShowChevron}" />
+                                        <Button Grid.Column="2" Text="Apri" Style="{StaticResource ImpTextButton}" IsVisible="{Binding IsSaved}" VerticalOptions="Center"
+                                                Command="{Binding Source={RelativeSource AncestorType={x:Type vm:ImportViewModel}}, Path=OpenRowSavedCommand}" CommandParameter="{Binding .}" />
+                                    </Grid>
+                                </DataTemplate>
+                            </CollectionView.ItemTemplate>
+                        </CollectionView>
+
+                        <VerticalStackLayout Grid.Row="4" BackgroundColor="{DynamicResource Token.surface}" Padding="16,8" Spacing="4">
+                            <Button Text="{Binding SaveSelectedText}" Style="{StaticResource ImpPrimaryButton}" IsEnabled="{Binding CanSaveSelected}" Command="{Binding SaveSelectedCommand}" AutomationId="SaveSelected" />
+                            <Label Text="Seleziona almeno un canto" Style="{StaticResource ImpSmall}" IsVisible="{Binding SaveSelectedHintVisible}" />
+                        </VerticalStackLayout>
+                    </Grid>
+
+                    <Grid x:Name="ReviewPane" Grid.Column="1" IsVisible="{Binding ShowReview}" RowDefinitions="Auto,Auto,Auto,*,Auto">
+
+                        <Label Grid.RowSpan="5" Text="Scegli un canto dall'elenco per rivederlo." Style="{StaticResource ImpBody}" IsVisible="{Binding ShowReviewPlaceholder}"
+                               HorizontalOptions="Center" VerticalOptions="Center" />
+
+                        <Grid Grid.Row="0" IsVisible="{Binding ShowReviewContent}" BackgroundColor="{DynamicResource Token.surface}" Padding="16,8" ColumnDefinitions="Auto,*,Auto,Auto,Auto" ColumnSpacing="8">
+                            <Button Text="&lt; Elenco" Style="{StaticResource ImpTextButton}" Command="{Binding BackToListCommand}" IsVisible="{Binding ShowBackToList}" AutomationId="BackToList" />
+                            <Label Grid.Column="1" Text="{Binding ReviewTitle}" Style="{StaticResource ImpHeading}" LineBreakMode="TailTruncation" MaxLines="1" VerticalOptions="Center" AutomationId="ReviewTitle" />
+                            <Button Grid.Column="2" Text="&lt; Prec." Style="{StaticResource ImpTextButton}" Command="{Binding PreviousSongCommand}" IsVisible="{Binding ShowNavigation}" AutomationId="PrevSong" />
+                            <Label Grid.Column="3" Text="{Binding PositionText}" Style="{StaticResource ImpSmall}" VerticalOptions="Center" IsVisible="{Binding ShowNavigation}" />
+                            <Button Grid.Column="4" Text="Succ. &gt;" Style="{StaticResource ImpTextButton}" Command="{Binding NextSongCommand}" IsVisible="{Binding ShowNavigation}" AutomationId="NextSong" />
+                        </Grid>
+
+                        <FlexLayout Grid.Row="1" IsVisible="{Binding ShowReviewContent}" Wrap="Wrap" AlignItems="Center" Padding="16,4" BackgroundColor="{DynamicResource Token.surface}">
+                            <Label Text="{Binding PagesText}" Style="{StaticResource ImpSmall}" Margin="0,0,8,0" />
+                            <Border Style="{StaticResource ImpTag}" IsVisible="{Binding CurrentIsScan}" Margin="0,0,8,0">
+                                <Label Text="Scansione" Style="{StaticResource ImpSmall}" />
+                            </Border>
+                            <Label Text="{Binding TimerText}" Style="{StaticResource ImpMono}" IsVisible="{Binding ShowTimer}" AutomationId="ReviewTimer" />
+                            <FlexLayout BindableLayout.ItemsSource="{Binding ReviewBadges}" Wrap="Wrap" IsVisible="{Binding HasReviewBadges}">
+                                <BindableLayout.ItemTemplate>
+                                    <DataTemplate x:DataType="x:String">
+                                        <Border Style="{StaticResource ImpBadge}" Margin="8,0,0,4">
+                                            <Label Text="{Binding ., StringFormat='! {0}'}" Style="{StaticResource ImpSmall}" TextColor="{DynamicResource Token.onAccentSoft}" FontFamily="{DynamicResource Token.font.semibold}" />
+                                        </Border>
+                                    </DataTemplate>
+                                </BindableLayout.ItemTemplate>
+                            </FlexLayout>
+                        </FlexLayout>
+
+                        <Grid x:Name="SegmentBar" Grid.Row="2" IsVisible="{Binding ShowReviewContent}" ColumnDefinitions="*,*,*" BackgroundColor="{DynamicResource Token.surface}">
+                            <Button x:Name="SegOriginal" Text="Originale" Command="{Binding ShowPanelCommand}" CommandParameter="0" Style="{StaticResource ImpTextButton}" AutomationId="SegOriginal" />
+                            <Button x:Name="SegChordPro" Grid.Column="1" Text="ChordPro" Command="{Binding ShowPanelCommand}" CommandParameter="1" Style="{StaticResource ImpTextButton}" AutomationId="SegChordPro" />
+                            <Button x:Name="SegPreview" Grid.Column="2" Text="Anteprima" Command="{Binding ShowPanelCommand}" CommandParameter="2" Style="{StaticResource ImpTextButton}" AutomationId="SegPreview" />
+                        </Grid>
+
+                        <Grid x:Name="Panels" Grid.Row="3" IsVisible="{Binding ShowReviewContent}" ColumnDefinitions="*,*,*" ColumnSpacing="8" RowDefinitions="*">
+                            <Border x:Name="OriginalPanel" Style="{StaticResource ImpPanel}" BackgroundColor="{DynamicResource Token.surface2}" MinimumHeightRequest="160">
+                                <Grid RowDefinitions="Auto,*">
+                                    <Label Text="Originale" Style="{StaticResource ImpSmall}" TextColor="{DynamicResource Token.text}" FontFamily="{DynamicResource Token.font.semibold}" Padding="8" IsVisible="{Binding IsWide}" />
+                                    <ScrollView Grid.Row="1" AutomationId="OriginalScroll">
+                                        <VerticalStackLayout BindableLayout.ItemsSource="{Binding OriginalLines}">
+                                            <BindableLayout.ItemTemplate>
+                                                <DataTemplate x:DataType="vm:OriginalLine">
+                                                    <Grid ColumnDefinitions="24,32,*" Padding="4,0">
+                                                        <Grid.Triggers>
+                                                            <DataTrigger TargetType="Grid" Binding="{Binding IsDoubtful}" Value="True">
+                                                                <Setter Property="BackgroundColor" Value="{DynamicResource Token.accentSoft}" />
+                                                            </DataTrigger>
+                                                        </Grid.Triggers>
+                                                        <Label Text="{Binding Marker}" Style="{StaticResource ImpMono}" TextColor="{DynamicResource Token.onAccentSoft}" FontFamily="{DynamicResource Token.font.semibold}" />
+                                                        <Label Grid.Column="1" Text="{Binding Number}" Style="{StaticResource ImpMono}" TextColor="{DynamicResource Token.text2}" />
+                                                        <Label Grid.Column="2" Text="{Binding Text}" Style="{StaticResource ImpMono}" LineBreakMode="NoWrap" />
+                                                    </Grid>
+                                                </DataTemplate>
+                                            </BindableLayout.ItemTemplate>
+                                        </VerticalStackLayout>
+                                    </ScrollView>
+                                </Grid>
+                            </Border>
+
+                            <Border x:Name="ChordProPanel" Style="{StaticResource ImpPanel}" BackgroundColor="{DynamicResource Token.surface}" Stroke="{DynamicResource Token.text2}" MinimumHeightRequest="160">
+                                <Grid RowDefinitions="Auto,*">
+                                    <Label Text="ChordPro" Style="{StaticResource ImpSmall}" TextColor="{DynamicResource Token.text}" FontFamily="{DynamicResource Token.font.semibold}" Padding="8" IsVisible="{Binding IsWide}" />
+                                    <Editor Grid.Row="1" Text="{Binding ChordProText, Mode=TwoWay}" IsEnabled="{Binding CanEdit}" IsSpellCheckEnabled="False" IsTextPredictionEnabled="False"
+                                            FontFamily="{DynamicResource Token.font.mono}" FontSize="{DynamicResource Token.type.mono}" TextColor="{DynamicResource Token.text}"
+                                            BackgroundColor="{DynamicResource Token.surface}" AutomationId="ChordProEditor" SemanticProperties.Description="ChordPro del canto" />
+                                </Grid>
+                            </Border>
+
+                            <Border x:Name="PreviewPanel" Style="{StaticResource ImpPanel}" BackgroundColor="{DynamicResource Leggio.Background}" MinimumHeightRequest="160">
+                                <Grid RowDefinitions="Auto,Auto,*">
+                                    <Label Text="Anteprima" Style="{StaticResource ImpSmall}" TextColor="{DynamicResource Token.text}" FontFamily="{DynamicResource Token.font.semibold}" Padding="8" IsVisible="{Binding IsWide}" />
+                                    <Label Grid.Row="1" Text="{Binding PreviewWarning}" IsVisible="{Binding HasPreviewWarning}" Style="{StaticResource ImpSmall}" Padding="8"
+                                           TextColor="{DynamicResource Token.onAccentSoft}" BackgroundColor="{DynamicResource Token.accentSoft}" AutomationId="PreviewWarning" />
+                                    <ScrollView Grid.Row="2">
+                                        <controls:SongDrawingView x:Name="PreviewView" Song="{Binding PreviewSong}" Margin="8" AutomationId="PreviewView" />
+                                    </ScrollView>
+                                </Grid>
+                            </Border>
+                        </Grid>
+
+                        <Grid Grid.Row="4" IsVisible="{Binding ShowReviewContent}" ColumnDefinitions="*,*" ColumnSpacing="8" Padding="16,8" BackgroundColor="{DynamicResource Token.surface}">
+                            <Button Text="Ripristina" Style="{StaticResource ImpSecondaryButton}" Command="{Binding RestoreCommand}" IsEnabled="{Binding CanRestore}" HorizontalOptions="Start" AutomationId="Restore" />
+                            <Button Grid.Column="1" Text="Salva questo canto" Style="{StaticResource ImpPrimaryButton}" Command="{Binding SaveCurrentCommand}" IsEnabled="{Binding CanEdit}" HorizontalOptions="End" AutomationId="SaveCurrent" />
+                        </Grid>
+                    </Grid>
+                </Grid>
+            </Grid>
+        </Grid>
+
+        <!-- S4 declaration sheet over the page. -->
+        <Grid x:Name="DeclarationOverlay" IsVisible="{Binding DeclarationOpen}" BackgroundColor="{DynamicResource Token.scrim}">
+            <Border x:Name="DeclarationSheet" BackgroundColor="{DynamicResource Token.surface}" Stroke="{DynamicResource Token.text2}" StrokeThickness="1" StrokeShape="RoundRectangle 4"
+                    MaximumWidthRequest="560" VerticalOptions="Center" Padding="24" Margin="16">
+                <VerticalStackLayout Spacing="8">
+                    <Label Text="{Binding DeclarationTitle}" Style="{StaticResource ImpHeading}" AutomationId="DeclarationTitle" />
+                    <Label Text="I canti restano solo su questo dispositivo." Style="{StaticResource ImpSmall}" />
+                    <Border Stroke="{DynamicResource Token.text2}" StrokeThickness="1" StrokeShape="RoundRectangle 4" Padding="8" MinimumHeightRequest="72" Margin="0,8,0,0">
+                        <Border.GestureRecognizers>
+                            <TapGestureRecognizer Command="{Binding ToggleDeclarationCommand}" />
+                        </Border.GestureRecognizers>
+                        <Grid ColumnDefinitions="56,*">
+                            <CheckBox IsChecked="{Binding DeclarationAccepted, Mode=TwoWay}" IsEnabled="{Binding IsSaving, Converter={StaticResource InvertedBoolConverter}}"
+                                      Color="{DynamicResource Token.accent}" VerticalOptions="Center" AutomationId="DeclarationCheck"
+                                      SemanticProperties.Description="{Binding DeclarationText}" />
+                            <Label Grid.Column="1" Text="{Binding DeclarationText}" Style="{StaticResource ImpBody}" VerticalOptions="Center" />
+                        </Grid>
+                    </Border>
+                    <Label Text="Spunta la dichiarazione per salvare." Style="{StaticResource ImpSmall}" IsVisible="{Binding ShowDeclarationHelp}" />
+                    <VerticalStackLayout IsVisible="{Binding IsSaving}" Spacing="4">
+                        <Label Text="{Binding SaveProgressText}" Style="{StaticResource ImpBody}" AutomationId="SaveProgress" />
+                        <ProgressBar Progress="{Binding SaveFraction}" ProgressColor="{DynamicResource Token.accent}" HeightRequest="8" />
+                    </VerticalStackLayout>
+                    <FlexLayout Wrap="Wrap" JustifyContent="End" Margin="0,16,0,0">
+                        <Button Text="Annulla" Style="{StaticResource ImpSecondaryButton}" Command="{Binding CancelDeclarationCommand}" IsEnabled="{Binding IsSaving, Converter={StaticResource InvertedBoolConverter}}" Margin="0,0,8,0" AutomationId="DeclarationCancel" />
+                        <Button Text="Salva" Style="{StaticResource ImpPrimaryButton}" Command="{Binding ConfirmSaveCommand}" IsEnabled="{Binding CanConfirmSave}" AutomationId="ConfirmSave" />
+                    </FlexLayout>
+                </VerticalStackLayout>
+            </Border>
+        </Grid>
+
+        <!-- Debug builds only: a line the UI tests read. -->
+        <Label Text="{Binding AutomationStatus}" IsVisible="{Binding HooksEnabled}" AutomationId="ImportStatus" FontSize="1" Opacity="0.01" HorizontalOptions="Start" VerticalOptions="End" InputTransparent="True" />
+    </Grid>
+</ContentPage>

@@ -1,0 +1,103 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!-- Styles of the import screen, built only from Token.* keys. -->
+<ResourceDictionary
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml">
+
+    <Style x:Key="ImpTitle" TargetType="Label">
+        <Setter Property="FontFamily" Value="{DynamicResource Token.font.semibold}" />
+        <Setter Property="FontSize" Value="{DynamicResource Token.type.title}" />
+        <Setter Property="TextColor" Value="{DynamicResource Token.text}" />
+    </Style>
+    <Style x:Key="ImpHeading" TargetType="Label">
+        <Setter Property="FontFamily" Value="{DynamicResource Token.font.semibold}" />
+        <Setter Property="FontSize" Value="{DynamicResource Token.type.heading}" />
+        <Setter Property="TextColor" Value="{DynamicResource Token.text}" />
+    </Style>
+    <Style x:Key="ImpBody" TargetType="Label">
+        <Setter Property="FontFamily" Value="{DynamicResource Token.font.regular}" />
+        <Setter Property="FontSize" Value="{DynamicResource Token.type.body}" />
+        <Setter Property="TextColor" Value="{DynamicResource Token.text}" />
+    </Style>
+    <Style x:Key="ImpBodyStrong" TargetType="Label" BasedOn="{StaticResource ImpBody}">
+        <Setter Property="FontFamily" Value="{DynamicResource Token.font.semibold}" />
+    </Style>
+    <Style x:Key="ImpSmall" TargetType="Label">
+        <Setter Property="FontFamily" Value="{DynamicResource Token.font.regular}" />
+        <Setter Property="FontSize" Value="{DynamicResource Token.type.small}" />
+        <Setter Property="TextColor" Value="{DynamicResource Token.text2}" />
+    </Style>
+    <Style x:Key="ImpMono" TargetType="Label">
+        <Setter Property="FontFamily" Value="{DynamicResource Token.font.mono}" />
+        <Setter Property="FontSize" Value="{DynamicResource Token.type.mono}" />
+        <Setter Property="TextColor" Value="{DynamicResource Token.text}" />
+    </Style>
+
+    <Style x:Key="ImpPrimaryButton" TargetType="Button">
+        <Setter Property="BackgroundColor" Value="{DynamicResource Token.accent}" />
+        <Setter Property="TextColor" Value="{DynamicResource Token.onAccent}" />
+        <Setter Property="FontFamily" Value="{DynamicResource Token.font.semibold}" />
+        <Setter Property="FontSize" Value="{DynamicResource Token.type.body}" />
+        <Setter Property="HeightRequest" Value="{DynamicResource Token.touch.primary}" />
+        <Setter Property="CornerRadius" Value="4" />
+        <Setter Property="MinimumWidthRequest" Value="240" />
+        <Setter Property="VisualStateManager.VisualStateGroups">
+            <VisualStateGroupList>
+                <VisualStateGroup x:Name="CommonStates">
+                    <VisualState x:Name="Normal" />
+                    <VisualState x:Name="Disabled">
+                        <VisualState.Setters>
+                            <Setter Property="BackgroundColor" Value="{DynamicResource Token.surface2}" />
+                            <Setter Property="TextColor" Value="{DynamicResource Token.text2}" />
+                        </VisualState.Setters>
+                    </VisualState>
+                </VisualStateGroup>
+            </VisualStateGroupList>
+        </Setter>
+    </Style>
+    <Style x:Key="ImpSecondaryButton" TargetType="Button">
+        <Setter Property="BackgroundColor" Value="{DynamicResource Token.surface}" />
+        <Setter Property="TextColor" Value="{DynamicResource Token.text}" />
+        <Setter Property="BorderColor" Value="{DynamicResource Token.text2}" />
+        <Setter Property="BorderWidth" Value="1" />
+        <Setter Property="FontFamily" Value="{DynamicResource Token.font.semibold}" />
+        <Setter Property="FontSize" Value="{DynamicResource Token.type.body}" />
+        <Setter Property="HeightRequest" Value="{DynamicResource Token.touch}" />
+        <Setter Property="CornerRadius" Value="4" />
+    </Style>
+    <Style x:Key="ImpTextButton" TargetType="Button">
+        <Setter Property="BackgroundColor" Value="Transparent" />
+        <Setter Property="TextColor" Value="{DynamicResource Token.accent}" />
+        <Setter Property="FontFamily" Value="{DynamicResource Token.font.semibold}" />
+        <Setter Property="FontSize" Value="{DynamicResource Token.type.body}" />
+        <Setter Property="HeightRequest" Value="{DynamicResource Token.touch}" />
+        <Setter Property="Padding" Value="12,0" />
+    </Style>
+
+    <Style x:Key="ImpBadge" TargetType="Border">
+        <Setter Property="BackgroundColor" Value="{DynamicResource Token.accentSoft}" />
+        <Setter Property="Stroke" Value="Transparent" />
+        <Setter Property="Padding" Value="{DynamicResource Token.pad.badge}" />
+        <Setter Property="StrokeShape" Value="RoundRectangle 4" />
+    </Style>
+    <Style x:Key="ImpTag" TargetType="Border">
+        <Setter Property="BackgroundColor" Value="Transparent" />
+        <Setter Property="Stroke" Value="{DynamicResource Token.text2}" />
+        <Setter Property="StrokeThickness" Value="1" />
+        <Setter Property="Padding" Value="{DynamicResource Token.pad.badge}" />
+        <Setter Property="StrokeShape" Value="RoundRectangle 4" />
+    </Style>
+    <Style x:Key="ImpPanel" TargetType="Border">
+        <Setter Property="Stroke" Value="{DynamicResource Token.border}" />
+        <Setter Property="StrokeThickness" Value="1" />
+        <Setter Property="StrokeShape" Value="RoundRectangle 4" />
+        <Setter Property="Padding" Value="0" />
+    </Style>
+    <Style x:Key="ImpBanner" TargetType="Border">
+        <Setter Property="BackgroundColor" Value="{DynamicResource Token.accentSoft}" />
+        <Setter Property="Stroke" Value="{DynamicResource Token.accent}" />
+        <Setter Property="StrokeThickness" Value="1" />
+        <Setter Property="Padding" Value="16" />
+        <Setter Property="StrokeShape" Value="RoundRectangle 4" />
+    </Style>
+</ResourceDictionary>
