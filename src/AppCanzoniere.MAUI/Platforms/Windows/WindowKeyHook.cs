@@ -26,7 +26,14 @@ internal static class WindowKeyHook
     {
         try
         {
-            if (sender is not UIElement element || IsTextInputFocused(element))
+            if (sender is not UIElement element)
+                return;
+
+            // Import shortcuts work inside text fields too: none of them is a text key.
+            if (TryImportShortcut(e))
+                return;
+
+            if (IsTextInputFocused(element))
                 return;
 
             var name = e.Key switch
@@ -54,6 +61,26 @@ internal static class WindowKeyHook
         {
             System.Diagnostics.Debug.WriteLine($"Page-turn key handling failed: {ex}");
         }
+    }
+
+    private static bool TryImportShortcut(KeyRoutedEventArgs e)
+    {
+        var ctrl = IsDown(VirtualKey.Control);
+        var alt = IsDown(VirtualKey.Menu);
+        var name = e.Key switch
+        {
+            VirtualKey.Escape => "Escape",
+            VirtualKey.S when ctrl => "S",
+            VirtualKey.O when ctrl => "O",
+            VirtualKey.Left when alt => "Left",
+            VirtualKey.Right when alt => "Right",
+            _ => null
+        };
+        if (name is null || e.KeyStatus.WasKeyDown || !ImportKeys.Handle(name, ctrl, alt))
+            return false;
+
+        e.Handled = true;
+        return true;
     }
 
     private static bool IsDown(VirtualKey key) =>

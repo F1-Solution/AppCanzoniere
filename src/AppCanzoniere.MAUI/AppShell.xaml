@@ -28,10 +28,10 @@
             Route="albums" />
 
         <ShellContent
-            Title="OCR Import"
+            Title="Importa"
             Icon="camera.png"
-            ContentTemplate="{DataTemplate pages:OcrImportPage}"
-            Route="ocrimport" />
+            ContentTemplate="{DataTemplate pages:ImportPage}"
+            Route="import" />
 
         <ShellContent
             Title="Audio ID"
