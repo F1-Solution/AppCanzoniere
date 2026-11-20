@@ -161,7 +161,7 @@ public sealed partial class ImportViewModel : ObservableObject
 
     // List summary
     public string SummaryPages => Session.Result is { } r
-        ? $"{r.PageCount} pagine: {r.TextPageCount} di testo, {r.ScannedPages.Count} scansioni"
+        ? $"{(r.PageCount == 1 ? "1 pagina" : $"{r.PageCount} pagine")}: {r.TextPageCount} di testo, {(r.ScannedPages.Count == 1 ? "1 scansione" : $"{r.ScannedPages.Count} scansioni")}"
         : string.Empty;
 
     public string SummaryFound => Session.Result is { } r
@@ -178,10 +178,10 @@ public sealed partial class ImportViewModel : ObservableObject
 
     public bool HasUnread => Session.Result is { UnreadPages.Count: > 0 };
 
-    public string SelectedText => $"{Session.SelectedCount} selezionati";
+    public string SelectedText => Session.SelectedCount == 1 ? "1 selezionato" : $"{Session.SelectedCount} selezionati";
     public bool CanSaveSelected => Session.SelectedCount > 0;
     public bool SaveSelectedHintVisible => Session.SelectedCount == 0;
-    public string SaveSelectedText => $"Salva {ImportMessages.Songs(Session.SelectedCount)} selezionati";
+    public string SaveSelectedText => Session.SelectedCount == 1 ? "Salva 1 canto selezionato" : $"Salva {ImportMessages.Songs(Session.SelectedCount)} selezionati";
 
     // Banner
     public bool HasBanner => Session.Banner is not null;
@@ -210,7 +210,7 @@ public sealed partial class ImportViewModel : ObservableObject
         get => Session.Current?.ChordPro ?? string.Empty;
         set
         {
-            if (Session.Current is not { IsSaved: false } entry || string.Equals(value ?? string.Empty, entry.ChordPro, StringComparison.Ordinal))
+            if (Session.Current is not { IsSaved: false } entry || SameText(value, entry.ChordPro))
                 return;
 
             _editing = true;
@@ -226,6 +226,12 @@ public sealed partial class ImportViewModel : ObservableObject
             SchedulePreview(TimeSpan.FromMilliseconds(400));
         }
     }
+
+    // The editor may hand the text back with other line endings; that is not an edit.
+    private static bool SameText(string? a, string? b) =>
+        string.Equals(NormalizeLines(a), NormalizeLines(b), StringComparison.Ordinal);
+
+    private static string NormalizeLines(string? text) => (text ?? string.Empty).Replace("\r\n", "\n").Replace('\r', '\n');
 
     // Declaration and saving
     public bool DeclarationOpen => Session.DeclarationOpen;

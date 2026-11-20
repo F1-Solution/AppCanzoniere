@@ -163,22 +163,24 @@
                             <Button Grid.Column="4" Text="Succ. &gt;" Style="{StaticResource ImpTextButton}" Command="{Binding NextSongCommand}" IsVisible="{Binding ShowNavigation}" AutomationId="NextSong" />
                         </Grid>
 
-                        <FlexLayout Grid.Row="1" IsVisible="{Binding ShowReviewContent}" Wrap="Wrap" AlignItems="Center" Padding="16,4" BackgroundColor="{DynamicResource Token.surface}">
-                            <Label Text="{Binding PagesText}" Style="{StaticResource ImpSmall}" Margin="0,0,8,0" />
-                            <Border Style="{StaticResource ImpTag}" IsVisible="{Binding CurrentIsScan}" Margin="0,0,8,0">
-                                <Label Text="Scansione" Style="{StaticResource ImpSmall}" />
-                            </Border>
-                            <Label Text="{Binding TimerText}" Style="{StaticResource ImpMono}" IsVisible="{Binding ShowTimer}" AutomationId="ReviewTimer" />
-                            <FlexLayout BindableLayout.ItemsSource="{Binding ReviewBadges}" Wrap="Wrap" IsVisible="{Binding HasReviewBadges}">
+                        <VerticalStackLayout Grid.Row="1" IsVisible="{Binding ShowReviewContent}" Padding="16,4" Spacing="4" BackgroundColor="{DynamicResource Token.surface}">
+                            <HorizontalStackLayout Spacing="8">
+                                <Label Text="{Binding PagesText}" Style="{StaticResource ImpSmall}" VerticalOptions="Center" />
+                                <Border Style="{StaticResource ImpTag}" IsVisible="{Binding CurrentIsScan}">
+                                    <Label Text="Scansione" Style="{StaticResource ImpSmall}" />
+                                </Border>
+                                <Label Text="{Binding TimerText}" Style="{StaticResource ImpMono}" IsVisible="{Binding ShowTimer}" VerticalOptions="Center" AutomationId="ReviewTimer" />
+                            </HorizontalStackLayout>
+                            <VerticalStackLayout BindableLayout.ItemsSource="{Binding ReviewBadges}" Spacing="4" IsVisible="{Binding HasReviewBadges}">
                                 <BindableLayout.ItemTemplate>
                                     <DataTemplate x:DataType="x:String">
-                                        <Border Style="{StaticResource ImpBadge}" Margin="8,0,0,4">
+                                        <Border Style="{StaticResource ImpBadge}" HorizontalOptions="Start">
                                             <Label Text="{Binding ., StringFormat='! {0}'}" Style="{StaticResource ImpSmall}" TextColor="{DynamicResource Token.onAccentSoft}" FontFamily="{DynamicResource Token.font.semibold}" />
                                         </Border>
                                     </DataTemplate>
                                 </BindableLayout.ItemTemplate>
-                            </FlexLayout>
-                        </FlexLayout>
+                            </VerticalStackLayout>
+                        </VerticalStackLayout>
 
                         <Grid x:Name="SegmentBar" Grid.Row="2" IsVisible="{Binding ShowReviewContent}" ColumnDefinitions="*,*,*" BackgroundColor="{DynamicResource Token.surface}">
                             <Button x:Name="SegOriginal" Text="Originale" Command="{Binding ShowPanelCommand}" CommandParameter="0" Style="{StaticResource ImpTextButton}" AutomationId="SegOriginal" />
@@ -222,7 +224,7 @@
 
                             <Border x:Name="PreviewPanel" Style="{StaticResource ImpPanel}" BackgroundColor="{DynamicResource Leggio.Background}" MinimumHeightRequest="160">
                                 <Grid RowDefinitions="Auto,Auto,*">
-                                    <Label Text="Anteprima" Style="{StaticResource ImpSmall}" TextColor="{DynamicResource Token.text}" FontFamily="{DynamicResource Token.font.semibold}" Padding="8" IsVisible="{Binding IsWide}" />
+                                    <Label Text="Anteprima" Style="{StaticResource ImpSmall}" TextColor="{DynamicResource Leggio.Lyric.Color}" FontFamily="{DynamicResource Token.font.semibold}" Padding="8" IsVisible="{Binding IsWide}" />
                                     <Label Grid.Row="1" Text="{Binding PreviewWarning}" IsVisible="{Binding HasPreviewWarning}" Style="{StaticResource ImpSmall}" Padding="8"
                                            TextColor="{DynamicResource Token.onAccentSoft}" BackgroundColor="{DynamicResource Token.accentSoft}" AutomationId="PreviewWarning" />
                                     <ScrollView Grid.Row="2">
@@ -242,9 +244,9 @@
         </Grid>
 
         <!-- S4 declaration sheet over the page. -->
-        <Grid x:Name="DeclarationOverlay" IsVisible="{Binding DeclarationOpen}" BackgroundColor="{DynamicResource Token.scrim}">
+        <Grid x:Name="DeclarationOverlay" IsVisible="{Binding DeclarationOpen}" BackgroundColor="{DynamicResource Token.scrim}" HorizontalOptions="Fill" VerticalOptions="Fill">
             <Border x:Name="DeclarationSheet" BackgroundColor="{DynamicResource Token.surface}" Stroke="{DynamicResource Token.text2}" StrokeThickness="1" StrokeShape="RoundRectangle 4"
-                    MaximumWidthRequest="560" VerticalOptions="Center" Padding="24" Margin="16">
+                    MaximumWidthRequest="560" HorizontalOptions="Center" VerticalOptions="Center" Padding="24" Margin="16">
                 <VerticalStackLayout Spacing="8">
                     <Label Text="{Binding DeclarationTitle}" Style="{StaticResource ImpHeading}" AutomationId="DeclarationTitle" />
                     <Label Text="I canti restano solo su questo dispositivo." Style="{StaticResource ImpSmall}" />
@@ -264,10 +266,10 @@
                         <Label Text="{Binding SaveProgressText}" Style="{StaticResource ImpBody}" AutomationId="SaveProgress" />
                         <ProgressBar Progress="{Binding SaveFraction}" ProgressColor="{DynamicResource Token.accent}" HeightRequest="8" />
                     </VerticalStackLayout>
-                    <FlexLayout Wrap="Wrap" JustifyContent="End" Margin="0,16,0,0">
-                        <Button Text="Annulla" Style="{StaticResource ImpSecondaryButton}" Command="{Binding CancelDeclarationCommand}" IsEnabled="{Binding IsSaving, Converter={StaticResource InvertedBoolConverter}}" Margin="0,0,8,0" AutomationId="DeclarationCancel" />
-                        <Button Text="Salva" Style="{StaticResource ImpPrimaryButton}" Command="{Binding ConfirmSaveCommand}" IsEnabled="{Binding CanConfirmSave}" AutomationId="ConfirmSave" />
-                    </FlexLayout>
+                    <Grid ColumnDefinitions="*,*" ColumnSpacing="8" Margin="0,16,0,0">
+                        <Button Text="Annulla" Style="{StaticResource ImpSecondaryButton}" HeightRequest="56" Command="{Binding CancelDeclarationCommand}" IsEnabled="{Binding IsSaving, Converter={StaticResource InvertedBoolConverter}}" AutomationId="DeclarationCancel" />
+                        <Button Grid.Column="1" Text="Salva" Style="{StaticResource ImpPrimaryButton}" MinimumWidthRequest="0" Command="{Binding ConfirmSaveCommand}" IsEnabled="{Binding CanConfirmSave}" AutomationId="ConfirmSave" />
+                    </Grid>
                 </VerticalStackLayout>
             </Border>
         </Grid>

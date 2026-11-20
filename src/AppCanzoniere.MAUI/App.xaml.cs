@@ -36,12 +36,14 @@ public partial class App : global::Microsoft.Maui.Controls.Application
         RequestedThemeChanged += (_, e) => TokenPalette.Apply(e.RequestedTheme);
         var shell = new AppShell();
 #if DEBUG
+        ImportTestHook.Log("create window");
         if (ImportTestHook.IsRequested)
         {
             EventHandler? openImport = null;
             openImport = async (_, _) =>
             {
                 shell.Loaded -= openImport;
+                ImportTestHook.Log("shell loaded");
                 await ImportTestHook.RunAsync(shell);
             };
             shell.Loaded += openImport;

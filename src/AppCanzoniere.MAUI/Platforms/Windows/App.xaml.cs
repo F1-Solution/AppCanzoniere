@@ -17,6 +17,9 @@ public partial class App : MauiWinUIApplication
     public App()
     {
         this.InitializeComponent();
+#if DEBUG
+        UnhandledException += (_, e) => ImportTestHook.Log("WINUI " + e.Message + " " + e.Exception);
+#endif
     }
 
     protected override MauiApp CreateMauiApp() => MauiProgram.CreateMauiApp();
