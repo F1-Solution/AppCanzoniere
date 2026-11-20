@@ -2,6 +2,8 @@ using Android.Graphics;
 using Android.Graphics.Pdf;
 using Android.OS;
 using AppCanzoniere.Application.PdfImport;
+using OperationCanceledException = System.OperationCanceledException;
+using Path = System.IO.Path;
 
 namespace AppCanzoniere.MAUI.Ocr;
 
