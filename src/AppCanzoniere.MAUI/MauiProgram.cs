@@ -98,8 +98,24 @@ public static class MauiProgram
 #if ANDROID
         // On-device page OCR with the bundled ML Kit model.
         builder.Services.AddSingleton<AppCanzoniere.Application.PdfImport.IOcrEngine, Ocr.AndroidMlKitOcrEngine>();
-        builder.Services.AddSingleton<Ocr.AndroidPdfPageRenderer>();
+        builder.Services.AddSingleton<AppCanzoniere.Application.PdfImport.IPageImageRenderer, Ocr.AndroidPdfPageRenderer>();
+
+        // DEC 36: Android reads the PDF text in the app process, within the reader limits; Windows keeps the isolated worker.
+        builder.Services.AddSingleton<AppCanzoniere.Application.PdfImport.IPdfWordExtractor>(_ =>
+            new AppCanzoniere.Infrastructure.PdfImport.PdfPigWordExtractor(new AppCanzoniere.Infrastructure.PdfImport.PdfExtractionLimits()));
 #endif
+
+#if WINDOWS
+        // On-device OCR of Windows and the Windows PDF renderer; without an OCR language every scanned page fails with that reason.
+        builder.Services.AddSingleton<AppCanzoniere.Application.PdfImport.IOcrEngine>(_ =>
+            (AppCanzoniere.Application.PdfImport.IOcrEngine?)AppCanzoniere.WindowsOcr.WindowsOcrEngine.Create()
+            ?? new AppCanzoniere.Application.PdfImport.UnavailableOcrEngine(
+                "No Windows OCR language is installed. Installed: " + AppCanzoniere.WindowsOcr.WindowsOcrEngine.InstalledLanguages()));
+        builder.Services.AddSingleton<AppCanzoniere.Application.PdfImport.IPageImageRenderer, AppCanzoniere.WindowsOcr.WindowsPdfPageRenderer>();
+#endif
+
+        builder.Services.AddSingleton<AppCanzoniere.Application.PdfImport.ISongbookImportService, AppCanzoniere.Application.PdfImport.SongbookImportService>();
+        builder.Services.AddSingleton<AppCanzoniere.Application.Display.ISongPreviewService, AppCanzoniere.Application.Display.SongPreviewService>();
 
         // Audio Recognition Services - Use Mock by default
         builder.Services.AddSingleton<IAudioRecognitionService, MockAudioRecognitionService>();

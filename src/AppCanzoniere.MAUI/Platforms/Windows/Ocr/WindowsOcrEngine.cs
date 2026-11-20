@@ -6,10 +6,10 @@ using Windows.Storage.Streams;
 using AppLine = AppCanzoniere.Application.PdfImport.OcrLine;
 using AppWord = AppCanzoniere.Application.PdfImport.OcrWord;
 
-namespace AppCanzoniere.OcrBench;
+namespace AppCanzoniere.WindowsOcr;
 
 /// <summary>Recognises page images with the OCR engine of Windows, entirely on the device.</summary>
-internal sealed class WindowsOcrEngine : IOcrEngine
+public sealed class WindowsOcrEngine : IOcrEngine
 {
     private readonly OcrEngine _engine;
 

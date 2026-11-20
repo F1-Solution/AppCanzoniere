@@ -13,6 +13,11 @@
   </ItemGroup>
 
   <ItemGroup>
+    <!-- The app and this tool share the Windows OCR engine without a project reference to the MAUI app. -->
+    <Compile Include="..\..\src\AppCanzoniere.MAUI\Platforms\Windows\Ocr\WindowsOcrEngine.cs" Link="WindowsOcrEngine.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
     <PackageReference Include="PdfPig" />
   </ItemGroup>
 
