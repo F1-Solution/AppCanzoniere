@@ -59,8 +59,9 @@ public sealed class PdfSongSplitterSectionHeadingTests
         Assert.Contains(result.Songs[0].Lines, l => l.Contains("KYRIE"));
     }
 
+    // A song under a dropped heading is never lost: it stays a song of its own, named by its first lyric line.
     [Fact]
-    public void A_section_heading_over_a_song_without_a_title_does_not_name_it()
+    public void A_song_without_a_title_under_a_section_heading_is_kept_as_a_song_of_its_own()
     {
         var pages = new[]
         {
@@ -71,7 +72,10 @@ public sealed class PdfSongSplitterSectionHeadingTests
 
         var result = PdfSongSplitter.Split(pages);
 
-        Assert.DoesNotContain(result.Songs, s => s.Title.Contains("KYRIE"));
+        Assert.Equal(2, result.Songs.Count);
+        Assert.Equal(1, result.Songs[0].LastPage);
+        Assert.Equal("La luna sale piano", result.Songs[1].Title);
+        Assert.Equal(2, result.Songs[1].FirstPage);
         Assert.DoesNotContain(result.Songs, s => s.Lines.Any(l => l.Contains("KYRIE")));
     }
 }

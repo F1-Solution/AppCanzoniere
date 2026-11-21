@@ -72,6 +72,7 @@ internal sealed partial class SongCollector(IReadOnlySet<string> indexTitles, IR
     private int _lastNumber;
     private bool _numberedBook;
     private int _verseNumber;
+    private bool _afterHeading;
 
     public void AddRegion(Region region)
     {
@@ -82,6 +83,7 @@ internal sealed partial class SongCollector(IReadOnlySet<string> indexTitles, IR
             if (IsSectionHeading(region, i))
             {
                 EndSong();
+                _afterHeading = true;
                 i++;
                 continue;
             }
@@ -97,6 +99,7 @@ internal sealed partial class SongCollector(IReadOnlySet<string> indexTitles, IR
 
             if (found is not null)
             {
+                _afterHeading = false;
                 EndSong();
                 _title = found.Title;
                 _subtitles = found.Subtitles;
@@ -106,10 +109,23 @@ internal sealed partial class SongCollector(IReadOnlySet<string> indexTitles, IR
                 continue;
             }
 
+            if (_afterHeading && _title is null && IsContent(region.Lines[i]))
+                StartUntitled(region, i);
             if (!PerformanceHints.IsHint(region.Lines[i]) && !PerformanceHints.IsBisOfLast(region.Lines[i], _lastNumber))
                 AddLine(region.Lines[i], region.Page, region.HasChordAbove(i));
             i++;
         }
+    }
+
+    private static bool IsContent(string line) =>
+        !SongLineKinds.IsBlank(line) && !SongLineKinds.IsNoise(line) && !PerformanceHints.IsHint(line);
+
+    // Text under a dropped heading with no title of its own is a song of its own, named by its first lyric line.
+    private void StartUntitled(Region region, int i)
+    {
+        _afterHeading = false;
+        _title = UntitledSheet.TitleFrom(region, i);
+        _firstPage = _lastPage = region.Page;
     }
 
     // A line that the index shows as a section heading, set off by blank lines and not listed as a song, closes the song above and is no text.
