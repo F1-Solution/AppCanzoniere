@@ -37,10 +37,11 @@ public static class MauiProgram
 
 #if WINDOWS
         // The reader is started on demand from the PdfWorker folder next to the app.
+        // A package without the reader still opens the import page; every read then fails with a reason.
         builder.Services.AddSingleton<AppCanzoniere.Application.PdfImport.IPdfWordExtractor>(_ =>
-            new AppCanzoniere.Infrastructure.PdfImport.IsolatedPdfWordExtractor(
-                AppCanzoniere.Infrastructure.PdfImport.PdfWorkerLaunch.LocateForApp(AppContext.BaseDirectory)
-                ?? throw new FileNotFoundException("The PDF reader is missing from the app folder.")));
+            AppCanzoniere.Infrastructure.PdfImport.PdfWorkerLaunch.LocateForApp(AppContext.BaseDirectory) is { } worker
+                ? new AppCanzoniere.Infrastructure.PdfImport.IsolatedPdfWordExtractor(worker)
+                : new AppCanzoniere.Application.PdfImport.UnavailablePdfWordExtractor("The PDF reader is missing from the app folder."));
 #endif
 
 #if DEBUG
@@ -188,6 +189,8 @@ public static class MauiProgram
             var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
             db.Database.EnsureCreated();
         }
+
+        ViewModels.ImportViewModel.CleanStaleCopies();
 
         return app;
     }

@@ -8,6 +8,7 @@ public partial class ImportPage : ContentPage
     private readonly ImportViewModel _viewModel;
     private IDispatcherTimer? _tick;
     private Window? _window;
+    private bool _sheetShown;
 
     public ImportPage(ImportViewModel viewModel)
     {
@@ -16,6 +17,14 @@ public partial class ImportPage : ContentPage
         BindingContext = viewModel;
         SizeChanged += (_, _) => OnPageSizeChanged();
         viewModel.PropertyChanged += OnViewModelChanged;
+#if WINDOWS
+        // Tab cycles inside the sheet and never reaches the navigation bar or the page behind.
+        DeclarationSheet.HandlerChanged += (_, _) =>
+        {
+            if (DeclarationSheet.Handler?.PlatformView is Microsoft.UI.Xaml.UIElement native)
+                native.TabFocusNavigation = Microsoft.UI.Xaml.Input.KeyboardNavigationMode.Cycle;
+        };
+#endif
         PreviewView.LayoutFailed += (_, ex) => System.Diagnostics.Debug.WriteLine($"Preview drawing failed: {ex}");
     }
 
@@ -64,6 +73,13 @@ public partial class ImportPage : ContentPage
     // Leaving for another tab with unsaved edits asks first; opening a song does not.
     private async void OnShellNavigating(object? sender, ShellNavigatingEventArgs e)
     {
+        // Nothing leaves the page while the declaration is open or songs are being saved.
+        if (_viewModel.Session.IsLocked)
+        {
+            e.Cancel();
+            return;
+        }
+
         if (_viewModel.Session.ModifiedUnsavedCount == 0 || e.Target?.Location.ToString().Contains("songdetail") == true)
             return;
 
@@ -139,11 +155,22 @@ public partial class ImportPage : ContentPage
             PlacePanels();
             StyleSegments();
             DeclarationSheet.VerticalOptions = _viewModel.IsNarrow ? LayoutOptions.End : LayoutOptions.Center;
+            FocusSheetWhenOpened();
         }
         catch (Exception ex)
         {
             System.Diagnostics.Debug.WriteLine($"Import layout failed: {ex}");
         }
+    }
+
+    // The page behind is disabled; the focus moves into the sheet when it opens.
+    private void FocusSheetWhenOpened()
+    {
+        var open = _viewModel.DeclarationOpen;
+        if (open && !_sheetShown)
+            Dispatcher.Dispatch(() => DeclarationCheck.Focus());
+
+        _sheetShown = open;
     }
 
     private void PlaceResultColumns()

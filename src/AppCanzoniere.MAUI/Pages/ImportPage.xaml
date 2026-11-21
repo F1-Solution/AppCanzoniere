@@ -9,7 +9,7 @@
     BackgroundColor="{DynamicResource Token.bg}">
 
     <Grid>
-        <Grid RowDefinitions="Auto,*">
+        <Grid x:Name="PageContent" RowDefinitions="Auto,*" IsEnabled="{Binding IsPageEnabled}">
 
             <!-- S5 banner: stays until closed. -->
             <Border Grid.Row="0" Style="{StaticResource ImpBanner}" IsVisible="{Binding HasBanner}" Margin="{DynamicResource Token.pad.page}"
@@ -251,14 +251,15 @@
                     <Label Text="{Binding DeclarationTitle}" Style="{StaticResource ImpHeading}" AutomationId="DeclarationTitle" />
                     <Label Text="I canti restano solo su questo dispositivo." Style="{StaticResource ImpSmall}" />
                     <Border Stroke="{DynamicResource Token.text2}" StrokeThickness="1" StrokeShape="RoundRectangle 4" Padding="8" MinimumHeightRequest="72" Margin="0,8,0,0">
-                        <Border.GestureRecognizers>
-                            <TapGestureRecognizer Command="{Binding ToggleDeclarationCommand}" />
-                        </Border.GestureRecognizers>
                         <Grid ColumnDefinitions="56,*">
-                            <CheckBox IsChecked="{Binding DeclarationAccepted, Mode=TwoWay}" IsEnabled="{Binding IsSaving, Converter={StaticResource InvertedBoolConverter}}"
+                            <CheckBox x:Name="DeclarationCheck" IsChecked="{Binding DeclarationAccepted, Mode=TwoWay}" IsEnabled="{Binding IsSaving, Converter={StaticResource InvertedBoolConverter}}"
                                       Color="{DynamicResource Token.accent}" VerticalOptions="Center" AutomationId="DeclarationCheck"
                                       SemanticProperties.Description="{Binding DeclarationText}" />
-                            <Label Grid.Column="1" Text="{Binding DeclarationText}" Style="{StaticResource ImpBody}" VerticalOptions="Center" />
+                            <Label Grid.Column="1" Text="{Binding DeclarationText}" Style="{StaticResource ImpBody}" VerticalOptions="Center">
+                                <Label.GestureRecognizers>
+                                    <TapGestureRecognizer Command="{Binding ToggleDeclarationCommand}" />
+                                </Label.GestureRecognizers>
+                            </Label>
                         </Grid>
                     </Border>
                     <Label Text="Spunta la dichiarazione per salvare." Style="{StaticResource ImpSmall}" IsVisible="{Binding ShowDeclarationHelp}" />

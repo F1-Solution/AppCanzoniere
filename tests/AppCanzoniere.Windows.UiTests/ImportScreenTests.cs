@@ -213,4 +213,71 @@ public class ImportScreenTests
         Assert.Equal(0, closed.Number("saved"));
         Assert.Equal("True", closed["reviewing"]);
     }
+
+    [WindowsFact]
+    public void RealClickOnTheDeclarationBox_TicksItOnce()
+    {
+        using var session = AppSession.LaunchImport(AppSession.Fixture("single-song.pdf"));
+        WaitFor(session, s => s["phase"] == "Result" && s["reviewing"] == "True", "the single song to open in review");
+        Press(session, "SaveCurrent");
+        WaitFor(session, s => s["declaration"] == "True", "the declaration sheet", TimeSpan.FromSeconds(15));
+
+        session.EnsureForeground();
+        session.Window.SetForeground();
+        Thread.Sleep(500);
+        var rect = Require(session, "DeclarationCheck").BoundingRectangle;
+        var glyph = new System.Drawing.Point(rect.X + 14, rect.Y + rect.Height / 2);
+        Mouse.MoveTo(glyph);
+        Mouse.Click(glyph);
+
+        // A second toggle (from a gesture on the row) would untick it again, so it must stay ticked.
+        Thread.Sleep(1000);
+
+        WaitUntil(() => Enabled(session, "ConfirmSave"), "Salva to become enabled after one real click");
+        Assert.True(IsChecked(session, "DeclarationCheck"));
+    }
+
+    [WindowsFact]
+    public void DeclarationSheet_IsModal_PageBehindIsDisabled_AndTabStaysInsideIt()
+    {
+        using var session = AppSession.LaunchImport(AppSession.Fixture("mini-songbook.pdf"));
+        WaitFor(session, s => s["phase"] == "Result", "the songbook to be read");
+        session.EnsureForeground();
+        session.Window.SetForeground();
+        Thread.Sleep(500);
+        Press(session, "SaveSelected");
+        WaitFor(session, s => s["declaration"] == "True", "the declaration sheet", TimeSpan.FromSeconds(15));
+
+        WaitUntil(() => !Enabled(session, "AnotherPdf") && !Enabled(session, "SelectNone"), "the page behind to be disabled");
+        var inside = new[] { "DeclarationCheck", "DeclarationCancel", "ConfirmSave" };
+        for (var i = 0; i < 8; i++)
+        {
+            AppSession.Tap(VirtualKeyShort.TAB);
+            Thread.Sleep(200);
+            var focused = session.Window.Automation.FocusedElement()?.Properties.AutomationId.ValueOrDefault;
+            Assert.True(focused is null || inside.Contains(focused), $"Tab reached '{focused}' behind the sheet");
+        }
+
+        var status = ReadStatus(session);
+        Assert.Equal("True", status["declaration"]);
+        Assert.Equal(0, status.Number("saved"));
+    }
+
+    [WindowsFact]
+    public void CancelButton_DuringARealRecognition_StopsAndLeavesNoList()
+    {
+        using var session = AppSession.LaunchImport(AppSession.Fixture("scanned-page.pdf"));
+
+        WaitFor(session, s => s["phase"] == "Reading" && s["stage"] == "Recognizing", "the recognition to start", TimeSpan.FromSeconds(60));
+        Press(session, "CancelImport");
+
+        var cancelled = WaitFor(session, s => s["phase"] is "Cancelled" or "Result", "the cancelled state", TimeSpan.FromSeconds(15));
+        Assert.True(cancelled["phase"] == "Cancelled", $"the recognition finished before the cancel: {cancelled}");
+        Thread.Sleep(TimeSpan.FromSeconds(8));
+        var later = ReadStatus(session);
+        Assert.Equal("Cancelled", later["phase"]);
+        Assert.Equal(0, later.Number("songs"));
+        using var process = System.Diagnostics.Process.GetProcessById(session.ProcessId);
+        Assert.False(process.HasExited);
+    }
 }

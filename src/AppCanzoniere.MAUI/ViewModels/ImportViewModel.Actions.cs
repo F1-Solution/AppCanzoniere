@@ -3,6 +3,7 @@ using AppCanzoniere.Application.ImportReview;
 using AppCanzoniere.Application.PdfImport;
 using AppCanzoniere.MAUI.Controls;
 using CommunityToolkit.Mvvm.Input;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 
 namespace AppCanzoniere.MAUI.ViewModels;
@@ -12,7 +13,9 @@ public sealed partial class ImportViewModel
     private CancellationTokenSource? _importCts;
     private CancellationTokenSource? _previewCts;
     private IDisposable? _wakeLease;
-    private string? _tempPath;
+    private (string Name, byte[] Bytes)? _lastFile;
+    private Task _engine = Task.CompletedTask;
+    private static readonly long MaxFileBytes = new SongbookImportOptions().MaxBytes;
 
     private static readonly PickOptions PdfOptions = new()
     {
@@ -29,14 +32,18 @@ public sealed partial class ImportViewModel
     {
         try
         {
-            if (IsReading || !await ConfirmLeaveAsync())
+            if (IsReading || Session.IsLocked || !await ConfirmLeaveAsync() || !await EngineIdleAsync())
                 return;
 
             var file = await FilePicker.Default.PickAsync(PdfOptions);
             if (file is null)
                 return;
 
-            await RunImportAsync(file.FileName, () => CopyToTempAsync(file), ownsTemp: true);
+            await RunImportAsync(file.FileName, async ct =>
+            {
+                await using var input = await file.OpenReadAsync();
+                return await BoundedReader.ReadAsync(input, MaxFileBytes, ct);
+            });
         }
         catch (Exception ex)
         {
@@ -45,18 +52,22 @@ public sealed partial class ImportViewModel
         }
     }
 
+#if DEBUG
     /// <summary>Debug hook: imports the PDF at a path without the file picker.</summary>
     public Task ImportFromPathAsync(string path, TimeSpan startDelay = default) =>
-        RunImportAsync(Path.GetFileName(path), async () =>
+        RunImportAsync(Path.GetFileName(path), async ct =>
         {
             if (startDelay > TimeSpan.Zero)
-                await Task.Delay(startDelay);
-            return path;
-        }, ownsTemp: false);
+                await Task.Delay(startDelay, ct);
+
+            await using var input = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete, 81920, useAsync: true);
+            return await BoundedReader.ReadAsync(input, MaxFileBytes, ct);
+        });
+#endif
 
     [RelayCommand]
-    private Task RetryAsync() => _lastSource is { } source
-        ? RunImportAsync(source.Name, () => Task.FromResult(source.Path), ownsTemp: false)
+    private Task RetryAsync() => _lastFile is { } file
+        ? RunImportAsync(file.Name, _ => Task.FromResult<byte[]?>(file.Bytes))
         : ChoosePdfAsync();
 
     [RelayCommand]
@@ -77,7 +88,7 @@ public sealed partial class ImportViewModel
     [RelayCommand]
     private async Task AnotherPdfAsync()
     {
-        if (IsReading || !await ConfirmLeaveAsync())
+        if (IsReading || Session.IsLocked || !await ConfirmLeaveAsync() || !await EngineIdleAsync())
             return;
 
         Session.Reset();
@@ -133,7 +144,7 @@ public sealed partial class ImportViewModel
     {
         try
         {
-            if (await Session.SaveAsync((entry, ct) => _saver.SaveAsync(entry, ct)) is not null && Session.Banner is { } banner)
+            if (await Session.SaveAsync(SaveInOwnScopeAsync) is not null && Session.Banner is { } banner)
                 Announce(banner.Text);
         }
         catch (Exception ex)
@@ -142,6 +153,13 @@ public sealed partial class ImportViewModel
             Session.CancelDeclaration();
             await ShowAsync("Salvataggio non riuscito", "Non è stato possibile salvare i canti. Riprova.");
         }
+    }
+
+    // A fresh scope gives each song its own database context, so one failed save cannot break the next.
+    private async Task<Guid> SaveInOwnScopeAsync(ImportEntry entry, CancellationToken ct)
+    {
+        using var scope = _scopes.CreateScope();
+        return await scope.ServiceProvider.GetRequiredService<ImportSaver>().SaveAsync(entry, ct);
     }
 
     [RelayCommand]
@@ -198,7 +216,11 @@ public sealed partial class ImportViewModel
     /// <summary>Handles a back gesture; true when it was used inside the page.</summary>
     public bool HandleBack()
     {
-        if (DeclarationOpen && !IsSaving)
+        if (IsSaving)
+        {
+            // The save runs to its end; the back gesture does nothing meanwhile.
+        }
+        else if (DeclarationOpen)
             CancelDeclaration();
         else if (IsReading)
             CancelReading();
@@ -221,16 +243,16 @@ public sealed partial class ImportViewModel
             case "Escape" when IsReading:
                 CancelReading();
                 return true;
-            case "S" when ctrl && IsReviewing && CanEdit && !DeclarationOpen:
+            case "S" when ctrl && !alt && IsReviewing && CanEdit && !DeclarationOpen:
                 SaveCurrent();
                 return true;
-            case "O" when ctrl && !IsReading && !DeclarationOpen:
-                _ = ChoosePdfAsync();
+            case "O" when ctrl && !alt && !IsReading && !DeclarationOpen:
+                ChoosePdfCommand.Execute(null);
                 return true;
-            case "Left" when alt && ShowNavigation && !DeclarationOpen:
+            case "Left" when alt && !ctrl && ShowNavigation && !DeclarationOpen:
                 PreviousSong();
                 return true;
-            case "Right" when alt && ShowNavigation && !DeclarationOpen:
+            case "Right" when alt && !ctrl && ShowNavigation && !DeclarationOpen:
                 NextSong();
                 return true;
             default:
@@ -249,29 +271,41 @@ public sealed partial class ImportViewModel
         return await ConfirmAsync("Modifiche non salvate", text, "Esci");
     }
 
-    private (string Name, string Path)? _lastSource;
+    // A cancelled reading may still be winding down; a new one waits until it has really ended.
+    private async Task<bool> EngineIdleAsync()
+    {
+        if (_engine.IsCompleted)
+            return true;
 
-    private async Task RunImportAsync(string name, Func<Task<string>> source, bool ownsTemp)
+        await ShowAsync("Un momento", "Sto chiudendo la lettura precedente…");
+        return false;
+    }
+
+    private async Task RunImportAsync(string name, Func<CancellationToken, Task<byte[]?>> source)
     {
         // Session changes, the wake lock and the preview touch views, so the whole run stays on the main thread.
         if (!MainThread.IsMainThread)
         {
-            await MainThread.InvokeOnMainThreadAsync(() => RunImportAsync(name, source, ownsTemp));
+            await MainThread.InvokeOnMainThreadAsync(() => RunImportAsync(name, source));
             return;
         }
 
+        if (Session.IsLocked || !await EngineIdleAsync())
+            return;
+
         _importCts?.Cancel();
         var cts = _importCts = new CancellationTokenSource();
+        _lastFile = null;
         Session.BeginReading(name);
         _lastAnnounced = 0;
-        _wakeLease?.Dispose();
-        _wakeLease = _wakeLock.Acquire();
         try
         {
-            var path = await source();
-            _lastSource = (name, path);
+            _wakeLease?.Dispose();
+            _wakeLease = _wakeLock.Acquire();
             var progress = new Progress<SongbookImportProgress>(Session.Report);
-            var result = await Task.Run(() => ImportFileAsync(path, name, progress, cts.Token), cts.Token);
+            Task<SongbookImportResult> work = Task.Run(() => ReadAndImportAsync(name, source, progress, cts.Token));
+            _engine = work;
+            var result = await work;
             if (!cts.IsCancellationRequested)
                 Session.Complete(result);
         }
@@ -288,48 +322,53 @@ public sealed partial class ImportViewModel
         finally
         {
             if (ReferenceEquals(_importCts, cts))
-                AfterSessionEnded(keepTemp: ownsTemp && Session.Phase == ImportPhase.Error);
+                AfterSessionEnded();
         }
     }
 
-    private async Task<SongbookImportResult> ImportFileAsync(string path, string name, IProgress<SongbookImportProgress> progress, CancellationToken ct)
+    // The file is read once, within the size limit; the bytes stay only while "Riprova" may need them.
+    private async Task<SongbookImportResult> ReadAndImportAsync(string name, Func<CancellationToken, Task<byte[]?>> source, IProgress<SongbookImportProgress> progress, CancellationToken ct)
     {
-        await using var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read, 81920, useAsync: true);
+        var bytes = await source(ct);
+        if (bytes is null)
+            return SongbookImportResult.Failed($"The file is larger than the limit of {MaxFileBytes} bytes.", SongbookImportFailure.OverLimits);
+
+        _lastFile = (name, bytes);
+        using var stream = new MemoryStream(bytes, writable: false);
         return await _import.ImportAsync(stream, name, progress, ct);
     }
 
-    private async Task<string> CopyToTempAsync(FileResult file)
-    {
-        DeleteTemp();
-        var path = Path.Combine(FileSystem.CacheDirectory, $"import-{Guid.NewGuid():N}.pdf");
-        await using var input = await file.OpenReadAsync();
-        await using var output = File.Create(path);
-        await input.CopyToAsync(output);
-        _tempPath = path;
-        return path;
-    }
-
-    private void AfterSessionEnded(bool keepTemp = false)
+    private void AfterSessionEnded()
     {
         _wakeLease?.Dispose();
         _wakeLease = null;
-        if (!keepTemp && Session.Phase != ImportPhase.Reading)
-            DeleteTemp();
+        if (Session.Phase != ImportPhase.Reading && Session.Error?.CanRetry != true)
+            _lastFile = null;
     }
 
-    private void DeleteTemp()
+    /// <summary>Removes copies of picked PDFs that an older version left in the cache.</summary>
+    public static void CleanStaleCopies()
     {
         try
         {
-            if (_tempPath is not null && File.Exists(_tempPath))
-                File.Delete(_tempPath);
+            foreach (var path in Directory.EnumerateFiles(FileSystem.CacheDirectory, "import-*.pdf"))
+            {
+                try
+                {
+                    File.Delete(path);
+                }
+                catch (IOException)
+                {
+                }
+                catch (UnauthorizedAccessException)
+                {
+                }
+            }
         }
         catch (Exception ex)
         {
-            _log.LogDebug(ex, "Deleting the temporary PDF failed");
+            System.Diagnostics.Debug.WriteLine($"Cleaning old PDF copies failed: {ex}");
         }
-
-        _tempPath = null;
     }
 
     private void SchedulePreview(TimeSpan delay)
@@ -383,7 +422,8 @@ public sealed partial class ImportViewModel
             if (index is not { } i || i >= Session.Entries.Count || Session.Entries[i].SavedSongId is not { } id)
                 return;
 
-            var song = await _songs.GetByIdAsync(id);
+            using var scope = _scopes.CreateScope();
+            var song = await scope.ServiceProvider.GetRequiredService<AppCanzoniere.Domain.Interfaces.ISongRepository>().GetByIdAsync(id);
             if (song is null)
             {
                 await ShowAsync("Canto non trovato", "Il canto salvato non è più nella libreria.");

@@ -222,6 +222,13 @@ run_import mini-songbook.pdf cancel 120
 log | grep -q 'IMPORT CANCELLING phase=Reading'; check "The import was in the reading state when it was cancelled" $?
 log | grep 'IMPORT END' | grep -q 'phase=Cancelled;songs=0;'; check "Cancel leaves no partial list" $?
 
+echo "== 12. Import screen: cancel during a real recognition"
+push_fixture scanned-page.pdf
+run_import scanned-page.pdf cancelreal 300
+log | grep -q 'IMPORT CANCELLING stage=Recognizing phase=Reading'; check "The import was recognising the page when it was cancelled" $?
+log | grep 'IMPORT END' | grep -q 'phase=Cancelled;songs=0;'; check "Cancelling during recognition leaves no list" $?
+[ -n "$(adb shell pidof $PKG | tr -d '[:space:]')" ]; check "The app is still running after cancelling during recognition" $?
+
 adb logcat -d > "$OUT/logcat.txt"
 echo "== Done: $FAILED failed check(s)"
 [ "$FAILED" -eq 0 ]

@@ -6,6 +6,7 @@ using AppCanzoniere.Application.PageTurning;
 using AppCanzoniere.Application.PdfImport;
 using AppCanzoniere.Domain.Interfaces;
 using CommunityToolkit.Mvvm.ComponentModel;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 
 namespace AppCanzoniere.MAUI.ViewModels;
@@ -29,8 +30,7 @@ public sealed partial class ImportViewModel : ObservableObject
     private readonly ISongPreviewService _preview;
     private readonly ISongDisplayService _display;
     private readonly IChordDisplaySettingsStore _settings;
-    private readonly ImportSaver _saver;
-    private readonly ISongRepository _songs;
+    private readonly IServiceScopeFactory _scopes;
     private readonly ScreenWakeLock _wakeLock;
     private readonly ILogger<ImportViewModel> _log;
     private readonly Dictionary<int, ImportRow> _rows = new();
@@ -45,8 +45,7 @@ public sealed partial class ImportViewModel : ObservableObject
         ISongPreviewService preview,
         ISongDisplayService display,
         IChordDisplaySettingsStore settings,
-        ImportSaver saver,
-        ISongRepository songs,
+        IServiceScopeFactory scopes,
         ScreenWakeLock wakeLock,
         ILogger<ImportViewModel> log)
     {
@@ -54,8 +53,7 @@ public sealed partial class ImportViewModel : ObservableObject
         _preview = preview;
         _display = display;
         _settings = settings;
-        _saver = saver;
-        _songs = songs;
+        _scopes = scopes;
         _wakeLock = wakeLock;
         _log = log;
 #if WINDOWS
@@ -237,6 +235,9 @@ public sealed partial class ImportViewModel : ObservableObject
     public bool DeclarationOpen => Session.DeclarationOpen;
     public bool CanConfirmSave => Session.CanConfirmSave;
     public bool IsSaving => Session.IsSaving;
+
+    /// <summary>False while the declaration sheet is up, so the page behind it cannot be reached.</summary>
+    public bool IsPageEnabled => !Session.DeclarationOpen;
     public bool ShowDeclarationHelp => Session.DeclarationOpen && !Session.DeclarationAccepted && !Session.IsSaving;
     public string DeclarationTitle => $"Salva {ImportMessages.Songs(Session.DeclarationCount)} nella libreria";
     public string DeclarationText => ImportMessages.DeclarationText;
@@ -259,7 +260,7 @@ public sealed partial class ImportViewModel : ObservableObject
     /// <summary>One line a UI test can read: phase and counts.</summary>
     public string AutomationStatus => HooksEnabled
         ? $"phase={Session.Phase};songs={Session.Entries.Count};selected={Session.SelectedCount};saved={Session.Entries.Count(e => e.IsSaved)};" +
-          $"reviewing={Session.IsReviewing};declaration={Session.DeclarationOpen};error={Session.Error?.Title};" +
+          $"stage={Session.ProgressStage};reviewing={Session.IsReviewing};declaration={Session.DeclarationOpen};error={Session.Error?.Title};" +
           $"origins={string.Join(',', Session.Entries.Select(e => e.Song.Origin))}"
         : string.Empty;
 

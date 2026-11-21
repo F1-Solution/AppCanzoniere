@@ -15,6 +15,7 @@ public sealed class SongDrawingView : GraphicsView
     private readonly Dictionary<int, SongDrawing> _byWidth = new();
     private SongDrawable? _drawable;
     private double _width;
+    private double _height;
     private bool _failed;
 
     public PreparedSong? Song
@@ -32,6 +33,14 @@ public sealed class SongDrawingView : GraphicsView
     protected override void OnSizeAllocated(double width, double height)
     {
         base.OnSizeAllocated(width, height);
+
+        // The canvas grows after the layout sets its height; repaint at the new size so the last row is not left clipped.
+        if (Math.Abs(height - _height) > 0.5)
+        {
+            _height = height;
+            Invalidate();
+        }
+
         if (width > 0 && Math.Abs(width - _width) > 0.5)
         {
             _width = width;
@@ -76,7 +85,8 @@ public sealed class SongDrawingView : GraphicsView
             }
 
             _drawable.Drawing = drawing;
-            HeightRequest = drawing.Height;
+            // A little room under the last row keeps its descenders inside the canvas.
+            HeightRequest = drawing.Height + Math.Ceiling(RowHeight * 0.25);
             Invalidate();
         }
         catch (Exception ex)
