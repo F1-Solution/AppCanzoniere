@@ -137,9 +137,7 @@ jobs:
 
       - name: Summarise network capture
         if: always()
-        run: |
-          sudo apt-get install -y tshark > /dev/null
-          bash tools/android-network-analyze.sh emulator-artifacts/net.pcap emulator-artifacts/net-markers.txt emulator-artifacts/net-summary.txt
+        run: python3 -I tools/android-network-analyze.py emulator-artifacts/net.pcap emulator-artifacts/net-markers.txt emulator-artifacts/net-summary.txt
 
       - name: Upload screenshots and logcat
         if: always()

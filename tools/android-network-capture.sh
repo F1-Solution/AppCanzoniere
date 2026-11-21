@@ -15,7 +15,7 @@ mark() { echo "$1 $(date +%s)" >> "$MARK"; echo "MARK $1"; }
 adb wait-for-device
 adb shell input keyevent 82
 adb install -r -g "$APK" || { echo "FAIL: install"; exit 1; }
-UID_APP=$(adb shell dumpsys package "$PKG" | tr -d '\r' | sed -n 's/.*userId=\([0-9]*\).*/\1/p' | head -1)
+UID_APP=$(adb shell pm list packages -U "$PKG" | tr -d '\r' | sed -n 's/.*uid:\([0-9]*\).*/\1/p' | head -1)
 echo "app uid: $UID_APP" | tee "$OUT/net-uid.txt"
 adb shell dumpsys connectivity | tr -d '\r' | grep -iE 'validated' | head -5
 
@@ -44,7 +44,7 @@ adb shell dumpsys jobscheduler | tr -d '\r' > "$OUT/net-jobscheduler-before.txt"
 adb shell dumpsys alarm | tr -d '\r' | grep -B1 -A3 "$PKG" > "$OUT/net-alarms.txt" || true
 grep -E "JOB #.*$PKG" "$OUT/net-jobscheduler-before.txt" | tee "$OUT/net-jobs.txt"
 mark jobs_start
-sed -n "s/.*JOB #[^/]*\/\([0-9][0-9]*\):.*$PKG.*/\1/p" "$OUT/net-jobscheduler-before.txt" | sort -u | while read -r id; do
+sed -n "s/.*JOB #[^/]*\/\(-\{0,1\}[0-9][0-9]*\):.*$PKG.*/\1/p" "$OUT/net-jobscheduler-before.txt" | sort -u | while read -r id; do
   echo "run job $id"
   adb shell cmd jobscheduler run -f "$PKG" "$id"
 done
