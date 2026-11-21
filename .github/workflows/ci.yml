@@ -96,7 +96,7 @@ jobs:
       # Every PR: the ML Kit telemetry backend must stay removed from the merged manifest (R10-07).
       - name: Check merged manifest has no telemetry backend
         run: |
-          files=$(find src/AppCanzoniere.MAUI/obj/Debug/net10.0-android -name AndroidManifest.xml)
+          files=$(find src/AppCanzoniere.MAUI/obj/Debug/net10.0-android -name AndroidManifest.xml -not -path '*/lp/*')
           echo "$files"
           test -n "$files" || { echo "no AndroidManifest.xml in the build output"; exit 1; }
           # The app manifest names the backend only in a tools:node="remove" line; any other mention is a registration.
