@@ -70,11 +70,12 @@ internal static partial class IndexRegionDetector
         return !Leader().IsMatch(last) && WideGap().IsMatch(last.Trim()) && leadered >= LeaderShare * others.Count ? others : entries;
     }
 
-    // A heading is set well left of the usual entry indent, which is the widest indent shared by two entries.
+    // A heading is set well left of the usual entry indent, which is the most common indent among entries (the widest on a tie).
     private static List<int> WithoutHeadings(Region region, List<int> entries)
     {
-        var shared = entries.GroupBy(i => SongLineKinds.Indent(region.Lines[i])).Where(g => g.Count() >= 2).Select(g => g.Key).DefaultIfEmpty(-1).Max();
-        return shared < 0 ? entries : entries.Where(i => SongLineKinds.Indent(region.Lines[i]) > shared - HeadingIndentGap).ToList();
+        var usual = entries.GroupBy(i => SongLineKinds.Indent(region.Lines[i])).Where(g => g.Count() >= 2)
+            .OrderByDescending(g => g.Count()).ThenByDescending(g => g.Key).Select(g => g.Key).DefaultIfEmpty(-1).First();
+        return usual < 0 ? entries : entries.Where(i => SongLineKinds.Indent(region.Lines[i]) > usual - HeadingIndentGap).ToList();
     }
 
     private static bool IsFullIndex(int lines, int numbered, int withPage) =>

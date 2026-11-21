@@ -58,6 +58,21 @@ public sealed class PdfSongSplitterIndexEntryTests
         Assert.Equal(6, result.IndexEntryCount);
     }
 
+    // Titles that wrap put their dot leader and page number on an indented continuation line; the margin entries stay entries.
+    [Fact]
+    public void Wrapped_long_titles_do_not_hide_the_entries_at_the_margin()
+    {
+        var rows = Enumerable.Range(1, 12).Select(n => Leader("", $"TITOLO NUMERO {n}", n + 7)).ToList();
+        rows.Insert(3, "UN TITOLO MOLTO LUNGO CHE VA A CAPO");
+        rows.Insert(4, "   NELLA RIGA SUCCESSIVA ........................ 30");
+        rows.Add("ALTRO TITOLO LUNGHISSIMO DEL LIBRETTO");
+        rows.Add("   CHE CONTINUA SOTTO ............................ 31");
+
+        var result = PdfSongSplitter.Split(new[] { Page(1, $"1. LA LUNA\n{Chords}"), Page(2, "INDICE\n" + string.Join("\n", rows)) });
+
+        Assert.Equal(14, result.IndexEntryCount);
+    }
+
     // An index without dot leaders keeps counting every line, as before.
     [Fact]
     public void Entries_without_leaders_keep_counting_every_line()
