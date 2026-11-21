@@ -96,11 +96,12 @@ jobs:
       # Every PR: the ML Kit telemetry backend must stay removed from the merged manifest (R10-07).
       - name: Check merged manifest has no telemetry backend
         run: |
-          manifest=src/AppCanzoniere.MAUI/obj/Debug/net10.0-android/AndroidManifest.xml
-          test -s "$manifest" || { echo "merged manifest not found: $manifest"; exit 1; }
-          if grep -Eq 'CctBackendFactory|backend:com.google.android.datatransport' "$manifest"; then
-            echo "The datatransport backend is registered again in the merged manifest:"
-            grep -En 'CctBackendFactory|backend:com.google.android.datatransport' "$manifest"
+          files=$(find src/AppCanzoniere.MAUI/obj/Debug/net10.0-android -name AndroidManifest.xml)
+          echo "$files"
+          test -n "$files" || { echo "no AndroidManifest.xml in the build output"; exit 1; }
+          # The app manifest names the backend only in a tools:node="remove" line; any other mention is a registration.
+          if grep -h 'datatransport.cct.CctBackendFactory' $files | grep -v 'tools:node="remove"'; then
+            echo "The datatransport backend is registered in the merged manifest."
             exit 1
           fi
 
