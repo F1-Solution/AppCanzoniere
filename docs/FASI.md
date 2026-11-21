@@ -65,7 +65,7 @@ Stati: **completata** · **in corso** · **da iniziare** · **condizionata** (si
 | G0 | Validazione commerciale e d'uso (Gate 0, lavoro del proprietario, in parallelo) | da iniziare | F0 | Avvio entro il 16/11/2026; copione delle interviste aggiornato a tre modalità, pubblicità e Pro | — (≈ 80 h del proprietario) |
 | F1 | Risanamento del repository e CI verde (build Android e Windows) | **in corso** (ramo `f1/risanamento-ci`, PR) | F0 | Protezione del branch e minuti Actions sul piano GitHub (V-09); workload della macchina locale (proprietario) | 4 |
 | F2 | Nucleo musicale: ChordPro, trasposizione, notazione legata alla lingua, "incolla" | da iniziare | F1 (job core) | Nulla | 3 |
-| F3 | Prove tecniche del Gate 0: leggio su tablet Android e su Windows, import da PDF | da iniziare | F1 (job Android e Windows), F2 | Tablet economico, pedale Bluetooth, PC Windows di prova; 10 libretti PDF reali | 4 |
+| F3 | Prove tecniche del Gate 0: leggio su tablet Android e su Windows, import da PDF | in corso (mancano gli esiti delle prove su dispositivo) | F1 (job Android e Windows), F2 | Tablet economico, pedale Bluetooth, PC Windows di prova; 10 libretti PDF reali | 4 |
 | F4 | Sistema di token, cinque temi e componenti | da iniziare | F1 | Installazione della taste-skill (proprietario) | 5 |
 | F5 | Prove visive automatiche (confronto di schermate) in CI | da iniziare | F1, F4 | Cattura su emulatore Android e su Windows nei runner (V-09) | 3 |
 | F6 | Fondamenta: persistenza, impostazioni sul dispositivo, navigazione a tre modalità, libreria | da iniziare | F1, F2; F4 per la UI | Persistenza: nulla. UI: i due temi predefiniti di F4 | 6 |
