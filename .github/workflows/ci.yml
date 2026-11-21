@@ -93,6 +93,17 @@ jobs:
           -p:MauiPlatforms=android -p:AndroidPackageFormat=apk -p:EmbedAssembliesIntoApk=true
           -t:Build -t:SignAndroidPackage
 
+      # Every PR: the ML Kit telemetry backend must stay removed from the merged manifest (R10-07).
+      - name: Check merged manifest has no telemetry backend
+        run: |
+          manifest=src/AppCanzoniere.MAUI/obj/Debug/net10.0-android/AndroidManifest.xml
+          test -s "$manifest" || { echo "merged manifest not found: $manifest"; exit 1; }
+          if grep -Eq 'CctBackendFactory|backend:com.google.android.datatransport' "$manifest"; then
+            echo "The datatransport backend is registered again in the merged manifest:"
+            grep -En 'CctBackendFactory|backend:com.google.android.datatransport' "$manifest"
+            exit 1
+          fi
+
       - name: Upload APK
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
@@ -122,12 +133,13 @@ jobs:
       - name: Prepare output folder
         run: mkdir -p emulator-artifacts
 
-      # Manual runs only: captures the runner uplink (the emulator's own -tcpdump misses guest traffic) to prove ML Kit sends nothing.
+      # Manual runs only: captures the runner uplink (DNS and web ports, headers only) to prove ML Kit sends nothing.
+      # The pcap stays on the runner; only the text summary is uploaded because the repository is public.
       - name: Start host capture
         if: github.event_name == 'workflow_dispatch'
         run: |
           sudo apt-get install -y tcpdump > /dev/null
-          sudo tcpdump -i eth0 -U -n -w emulator-artifacts/host.pcap > /dev/null 2>&1 &
+          sudo tcpdump -i eth0 -U -n -s 600 -w "$RUNNER_TEMP/host.pcap"             'not host 168.63.129.16 and not host 169.254.169.254 and (port 53 or port 80 or port 443)' > /dev/null 2>&1 &
           sleep 2
 
       - name: Run emulator tests
@@ -148,7 +160,7 @@ jobs:
         run: |
           sudo pkill tcpdump || true
           sleep 2
-          python3 -I tools/android-network-analyze.py emulator-artifacts/host.pcap emulator-artifacts/net-markers.txt emulator-artifacts/host-summary.txt
+          python3 -I tools/android-network-analyze.py "$RUNNER_TEMP/host.pcap" emulator-artifacts/net-markers.txt emulator-artifacts/host-summary.txt emulator-artifacts/net-uid-counters.txt
           ! grep -q firebaselogging emulator-artifacts/host-summary.txt
 
       - name: Upload screenshots and logcat

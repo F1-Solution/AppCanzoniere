@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
 """Lists DNS names, TLS server names, HTTP hosts and peer addresses per capture window.
 
-Usage: android-network-analyze.py <pcap> <markers> <output-file>
-Reads a classic pcap (Ethernet) written by the emulator's -tcpdump option; needs no extra packages.
+Usage: android-network-analyze.py <pcap> <markers> <output-file> [<uid-counters>]
+Reads a classic pcap (Ethernet) captured on the runner by tcpdump; needs no extra packages.
+With <uid-counters> it also fails (exit 1) when the app's own byte counters grew between ocr_start and tail_end.
 """
 import collections
 import socket
@@ -56,6 +57,17 @@ def sni(payload):
     return None
 
 
+def classify_v6(frame):
+    """IPv6 without extension headers: DNS, QUIC and TCP are only counted, not named."""
+    nxt = frame[20]
+    dst = socket.inet_ntop(socket.AF_INET6, frame[38:54])
+    if nxt not in (6, 17) or len(frame) < 58:
+        return "ipv6", dst
+    dport = struct.unpack(">H", frame[56:58])[0]
+    kind = {53: "dns6", 443: "quic6" if nxt == 17 else "tls6"}.get(dport, "ipv6")
+    return kind, "[%s]:%d" % (dst, dport)
+
+
 def classify(frame):
     """Returns (kind, value) or None for one Ethernet frame."""
     if len(frame) < 34 or frame[12:14] != b"\x08\x00":
@@ -69,7 +81,7 @@ def classify(frame):
         msg = frame[l4 + 8:]
         if dport == 53 and len(msg) > 12 and not msg[2] & 0x80:
             return "dns", dns_name(msg, 12)
-        return "udp", "%s:%d" % (dst, dport)
+        return ("quic" if dport == 443 else "udp"), "%s:%d" % (dst, dport)
     if proto == 6:
         dport = struct.unpack(">H", frame[l4 + 2:l4 + 4])[0]
         offset = (frame[l4 + 12] >> 4) * 4
@@ -86,8 +98,22 @@ def classify(frame):
     return None
 
 
+def uid_totals(path):
+    """Total received plus sent bytes of the app per marker, from the netstats lines saved at each mark."""
+    totals, label = {}, None
+    for line in open(path):
+        if line.startswith("## "):
+            label = line[3:].strip()
+            totals[label] = 0
+        elif label and line.strip().startswith("st="):
+            fields = dict(p.split("=", 1) for p in line.split() if "=" in p)
+            totals[label] += int(fields.get("rb", 0)) + int(fields.get("tb", 0))
+    return totals
+
+
 def main():
     pcap, markers_path, out_path = sys.argv[1:4]
+    counters_path = sys.argv[4] if len(sys.argv) > 4 else None
     markers = {}
     for line in open(markers_path):
         parts = line.split()

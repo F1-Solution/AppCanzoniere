@@ -102,7 +102,7 @@ Conclusione: ML Kit invia le metriche d'uso a Google anche con il modello inclus
 
 ### Correzione
 
-Il manifest dell'app toglie la registrazione del servizio di invio della libreria di trasporto di Google (`tools:node="remove"`), e il progetto usa l'unificatore di manifest di Google. Senza servizio di invio gli eventi vengono scartati.
+Il manifest dell'app toglie la registrazione del servizio di invio della libreria di trasporto di Google (`tools:node="remove"`), e il progetto indica l'unificatore di manifest di Google (è già il predefinito: la riga lo rende esplicito). Senza servizio di invio gli eventi vengono scartati.
 
 ### Risultato dopo la correzione (esecuzione 44914831304)
 

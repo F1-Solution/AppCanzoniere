@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# Marks capture windows for the emulator's -tcpdump file while ML Kit runs: tools/android-network-capture.sh <apk> <output-dir>
-# Writes <output-dir>/net-markers.txt, jobscheduler dumps and per-uid netstats; tools/android-network-analyze.sh reads them.
+# Marks capture windows for the runner's tcpdump file while ML Kit runs: tools/android-network-capture.sh <apk> <output-dir>
+# Writes <output-dir>/net-markers.txt, jobscheduler dumps and per-uid netstats; tools/android-network-analyze.py reads them.
 set -u
 
 APK=${1:?usage: android-network-capture.sh <apk> <output-dir>}
