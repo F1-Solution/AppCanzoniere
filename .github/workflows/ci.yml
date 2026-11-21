@@ -122,8 +122,9 @@ jobs:
       - name: Prepare output folder
         run: mkdir -p emulator-artifacts
 
-      # The emulator's own -tcpdump file misses guest traffic, so the runner's uplink is captured too.
+      # Manual runs only: captures the runner uplink (the emulator's own -tcpdump misses guest traffic) to prove ML Kit sends nothing.
       - name: Start host capture
+        if: github.event_name == 'workflow_dispatch'
         run: |
           sudo apt-get install -y tcpdump > /dev/null
           sudo tcpdump -i eth0 -U -n -w emulator-artifacts/host.pcap > /dev/null 2>&1 &
@@ -136,19 +137,19 @@ jobs:
           arch: x86_64
           target: google_apis
           force-avd-creation: false
-          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none -camera-front none -tcpdump ${{ github.workspace }}/emulator-artifacts/net.pcap
+          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none -camera-front none
           disable-animations: true
           script: |
-            bash tools/android-network-capture.sh apk/*-Signed.apk emulator-artifacts
+            [ "$GITHUB_EVENT_NAME" != workflow_dispatch ] || bash tools/android-network-capture.sh apk/*-Signed.apk emulator-artifacts
             bash tools/android-emulator-tests.sh apk/*-Signed.apk emulator-artifacts
 
       - name: Summarise network capture
-        if: always()
+        if: always() && github.event_name == 'workflow_dispatch'
         run: |
           sudo pkill tcpdump || true
           sleep 2
-          python3 -I tools/android-network-analyze.py emulator-artifacts/net.pcap emulator-artifacts/net-markers.txt emulator-artifacts/net-summary.txt
           python3 -I tools/android-network-analyze.py emulator-artifacts/host.pcap emulator-artifacts/net-markers.txt emulator-artifacts/host-summary.txt
+          ! grep -q firebaselogging emulator-artifacts/host-summary.txt
 
       - name: Upload screenshots and logcat
         if: always()
