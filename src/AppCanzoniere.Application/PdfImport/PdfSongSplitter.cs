@@ -40,9 +40,11 @@ public static class PdfSongSplitter
         var followsIndex = false;
         foreach (var page in pages.Where(p => !p.IsScanned))
         {
+            var pageLines = page.Blocks.SelectMany(b => b.Lines).Select(l => l.Text.Trim()).Where(t => t.Length > 0)
+                .GroupBy(t => t, StringComparer.OrdinalIgnoreCase).ToDictionary(g => g.Key, g => g.Count(), StringComparer.OrdinalIgnoreCase);
             foreach (var block in page.Blocks)
             {
-                var region = Region.Of(page.PageNumber, block.Lines.Select(l => l.Text).ToList(), block.Lines.Select(l => l.Row?.Height ?? 0).ToList());
+                var region = Region.Of(page.PageNumber, block.Lines.Select(l => l.Text).ToList(), block.Lines.Select(l => l.Row?.Height ?? 0).ToList()) with { PageLineCounts = pageLines };
                 var index = IndexRegionDetector.Read(region, followsIndex);
                 followsIndex = index is not null;
                 result.Add((region, index));
