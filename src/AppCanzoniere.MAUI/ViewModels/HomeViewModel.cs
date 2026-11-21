@@ -8,6 +8,9 @@ namespace AppCanzoniere.MAUI.ViewModels;
 
 public partial class HomeViewModel : ObservableObject
 {
+    private const string NewSongChoice = "Nuovo canto";
+    private const string FromPdfChoice = "Da PDF";
+
     private readonly ISongRepository _songRepository;
     private readonly IAlbumRepository _albumRepository;
 
@@ -77,6 +80,17 @@ public partial class HomeViewModel : ObservableObject
     private async Task NavigateToCreateSongAsync()
     {
         await Shell.Current.GoToAsync("songdetail");
+    }
+
+    // "+" offers the manual new song and the PDF import, which is pushed on this tab's stack.
+    [RelayCommand]
+    private async Task ShowAddMenuAsync()
+    {
+        var choice = await Shell.Current.DisplayActionSheetAsync("Aggiungi canto", "Annulla", null, NewSongChoice, FromPdfChoice);
+        if (choice == NewSongChoice)
+            await NavigateToCreateSongAsync();
+        else if (choice == FromPdfChoice)
+            await Shell.Current.GoToAsync("import");
     }
 
     [RelayCommand]

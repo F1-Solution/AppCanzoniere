@@ -5,12 +5,13 @@
              xmlns:entities="clr-namespace:AppCanzoniere.Domain.Entities;assembly=AppCanzoniere.Domain"
              x:Class="AppCanzoniere.MAUI.Pages.HomePage"
              x:DataType="vm:HomeViewModel"
-             Title="Songs">
+             Title="Canti">
 
     <ContentPage.ToolbarItems>
-        <ToolbarItem Text="Add"
+        <ToolbarItem Text="Aggiungi canto"
+                     AutomationId="AddSongButton"
                      IconImageSource="add.png"
-                     Command="{Binding NavigateToCreateSongCommand}" />
+                     Command="{Binding ShowAddMenuCommand}" />
         <ToolbarItem Text="Search"
                      IconImageSource="search.png"
                      Command="{Binding Source={RelativeSource AncestorType={x:Type ContentPage}}, Path=BindingContext.NavigateToSearchCommand}" />

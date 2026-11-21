@@ -33,7 +33,7 @@ internal static class ImportSelfTest
             for (var i = 0; i < 120 && Shell.Current?.CurrentPage is null; i++)
                 await Task.Delay(500).ConfigureAwait(false);
 
-            await MainThread.InvokeOnMainThreadAsync(() => Shell.Current!.GoToAsync("//import"));
+            await MainThread.InvokeOnMainThreadAsync(() => Shell.Current!.GoToAsync("import"));
             ImportViewModel? vm = null;
             for (var i = 0; i < 100 && vm is null; i++)
             {
