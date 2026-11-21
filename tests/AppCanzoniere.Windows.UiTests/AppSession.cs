@@ -152,9 +152,22 @@ internal sealed class AppSession : IDisposable
         throw new TimeoutException("The song screen never showed a vertical scroller.\n" + Dump());
     }
 
-    public AutomationElement? FindScroller() =>
-        Window.FindAllDescendants()
-            .FirstOrDefault(e => e.Patterns.Scroll.IsSupported && e.Patterns.Scroll.PatternOrDefault is { VerticallyScrollable.ValueOrDefault: true });
+    /// <summary>Looks the scroller up by its automation id; a UI Automation hiccup counts as not found yet.</summary>
+    public AutomationElement? FindScroller()
+    {
+        try
+        {
+            var element = Window.FindFirstDescendant(c => c.ByAutomationId("SongScroll"));
+            return element is not null && element.Patterns.Scroll.IsSupported
+                && element.Patterns.Scroll.PatternOrDefault is { VerticallyScrollable.ValueOrDefault: true }
+                ? element
+                : null;
+        }
+        catch (Exception ex) when (ex is System.Runtime.InteropServices.COMException or FlaUI.Core.Exceptions.ElementNotAvailableException or TimeoutException)
+        {
+            return null;
+        }
+    }
 
     /// <summary>Current scroll offset in pixels, from the percentages the scroller reports.</summary>
     public static double Offset(AutomationElement scroller)
