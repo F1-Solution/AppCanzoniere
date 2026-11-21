@@ -60,6 +60,7 @@
 - Le righe di indicazione come Tastiera, Chitarra, capotasto o trasposizione non diventano titoli e non restano nel testo del canto.
 - Una seconda versione di un canto, in altra tonalità o marcata "BIS", resta nello stesso canto.
 - I piè di pagina con link e le righe correnti ripetute su più pagine non entrano nei canti, mentre titoli, ritornelli e righe di accordi vicino al margine restano.
+- I piè di pagina che cambiano da una sezione all'altra del libretto non entrano più nel testo dei canti.
 - Una scansione il cui unico testo è un piè di pagina viene segnalata come senza testo.
 - Nelle schede scansionate tutte maiuscole le righe di accordi vengono riconosciute e scritte in notazione normale (Sol, Lam), mentre le righe di testo maiuscolo restano testo.
 - Nelle scansioni gli accordi cadono sulla sillaba giusta, anche con "SI m" staccato, e le righe con barre o "BB" in maiuscolo vengono riconosciute.

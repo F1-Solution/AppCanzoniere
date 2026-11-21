@@ -3,7 +3,7 @@ using AppCanzoniere.Application.PdfImport;
 namespace AppCanzoniere.Application.Tests.PdfImport;
 
 // Rule: in the top or bottom tenth of a page, a row with a link is dropped at the bottom, or at the top when repeated;
-// any such row (digits ignored, two words or a number) repeated on three pages and a quarter of them is dropped too.
+// any such row (digits ignored, two words or a number) repeated on three pages and a quarter of them, or on three nearby pages, is dropped too.
 public class RunningLinesTests
 {
     private sealed class Fake(IReadOnlyList<PdfPageWords> pages) : IPdfWordExtractor
@@ -113,5 +113,46 @@ public class RunningLinesTests
         var texts = await Import(pages);
 
         Assert.All(texts, t => Assert.Contains("Ritornello ripetere due volte", t));
+    }
+    private static PdfPageWords SectionPage(int number, string section) =>
+        Page(number, ($"Alleluia cantate al Signore {number}", 400), (number % 2 == 1 ? $"{section} {number}" : $"{number} {section}", Footer));
+
+    // Five sections of four pages each: no footer reaches a quarter of the booklet, but each repeats on consecutive pages.
+    private static PdfPageWords[] SectionedBooklet(params string[] sections) =>
+        sections.SelectMany((section, s) => Enumerable.Range(1, 4).Select(i => SectionPage(s * 4 + i, section))).ToArray();
+
+    [Fact]
+    public async Task FooterThatChangesPerSection_IsDropped_OnEveryPageOfItsSection()
+    {
+        var texts = await Import(SectionedBooklet("Canti di ingresso", "Salmi e cantici", "Comunione", "Maria", "Finali"));
+
+        Assert.All(texts, t => Assert.StartsWith("Alleluia cantate al Signore", t));
+        Assert.All(texts, t => Assert.DoesNotContain("ingresso", t));
+        Assert.All(texts, t => Assert.DoesNotContain("cantici", t));
+        Assert.All(texts, t => Assert.DoesNotContain("Maria", t));
+        Assert.All(texts, t => Assert.DoesNotContain("Comunione", t));
+        Assert.All(texts, t => Assert.DoesNotContain("Finali", t));
+    }
+
+    [Fact]
+    public async Task SectionFooter_OnTwoConsecutivePagesOnly_IsKept()
+    {
+        var pages = new[] { SectionPage(1, "Canti di ingresso"), SectionPage(2, "Canti di ingresso"), SectionPage(3, "Salmi e cantici"), SectionPage(4, "Maria") };
+
+        var texts = await Import(pages);
+
+        Assert.Contains("Canti di ingresso", texts[0]);
+    }
+
+    [Fact]
+    public async Task SetApartLineAtTheBottomOfSpreadOutPages_IsKept_AsARefrain()
+    {
+        var pages = Enumerable.Range(1, 20)
+            .Select(n => n % 5 == 0 ? Page(n, ($"Alleluia cantate al Signore {n}", 400), ("Rit. lode al Signore", Footer)) : Page(n, ($"Alleluia cantate al Signore {n}", 400)))
+            .ToArray();
+
+        var texts = await Import(pages);
+
+        Assert.Equal(4, texts.Count(t => t.Contains("Rit. lode al Signore")));
     }
 }
