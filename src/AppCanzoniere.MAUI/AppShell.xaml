@@ -28,12 +28,6 @@
             Route="albums" />
 
         <ShellContent
-            Title="Importa"
-            Icon="camera.png"
-            ContentTemplate="{DataTemplate pages:ImportPage}"
-            Route="import" />
-
-        <ShellContent
             Title="Audio ID"
             Icon="microphone.png"
             ContentTemplate="{DataTemplate pages:AudioRecognitionPage}"

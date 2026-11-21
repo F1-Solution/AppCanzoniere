@@ -16,5 +16,7 @@ public partial class AppShell : Shell
         Routing.RegisterRoute("cloudsync", typeof(CloudSyncPage));
         Routing.RegisterRoute("login", typeof(LoginPage));
         Routing.RegisterRoute("publicsongs", typeof(PublicSongsPage));
+        // Pushed from the songs list ("+" then "Da PDF"), so Back returns to the list.
+        Routing.RegisterRoute("import", typeof(ImportPage));
     }
 }

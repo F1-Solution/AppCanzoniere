@@ -73,6 +73,17 @@ internal sealed class AppSession : IDisposable
         return Start(info, data);
     }
 
+    /// <summary>Starts the app on its first screen (the songs list) with no debug hook and a throwaway database.</summary>
+    public static AppSession LaunchPlain()
+    {
+        var data = Path.Combine(Path.GetTempPath(), "appcanzoniere-uitest-" + Guid.NewGuid().ToString("N"));
+        var info = new ProcessStartInfo(Executable) { WorkingDirectory = AppDirectory, UseShellExecute = false };
+        info.Environment["APPCANZONIERE_UITEST_DATA"] = data;
+        info.Environment.Remove(SongVariable);
+        info.Environment.Remove("APPCANZONIERE_UITEST_IMPORT");
+        return Start(info, data);
+    }
+
     private static AppSession Start(ProcessStartInfo info, string? dataFolder = null)
     {
         var app = FlaApp.Launch(info);
