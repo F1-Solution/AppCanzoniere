@@ -46,8 +46,13 @@ public sealed partial class ImportViewModel
     }
 
     /// <summary>Debug hook: imports the PDF at a path without the file picker.</summary>
-    public Task ImportFromPathAsync(string path) =>
-        RunImportAsync(Path.GetFileName(path), () => Task.FromResult(path), ownsTemp: false);
+    public Task ImportFromPathAsync(string path, TimeSpan startDelay = default) =>
+        RunImportAsync(Path.GetFileName(path), async () =>
+        {
+            if (startDelay > TimeSpan.Zero)
+                await Task.Delay(startDelay);
+            return path;
+        }, ownsTemp: false);
 
     [RelayCommand]
     private Task RetryAsync() => _lastSource is { } source

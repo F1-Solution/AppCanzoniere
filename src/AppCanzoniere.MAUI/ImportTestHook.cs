@@ -6,6 +6,9 @@ internal static class ImportTestHook
 {
     public const string Variable = "APPCANZONIERE_UITEST_IMPORT";
 
+    /// <summary>Milliseconds to wait in the reading state before the file is opened, so a test can cancel a reading in progress.</summary>
+    public const string DelayVariable = "APPCANZONIERE_UITEST_IMPORT_DELAY_MS";
+
     public static bool IsRequested => !string.IsNullOrEmpty(Environment.GetEnvironmentVariable(Variable));
 
     /// <summary>Appends a line to import-test.log next to the app, so a UI test can read what happened.</summary>
@@ -36,7 +39,8 @@ internal static class ImportTestHook
             if (shell.CurrentPage?.BindingContext is ViewModels.ImportViewModel vm)
             {
                 vm.Session.Changed += () => Log(vm.AutomationStatus + ";" + vm.ProgressPageText);
-                await vm.ImportFromPathAsync(path);
+                var delay = int.TryParse(Environment.GetEnvironmentVariable(DelayVariable), out var ms) ? TimeSpan.FromMilliseconds(ms) : TimeSpan.Zero;
+                await vm.ImportFromPathAsync(path, delay);
             }
         }
         catch (Exception ex)

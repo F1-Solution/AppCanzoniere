@@ -49,6 +49,14 @@ public static class MauiProgram
 
         // Database
         var dbPath = Path.Combine(FileSystem.AppDataDirectory, "appcanzoniere.db");
+#if DEBUG
+        // UI tests point the database at a throwaway folder so they leave the library alone.
+        if (Environment.GetEnvironmentVariable("APPCANZONIERE_UITEST_DATA") is { Length: > 0 } testData)
+        {
+            Directory.CreateDirectory(testData);
+            dbPath = Path.Combine(testData, "appcanzoniere.db");
+        }
+#endif
         builder.Services.AddDbContext<AppDbContext>(options =>
             options.UseSqlite($"Data Source={dbPath}"));
 

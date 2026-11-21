@@ -19,12 +19,12 @@ check() { # check <name> <exit status of the condition>
 log() { adb logcat -d -s "$TAG:I" | tr -d '\r'; }
 shot() { adb exec-out screencap -p > "$OUT/$1.png"; }
 key() { adb shell input keyevent "$@"; sleep 1.5; }
-# launch <selftest>: starts the launcher activity the package manager reports, so no activity name is hard-coded.
+# launch <selftest> [extra --es args...]: starts the launcher activity the package manager reports, so no activity name is hard-coded.
 launch() {
   local component
   component=$(adb shell cmd package resolve-activity --brief -a android.intent.action.MAIN -c android.intent.category.LAUNCHER "$PKG" | tr -d '' | tail -1)
   case "$component" in
-    */*) adb shell am start -n "$component" --es selftest "$1" > /dev/null ;;
+    */*) local test=$1; shift; adb shell am start -n "$component" --es selftest "$test" "$@" > /dev/null ;;
     *) echo "FAIL: no launcher activity found for $PKG (got '$component')"; FAILED=$((FAILED + 1)) ;;
   esac
 }
@@ -170,6 +170,57 @@ AUDIO_HOME2=$(audio_state)
 { echo "$AUDIO_HOME0"; echo ---; echo "$AUDIO_HOME1"; echo ---; echo "$AUDIO_HOME2"; } > "$OUT/audio-home.txt"
 { [ "$AUDIO_HOME0" != "$AUDIO_HOME1" ] || [ "$AUDIO_HOME1" != "$AUDIO_HOME2" ]; }; check "Volume keys change the volume on another screen" $?
 [ "$(scroll_lines)" -eq 0 ]; check "Volume keys do not scroll on another screen" $?
+
+# push_fixture <name>: copies a committed import PDF into the app's private files folder (the debug APK is debuggable, so run-as works).
+push_fixture() {
+  adb exec-in run-as "$PKG" sh -c "mkdir -p files/import-fixtures && cat > files/import-fixtures/$1" < "tests/fixtures/import/$1"
+}
+# run_import <fixture> <scenario> <timeout seconds>: fresh app process, imports the fixture and waits for the END line.
+run_import() {
+  adb shell am force-stop $PKG
+  adb logcat -c
+  launch import --es importfile "$1" --es importscenario "$2"
+  wait_log 'IMPORT (END|FAIL)' "$3"
+  log | grep 'IMPORT '
+}
+
+echo "== 7. Import screen: single-song text PDF"
+push_fixture single-song.pdf
+run_import single-song.pdf single 180
+log | grep -q 'IMPORT DONE phase=Result;songs=1;.*reviewing=True'; check "Single song goes straight to review" $?
+log | grep -q 'IMPORT CHECK reviewing=True accepted=False'; check "The declaration starts unticked" $?
+log | grep -q 'IMPORT CHECK declaration=True accepted=False canSave=False'; check "Save is disabled until the declaration is ticked" $?
+log | grep -q 'IMPORT CHECK accepted=True canSave=True'; check "Save is enabled once the declaration is ticked" $?
+log | grep 'IMPORT END' | grep -q 'saved=1'; check "The single song is saved" $?
+shot 05-import-single
+
+echo "== 8. Import screen: mini songbook"
+push_fixture mini-songbook.pdf
+run_import mini-songbook.pdf songbook 180
+log | grep -q 'IMPORT DONE phase=Result;songs=3;selected=3'; check "Songbook gives 3 songs, all selected" $?
+log | grep -q 'IMPORT CHECK none-selected canSave=False'; check "Select none disables saving" $?
+log | grep -q 'IMPORT CHECK declaration=True accepted=False canSave=False'; check "Saving the songbook asks for the declaration first" $?
+log | grep 'IMPORT END' | grep -q 'saved=3'; check "All three songs are saved" $?
+shot 06-import-songbook
+
+echo "== 9. Import screen: scanned page read with on-device OCR"
+push_fixture scanned-page.pdf
+run_import scanned-page.pdf plain 300
+log | grep 'IMPORT DONE' | grep -Eq 'phase=Result;songs=[1-9][0-9]*;.*origins=(Scan|TextAndScan)'; check "OCR finds at least one song with origin scan" $?
+shot 07-import-scan
+
+echo "== 10. Import screen: damaged file"
+push_fixture damaged.pdf
+run_import damaged.pdf plain 120
+log | grep 'IMPORT DONE' | grep -Eq 'phase=Error;.*error=[^;]+;'; check "Damaged file ends in the error state with a title" $?
+[ -n "$(adb shell pidof $PKG | tr -d '[:space:]')" ]; check "The app is still running after the damaged file" $?
+shot 08-import-damaged
+
+echo "== 11. Import screen: cancel while reading"
+push_fixture mini-songbook.pdf
+run_import mini-songbook.pdf cancel 120
+log | grep -q 'IMPORT CANCELLING phase=Reading'; check "The import was in the reading state when it was cancelled" $?
+log | grep 'IMPORT END' | grep -q 'phase=Cancelled;songs=0;'; check "Cancel leaves no partial list" $?
 
 adb logcat -d > "$OUT/logcat.txt"
 echo "== Done: $FAILED failed check(s)"

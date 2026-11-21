@@ -259,7 +259,8 @@ public sealed partial class ImportViewModel : ObservableObject
     /// <summary>One line a UI test can read: phase and counts.</summary>
     public string AutomationStatus => HooksEnabled
         ? $"phase={Session.Phase};songs={Session.Entries.Count};selected={Session.SelectedCount};saved={Session.Entries.Count(e => e.IsSaved)};" +
-          $"reviewing={Session.IsReviewing};declaration={Session.DeclarationOpen};error={Session.Error?.Title}"
+          $"reviewing={Session.IsReviewing};declaration={Session.DeclarationOpen};error={Session.Error?.Title};" +
+          $"origins={string.Join(',', Session.Entries.Select(e => e.Song.Origin))}"
         : string.Empty;
 
     /// <summary>Called every second by the page so the review timer text moves.</summary>
