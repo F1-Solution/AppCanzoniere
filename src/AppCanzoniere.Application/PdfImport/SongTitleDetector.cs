@@ -43,7 +43,7 @@ internal static class SongTitleDetector
         return new Found(title, number, subtitles, next, note is not null);
     }
 
-    // A centred line set slightly larger than the body (larger ones follow the usual rules), not repeated centred, and listed in the songbook's own index is a title.
+    // A centred line slightly larger than the body, set off by a blank line, passing the title checks, not repeated anywhere on the page and listed in the songbook's index is a title (DEC 35).
     private static bool IsListedHeading(Region region, int i, int? number, string full, string title, TitleContext context)
     {
         var line = region.Lines[i];
@@ -51,11 +51,31 @@ internal static class SongTitleDetector
             return false;
         if (SongLineKinds.Indent(line) < CenteredIndent || !region.IsTallerThanBody(i, ListedHeadingFactor) || region.IsTallerThanBody(i, LargeHeadingFactor))
             return false;
+        if ((i > 0 && !SongLineKinds.IsBlank(region.Lines[i - 1])) || !LooksLikeTitleText(title) || SongLineKinds.IsRomanNumerals(title))
+            return false;
         if (!listed.Contains(IndexRegionDetector.Comparable(full)) && !listed.Contains(IndexRegionDetector.Comparable(title)))
             return false;
 
-        return !Enumerable.Range(0, region.Lines.Count).Any(j => j != i && SongLineKinds.Indent(region.Lines[j]) >= CenteredIndent
-            && string.Equals(region.Lines[j].Trim(), line.Trim(), StringComparison.OrdinalIgnoreCase));
+        return !RepeatedOnPage(region, i);
+    }
+
+    // A repeat at any indent marks a refrain; the title echoed as the first lyric line right under it does not count.
+    private static bool RepeatedOnPage(Region region, int i)
+    {
+        var echo = NextLyric(region, i);
+        return Enumerable.Range(0, region.Lines.Count).Any(j => j != i && j != echo
+            && string.Equals(region.Lines[j].Trim(), region.Lines[i].Trim(), StringComparison.OrdinalIgnoreCase));
+    }
+
+    private static int NextLyric(Region region, int i)
+    {
+        for (var j = i + 1; j < region.Lines.Count; j++)
+        {
+            if (!SongLineKinds.IsBlank(region.Lines[j]) && !region.IsChord[j])
+                return j;
+        }
+
+        return -1;
     }
 
     private static bool IsTitle(Region region, int i, int? number, string text, TitleContext context)

@@ -76,7 +76,7 @@ public sealed class PdfSongSplitterIndexEntryTests
     [Fact]
     public void A_centred_slightly_larger_line_listed_in_the_index_starts_a_song()
     {
-        var songs = $"~                 PRIMO CANTO\n\n{Chords}\n2 strofa ancora\n~                 Noi ti chiediamo\n\n{Chords}";
+        var songs = $"~                 PRIMO CANTO\n\n{Chords}\n2 strofa ancora\n\n~                 Noi ti chiediamo\n\n{Chords}";
 
         var result = PdfSongSplitter.Split(new[] { Page(1, songs), Page(2, Index("PRIMO CANTO", "Noi ti chiediamo")) });
 
@@ -123,6 +123,39 @@ public sealed class PdfSongSplitterIndexEntryTests
         var songs = $"~                 PRIMO CANTO\n\n{Chords}\n\n~                 Noi ti chiediamo\n\nsopra il mare scuro\n\n~                 Noi ti chiediamo\n\nsopra il mare scuro";
 
         var result = PdfSongSplitter.Split(new[] { Page(1, songs), Page(2, Index("PRIMO CANTO", "Noi ti chiediamo")) });
+
+        Assert.Single(result.Songs);
+    }
+
+    // DEC 35: an indented refrain in the middle of a verse never splits a song, even when the index lists it.
+    [Fact]
+    public void A_listed_refrain_in_the_middle_of_a_verse_without_a_blank_line_above_is_not_a_title()
+    {
+        var songs = $"~                 PRIMO CANTO\n\n{Chords}\n2 strofa ancora\n~                 Noi ti chiediamo\nsopra il mare scuro";
+
+        var result = PdfSongSplitter.Split(new[] { Page(1, songs), Page(2, Index("PRIMO CANTO", "Noi ti chiediamo")) });
+
+        Assert.Single(result.Songs);
+    }
+
+    // A listed line that comes back at the margin further down is a refrain whatever its first indent.
+    [Fact]
+    public void A_listed_line_repeated_at_the_margin_is_not_a_title()
+    {
+        var songs = $"~                 PRIMO CANTO\n\n{Chords}\n\n~                 Noi ti chiediamo\n\nsopra il mare scuro\n\nNoi ti chiediamo\nsopra il mare scuro";
+
+        var result = PdfSongSplitter.Split(new[] { Page(1, songs), Page(2, Index("PRIMO CANTO", "Noi ti chiediamo")) });
+
+        Assert.Single(result.Songs);
+    }
+
+    // The usual title checks apply: a line ending in a comma is no title even when listed and set off.
+    [Fact]
+    public void A_listed_centred_line_ending_in_a_comma_is_not_a_title()
+    {
+        var songs = $"~                 PRIMO CANTO\n\n{Chords}\n\n~                 Noi ti chiediamo,\n\n{Chords}";
+
+        var result = PdfSongSplitter.Split(new[] { Page(1, songs), Page(2, Index("PRIMO CANTO", "Noi ti chiediamo,")) });
 
         Assert.Single(result.Songs);
     }
