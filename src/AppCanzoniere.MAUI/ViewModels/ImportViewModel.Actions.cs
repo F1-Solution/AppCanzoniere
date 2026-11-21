@@ -334,7 +334,7 @@ public sealed partial class ImportViewModel
             return SongbookImportResult.Failed($"The file is larger than the limit of {MaxFileBytes} bytes.", SongbookImportFailure.OverLimits);
 
         _lastFile = (name, bytes);
-        using var stream = new MemoryStream(bytes, writable: false);
+        using var stream = new MemoryStream(bytes, 0, bytes.Length, writable: false, publiclyVisible: true);
         return await _import.ImportAsync(stream, name, progress, ct);
     }
 
