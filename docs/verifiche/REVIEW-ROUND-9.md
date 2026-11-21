@@ -45,3 +45,11 @@ Durante la review è arrivato il commit c18ab09 (thread principale per import e 
 | R9-22 | LOW | PLAUSIBILE (preesistente) | src/AppCanzoniere.Application/ImportReview/ImportSaver.cs:14-18; src/AppCanzoniere.Infrastructure/Repositories/SongRepository.cs:47-51 | Il repository usa un DbContext condiviso, perché lo scoped è risolto dalla radice. Un canto che fallisce resta "Added" nel tracker. | Dopo un errore di salvataggio, tutti i canti seguenti (e ogni altro salvataggio dell'app) falliscono. "Un canto che fallisce non ferma gli altri" non vale più. | Creare uno scope per ogni salvataggio (IServiceScopeFactory), oppure staccare l'entità fallita. |
 | R9-23 | LOW | PLAUSIBILE | tests/AppCanzoniere.Infrastructure.Tests/PdfImport/PdfReaderJobTests.cs:51-66, 96-145 | I test usano tempi fissi (5 s, 10 s, scadenza a 8 s) e lanciano processi dotnet. Il nuovo codice aggiunge solo test leggeri nel processo, quindi non è la causa. | Con tutti i test in parallelo, l'avvio dei processi rallenta e un test supera la sua scadenza. | Mettere questi test in una collection non parallela e allungare le scadenze. |
 | R9-24 | LOW | CONFERMATO | CLAUDE.md:30 | I numeri dei test sono vecchi: dice Application 3131 e Infrastructure 614. | L'esecuzione di oggi dà 3175 e 617. | Aggiornare i numeri. |
+
+## Esito delle correzioni (21/11/2026)
+
+Corretti: R9-01, R9-02, R9-03, R9-04, R9-05, R9-06, R9-07, R9-08, R9-09, R9-11, R9-12, R9-13, R9-14, R9-15, R9-16, R9-17, R9-18, R9-19, R9-20, R9-22, R9-23, R9-24.
+
+Aperti: R9-10 (pagine scansionate disegnate nel processo dell'app, rinviato a F7 con DEC 36) e R9-21 (statistiche d'uso di ML Kit, da verificare con una cattura del traffico).
+
+Effetto di R9-01 sul libretto 14: 151 canti contro 152 voci dell'indice (prima 155 contro 152). CI verde sull'esecuzione 44850916474.

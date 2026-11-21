@@ -44,4 +44,4 @@ Il round 8 indicava 2 titoli persi nel libretto 14, per effetto di DEC 35. Erano
 - **Cronometro (U-6):** serve solo per il Gate 0. Va tolto dopo il Gate 0.
 - **Riportati dal round 8, non trattati nel round 9:** accordi in grassetto persi dall'OCR su Windows; scansione 19 illeggibile a 70 dpi; pagine ruotate di 90 gradi senza testo non lette.
 - **Primo tocco su Android:** può spostare lo scorrimento di pochi pixel. Da verificare con la prova T2.
-- **Test del nucleo:** il round dichiara 3815 test. Il file di revisione conta 3797 (Application 3175, Infrastructure 617, Domain 5). Il numero va confermato dalla CI.
+- **Test del nucleo:** 3815 dopo le correzioni della review (Domain 5, Application 3193, Infrastructure 617); il file di revisione riporta il conteggio precedente alle correzioni.
