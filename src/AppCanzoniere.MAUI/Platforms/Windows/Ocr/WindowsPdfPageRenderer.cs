@@ -1,3 +1,4 @@
+using System.Runtime.InteropServices.WindowsRuntime;
 using AppCanzoniere.Application.PdfImport;
 using Windows.Data.Pdf;
 using Windows.Storage.Streams;
@@ -16,8 +17,7 @@ public sealed class WindowsPdfPageRenderer : IPageImageRenderer
         try
         {
             memory = new InMemoryRandomAccessStream();
-            await pdf.CopyToAsync(memory.AsStreamForWrite(), cancellationToken);
-            await memory.FlushAsync().AsTask(cancellationToken);
+            await CopyAsync(pdf, memory, cancellationToken);
             memory.Seek(0);
             var document = await PdfDocument.LoadFromStreamAsync(memory).AsTask(cancellationToken);
             if (document.IsPasswordProtected || document.PageCount == 0)
@@ -38,6 +38,23 @@ public sealed class WindowsPdfPageRenderer : IPageImageRenderer
             memory?.Dispose();
             return null;
         }
+    }
+
+    // A shared in-memory PDF is written straight from its buffer; any other stream goes through the .NET wrapper, which is flushed so a file under its 16 KB buffer is not lost.
+    private static async Task CopyAsync(Stream pdf, InMemoryRandomAccessStream target, CancellationToken cancellationToken)
+    {
+        if (pdf is MemoryStream shared && shared.TryGetBuffer(out var view))
+        {
+            var rest = view.Slice((int)shared.Position);
+            await target.WriteAsync(rest.Array!.AsBuffer(rest.Offset, rest.Count)).AsTask(cancellationToken);
+            await target.FlushAsync().AsTask(cancellationToken);
+            return;
+        }
+
+        var wrapper = target.AsStreamForWrite();
+        await pdf.CopyToAsync(wrapper, cancellationToken);
+        await wrapper.FlushAsync(cancellationToken);
+        await target.FlushAsync().AsTask(cancellationToken);
     }
 
     private sealed class Session(PdfDocument document, InMemoryRandomAccessStream source) : IPageImageSession

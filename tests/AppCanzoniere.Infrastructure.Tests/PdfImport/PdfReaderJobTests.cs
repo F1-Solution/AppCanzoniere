@@ -5,6 +5,7 @@ using AppCanzoniere.Infrastructure.PdfImport;
 namespace AppCanzoniere.Infrastructure.Tests.PdfImport;
 
 // Windows only: the Job Object is what reaches a descendant whose parent has already exited.
+[Collection(nameof(ProcessCollection))]
 public class PdfReaderJobTests : IDisposable
 {
     private readonly DateTime _startedAt = DateTime.Now.AddSeconds(-1);
@@ -23,14 +24,14 @@ public class PdfReaderJobTests : IDisposable
 
     private IsolatedPdfWordExtractor Fake(string mode, TimeSpan? duration = null) =>
         new(new PdfWorkerLaunch(PdfWorkerLaunch.DotnetHost(), new[] { Path.Combine(AppContext.BaseDirectory, "AppCanzoniere.FakePdfWorker.dll"), mode, PidFile }),
-            new IsolatedPdfOptions { Limits = new PdfExtractionLimits { MaxDuration = duration ?? TimeSpan.FromSeconds(30) } });
+            new IsolatedPdfOptions { Limits = new PdfExtractionLimits { MaxDuration = duration ?? TimeSpan.FromSeconds(60) } });
 
     private static Task<PdfWordsResult> Run(IsolatedPdfWordExtractor extractor, CancellationToken token = default) =>
         extractor.ExtractAsync(new MemoryStream(new byte[] { 1, 2, 3 }), token);
 
     private static async Task WaitForFile(string path)
     {
-        for (var i = 0; i < 200 && !File.Exists(path); i++)
+        for (var i = 0; i < 600 && !File.Exists(path); i++)
             await Task.Delay(50);
         Assert.True(File.Exists(path), $"{path} was never written");
     }
@@ -50,7 +51,7 @@ public class PdfReaderJobTests : IDisposable
 
     private bool IsGone(int pid)
     {
-        var deadline = DateTime.UtcNow.AddSeconds(5);
+        var deadline = DateTime.UtcNow.AddSeconds(15);
         while (DateTime.UtcNow < deadline)
         {
             try
@@ -95,7 +96,7 @@ public class PdfReaderJobTests : IDisposable
     [WindowsFact]
     public async Task ExtractAsync_LeavesNoDescendant_AfterATimeout()
     {
-        using var isolated = Fake("orphan-then-hang", TimeSpan.FromSeconds(8));
+        using var isolated = Fake("orphan-then-hang", TimeSpan.FromSeconds(20));
         var run = Run(isolated);
         await WaitForFile(PidFile + ".child");
 

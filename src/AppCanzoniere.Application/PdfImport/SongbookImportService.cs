@@ -25,14 +25,13 @@ public sealed class SongbookImportService : ISongbookImportService
         Stream pdf, string fileName, IProgress<SongbookImportProgress>? progress = null, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(pdf);
-        var bytes = await ReadBoundedAsync(pdf, cancellationToken).ConfigureAwait(false);
-        if (bytes is null)
+        using var source = await ReadBoundedAsync(pdf, cancellationToken).ConfigureAwait(false);
+        if (source is null)
             return SongbookImportResult.Failed($"The file is larger than the limit of {_options.MaxBytes} bytes.", SongbookImportFailure.OverLimits);
-        if (bytes.Length == 0)
+        if (source.Length == 0)
             return SongbookImportResult.Failed("The file is empty.", SongbookImportFailure.ProtectedOrDamaged);
 
         progress?.Report(new SongbookImportProgress(SongbookImportStage.Reading, 0, 0));
-        using var source = new MemoryStream(bytes, writable: false);
         var words = await _extractor.ExtractAsync(source, cancellationToken).ConfigureAwait(false);
         if (words.Status is not (PdfExtractionStatus.Success or PdfExtractionStatus.NoTextLayer))
             return SongbookImportResult.Failed(words.Reason, SongbookImportResult.FailureOf(words.Status), words.Pages.Count);
@@ -107,11 +106,19 @@ public sealed class SongbookImportService : ISongbookImportService
         return scanned == 0 ? SongOrigin.Text : scanned == pages.Count ? SongOrigin.Scan : SongOrigin.TextAndScan;
     }
 
-    // Reads at most MaxBytes; null means the input is larger than that.
-    private async Task<byte[]?> ReadBoundedAsync(Stream pdf, CancellationToken cancellationToken)
+    // Reads at most MaxBytes into one buffer that the readers share without copying it; null means the input is larger than that.
+    private async Task<MemoryStream?> ReadBoundedAsync(Stream pdf, CancellationToken cancellationToken)
     {
-        if (pdf.CanSeek && pdf.Length - pdf.Position > _options.MaxBytes)
-            return null;
+        if (pdf.CanSeek)
+        {
+            var remaining = pdf.Length - pdf.Position;
+            if (remaining > _options.MaxBytes || remaining > Array.MaxLength)
+                return null;
+
+            var exact = new byte[remaining];
+            var count = await pdf.ReadAtLeastAsync(exact, exact.Length, throwOnEndOfStream: false, cancellationToken).ConfigureAwait(false);
+            return new MemoryStream(exact, 0, count, writable: false, publiclyVisible: true);
+        }
 
         using var memory = new MemoryStream();
         var buffer = new byte[CopyBufferBytes];
@@ -123,6 +130,6 @@ public sealed class SongbookImportService : ISongbookImportService
             memory.Write(buffer, 0, read);
         }
 
-        return memory.ToArray();
+        return new MemoryStream(memory.GetBuffer(), 0, (int)memory.Length, writable: false, publiclyVisible: true);
     }
 }

@@ -56,6 +56,21 @@ File.WriteAllBytes(Path.Combine(folder, "scanned-page.pdf"), Build(b =>
     b.AddPage(PageSize.A4).AddPng(png.ToArray(), new PdfRectangle(0, 0, 595, 842));
 }));
 
+// A scanned page under 16 KB, to catch a renderer that loses the tail of a small file in a write buffer.
+File.WriteAllBytes(Path.Combine(folder, "tiny-scanned.pdf"), Build(b =>
+{
+    using var bitmap = new Bitmap(60, 80);
+    using (var g = Graphics.FromImage(bitmap))
+    {
+        g.Clear(Color.White);
+        g.FillRectangle(Brushes.Black, 10, 10, 40, 8);
+    }
+
+    using var png = new MemoryStream();
+    bitmap.Save(png, ImageFormat.Png);
+    b.AddPage(PageSize.A4).AddPng(png.ToArray(), new PdfRectangle(0, 0, 595, 842));
+}));
+
 File.WriteAllText(Path.Combine(folder, "damaged.pdf"), "%PDF-1.4\nthis is not a real pdf, the file is cut short\n");
 Console.WriteLine("Fixtures written to " + folder);
 

@@ -257,9 +257,27 @@ public sealed class SongbookImportServiceTests
     [Fact]
     public async Task Index_entries_are_counted_against_songs_found()
     {
-        var result = await Run(Service(PdfWordsResult.Success(new[] { TextSongPage(1) })));
+        var index = new PageBuilder();
+        for (var n = 0; n < 6; n++)
+            index.Text($"TITOLO NUMERO {n + 1} ........................ {n + 3}", 50, 800 - (n * 12));
 
-        Assert.Equal(result.IndexEntryCount > 0 && result.IndexEntryCount != 1, result.IndexCountMismatch);
+        var result = await Run(Service(PdfWordsResult.Success(new[] { TextSongPage(1), index.Page(2) })));
+
+        Assert.Equal(6, result.IndexEntryCount);
+        Assert.Single(result.Songs);
+        Assert.True(result.IndexCountMismatch);
+    }
+
+    [Fact]
+    public async Task Index_matching_the_songs_found_is_no_mismatch()
+    {
+        var index = new PageBuilder();
+        index.Text("LA LUNA ........................ 1", 50, 800);
+
+        var result = await Run(Service(PdfWordsResult.Success(new[] { TextSongPage(1), index.Page(2) })));
+
+        Assert.Single(result.Songs);
+        Assert.False(result.IndexCountMismatch);
     }
 
     [Fact]
@@ -308,14 +326,75 @@ public sealed class SongbookImportServiceTests
     }
 
     [Fact]
-    public void Doubtful_line_numbers_point_into_the_source_text()
+    public void Doubtful_line_numbers_point_at_the_doubtful_source_lines()
     {
-        var song = new SplitSong("T", 1, 1, new[] { "Do        Sol", "La luna sale piano", "xx $$ ?? ##", "" }, Array.Empty<string>());
+        var song = new SplitSong("LA LUNA", 1, 1, new[] { "Do   Sol", "testo", "Mi", "altro testo" }, Array.Empty<string>());
 
         var converted = PdfSongConverter.Convert(song);
 
+        Assert.NotEmpty(converted.DoubtfulLineNumbers);
         Assert.All(converted.DoubtfulLineNumbers, n => Assert.InRange(n, 1, song.Lines.Count));
-        Assert.Equal(converted.DoubtfulLineCount, converted.DoubtfulLineNumbers.Count);
+        Assert.Contains(converted.DoubtfulLineNumbers, n => song.Lines[n - 1] == "Mi");
+        Assert.DoesNotContain(1, converted.DoubtfulLineNumbers);
+    }
+
+    [Fact]
+    public async Task Imported_song_carries_the_doubtful_line_numbers_of_its_source_text()
+    {
+        var builder = new PageBuilder();
+        builder.Text("LA LUNA", 50, 800);
+        builder.Song(Lyrics, Chords, 50, 740);
+        builder.Text("Mi", 50, 600);
+        builder.Text("altro testo", 50, 588);
+
+        var result = await Run(Service(PdfWordsResult.Success(new[] { builder.Page(1) })));
+
+        var song = Assert.Single(result.Songs);
+        var lines = song.SourceText.Split('\n');
+        Assert.NotEmpty(song.DoubtfulLineNumbers);
+        Assert.All(song.DoubtfulLineNumbers, n => Assert.InRange(n, 1, lines.Length));
+        Assert.Contains(song.DoubtfulLineNumbers, n => lines[n - 1].Trim() == "Mi");
+    }
+
+    private sealed class CapturingExtractor : IPdfWordExtractor
+    {
+        public ArraySegment<byte> Seen { get; private set; }
+
+        public Task<PdfWordsResult> ExtractAsync(Stream pdf, CancellationToken cancellationToken = default)
+        {
+            Assert.True(((MemoryStream)pdf).TryGetBuffer(out var buffer));
+            Seen = buffer;
+            return Task.FromResult(PdfWordsResult.Failure(PdfExtractionStatus.NoTextLayer, "none", Array.Empty<PdfPageWords>()));
+        }
+    }
+
+    private sealed class ForwardOnlyStream(byte[] data) : MemoryStream(data)
+    {
+        public override bool CanSeek => false;
+
+        public override long Length => throw new NotSupportedException();
+
+        public override long Position { get => throw new NotSupportedException(); set => throw new NotSupportedException(); }
+    }
+
+    // The PDF is held once: the extractor gets a view over an exact-size buffer, not a second copy.
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task The_extractor_reads_the_pdf_from_one_exact_size_buffer(bool forwardOnly)
+    {
+        var data = Enumerable.Range(0, 1000).Select(i => (byte)i).ToArray();
+        var extractor = new CapturingExtractor();
+        var service = new SongbookImportService(extractor, new FakeRenderer(), new FakeOcr(_ => ScannedSong()));
+        Stream input = forwardOnly ? new ForwardOnlyStream(data) : new MemoryStream(data);
+
+        await service.ImportAsync(input, "book.pdf");
+
+        Assert.Equal(data.Length, extractor.Seen.Count);
+        Assert.Equal(0, extractor.Seen.Offset);
+        Assert.Equal(data, extractor.Seen.ToArray());
+        if (!forwardOnly)
+            Assert.Equal(data.Length, extractor.Seen.Array!.Length);
     }
 
     private sealed class SyncProgress(Action<SongbookImportProgress> report) : IProgress<SongbookImportProgress>
