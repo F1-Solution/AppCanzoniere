@@ -10,7 +10,11 @@ TAG=AppCanzoniereSelfTest
 mkdir -p "$OUT"
 MARK="$OUT/net-markers.txt"
 : > "$MARK"
-mark() { echo "$1 $(date +%s)" >> "$MARK"; echo "MARK $1"; }
+# mark <label>: records the host time and the app's per-uid byte counters (netstats) at that moment.
+mark() {
+  echo "$1 $(date +%s)" >> "$MARK"; echo "MARK $1"
+  { echo "## $1"; adb shell dumpsys netstats | tr -d '\r' | grep -A2 "uid=$UID_APP set=" | grep -E "uid=|st="; } >> "$OUT/net-uid-counters.txt"
+}
 
 adb wait-for-device
 adb shell input keyevent 82
@@ -18,6 +22,11 @@ adb install -r -g "$APK" || { echo "FAIL: install"; exit 1; }
 UID_APP=$(adb shell pm list packages -U "$PKG" | tr -d '\r' | sed -n 's/.*uid:\([0-9]*\).*/\1/p' | head -1)
 echo "app uid: $UID_APP" | tee "$OUT/net-uid.txt"
 adb shell dumpsys connectivity | tr -d '\r' | grep -iE 'validated' | head -5
+
+# Control: a lookup from the shell must show up in the capture, or the capture is not seeing guest traffic.
+mark control_start
+adb shell ping -c 2 -W 2 example.com > "$OUT/net-control.txt" 2>&1
+mark control_end
 
 # Window 1: emulator and system traffic with the app installed but never started.
 adb shell am force-stop "$PKG"

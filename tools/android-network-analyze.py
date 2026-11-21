@@ -94,7 +94,7 @@ def main():
         if len(parts) == 2:
             markers[parts[0]] = int(parts[1])
     packets = [(t, classify(f)) for t, f in read_packets(pcap)]
-    windows = [("baseline_start", "baseline_end"), ("ocr_start", "ocr_end"), ("ocr_end", "jobs_start"),
+    windows = [("control_start", "control_end"), ("baseline_start", "baseline_end"), ("ocr_start", "ocr_end"), ("ocr_end", "jobs_start"),
                ("jobs_start", "jobs_end"), ("jobs_end", "tail_end")]
     lines = ["pcap: %s, %d packets" % (pcap, len(packets)), "markers: %s" % markers]
     for start, end in windows:
