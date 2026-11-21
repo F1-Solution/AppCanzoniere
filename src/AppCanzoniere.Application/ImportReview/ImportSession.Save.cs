@@ -3,6 +3,7 @@ namespace AppCanzoniere.Application.ImportReview;
 public sealed partial class ImportSession
 {
     private SaveScope _scope;
+    private List<ImportEntry> _frozen = new();
 
     public bool DeclarationOpen { get; private set; }
 
@@ -18,7 +19,10 @@ public sealed partial class ImportSession
     public bool CanConfirmSave => DeclarationOpen && DeclarationAccepted && !IsSaving;
 
     /// <summary>How many songs the open declaration covers.</summary>
-    public int DeclarationCount => TargetEntries().Count;
+    public int DeclarationCount => DeclarationOpen || IsSaving ? _frozen.Count : TargetEntries(_scope).Count;
+
+    /// <summary>True while the declaration sheet is open or a save runs: the covered songs must not change.</summary>
+    public bool IsLocked => DeclarationOpen || IsSaving;
 
     public void RequestSaveCurrent() => OpenDeclaration(SaveScope.CurrentSong);
 
@@ -55,7 +59,7 @@ public sealed partial class ImportSession
         if (!CanConfirmSave)
             return null;
 
-        var targets = TargetEntries();
+        var targets = _frozen;
         _clock.Stop(Current);
         IsSaving = true;
         SaveDone = 0;
@@ -63,11 +67,22 @@ public sealed partial class ImportSession
         Raise();
 
         var failed = new List<string>();
-        foreach (var entry in targets)
+        try
         {
-            await SaveOneAsync(entry, saveOne, failed, cancellationToken);
-            SaveDone++;
+            foreach (var entry in targets)
+            {
+                await SaveOneAsync(entry, saveOne, failed, cancellationToken);
+                SaveDone++;
+                Raise();
+            }
+        }
+        catch (OperationCanceledException)
+        {
+            IsSaving = false;
+            DeclarationOpen = false;
+            DeclarationAccepted = false;
             Raise();
+            throw;
         }
 
         var saved = targets.Count - failed.Count;
@@ -99,16 +114,21 @@ public sealed partial class ImportSession
 
     private void OpenDeclaration(SaveScope scope)
     {
-        _scope = scope;
-        if (Phase != ImportPhase.Result || IsSaving || TargetEntries().Count == 0)
+        if (Phase != ImportPhase.Result || IsLocked)
             return;
 
+        var targets = TargetEntries(scope);
+        if (targets.Count == 0)
+            return;
+
+        _scope = scope;
+        _frozen = targets;
         DeclarationOpen = true;
         DeclarationAccepted = false;
         Raise();
     }
 
-    private List<ImportEntry> TargetEntries() => _scope == SaveScope.CurrentSong
+    private List<ImportEntry> TargetEntries(SaveScope scope) => scope == SaveScope.CurrentSong
         ? Current is { IsSaved: false } c ? new List<ImportEntry> { c } : new List<ImportEntry>()
         : _entries.Where(e => e.IsSelected && !e.IsSaved).ToList();
 
@@ -118,7 +138,7 @@ public sealed partial class ImportSession
         var open = targets.Count == 1 && saved == 1 ? targets[0].Index : (int?)null;
         var hasNext = _entries.Any(e => !e.IsSaved && e.Index > (open ?? -1));
         if (open is { } index)
-            return new ImportBanner($"\"{_entries[index].Song.Title}\" salvato.", index, hasNext && _scope == SaveScope.CurrentSong);
+            return new ImportBanner($"\"{targets[0].Song.Title}\" salvato.", index, hasNext && _scope == SaveScope.CurrentSong);
 
         var rest = _entries.Count(e => !e.IsSaved);
         var left = rest == 0

@@ -251,6 +251,85 @@ public sealed class ImportSessionTests
     }
 
     [Fact]
+    public void While_the_declaration_is_open_the_covered_songs_are_frozen_and_other_actions_do_nothing()
+    {
+        var s = WithSongs(3);
+        s.Open(0);
+        s.RequestSaveCurrent();
+
+        s.Next();
+        s.Open(2);
+        s.Previous();
+        s.SetSelected(1, false);
+        s.SelectNone();
+        s.SelectAll();
+        s.Edit("changed");
+        s.CloseReview();
+        s.Reset();
+        s.BeginReading("b.pdf");
+
+        Assert.Equal(ImportPhase.Result, s.Phase);
+        Assert.Equal(0, s.CurrentIndex);
+        Assert.Equal(1, s.DeclarationCount);
+        Assert.Equal(3, s.SelectedCount);
+        Assert.False(s.Entries[0].IsModified);
+        Assert.True(s.DeclarationOpen);
+    }
+
+    [Fact]
+    public async Task Save_covers_exactly_the_songs_named_when_the_sheet_opened()
+    {
+        var s = WithSongs(3);
+        s.SetSelected(2, false);
+        s.RequestSaveSelected();
+        s.SetDeclaration(true);
+        s.SetSelected(2, true);
+        var saved = new List<int>();
+
+        await s.SaveAsync((e, _) => { saved.Add(e.Index); return Task.FromResult(Guid.NewGuid()); });
+
+        Assert.Equal(new[] { 0, 1 }, saved);
+        Assert.False(s.Entries[2].IsSaved);
+    }
+
+    [Fact]
+    public async Task While_saving_navigation_reset_and_selection_are_blocked_and_the_banner_uses_captured_songs()
+    {
+        var s = WithSongs(2);
+        s.Open(0);
+        s.RequestSaveCurrent();
+        s.SetDeclaration(true);
+        var gate = new TaskCompletionSource();
+
+        var saving = s.SaveAsync(async (_, _) => { await gate.Task; return Guid.NewGuid(); });
+        s.Reset();
+        s.Next();
+        s.SetSelected(1, false);
+        s.BeginReading("x.pdf");
+        Assert.True(s.IsSaving);
+        Assert.Equal(ImportPhase.Result, s.Phase);
+        Assert.Equal(0, s.CurrentIndex);
+        Assert.True(s.Entries[1].IsSelected);
+
+        gate.SetResult();
+        var outcome = await saving;
+
+        Assert.Equal(1, outcome!.Saved);
+        Assert.Contains("Canto 1", s.Banner!.Text);
+    }
+
+    [Fact]
+    public void A_refused_declaration_does_not_change_the_scope_used_later()
+    {
+        var s = WithSongs(3);
+        s.RequestSaveCurrent();
+
+        Assert.False(s.DeclarationOpen);
+        s.RequestSaveSelected();
+        Assert.Equal(3, s.DeclarationCount);
+    }
+
+    [Fact]
     public void Progress_is_reported_with_text()
     {
         var s = NewSession();
