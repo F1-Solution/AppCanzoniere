@@ -32,7 +32,7 @@ public sealed partial class ImportViewModel
     {
         try
         {
-            if (IsReading || Session.IsLocked || !await ConfirmLeaveAsync() || !await EngineIdleAsync())
+            if (IsReading || Session.IsLocked || !await ConfirmReplaceAsync() || !await EngineIdleAsync())
                 return;
 
             var file = await FilePicker.Default.PickAsync(PdfOptions);
@@ -88,7 +88,7 @@ public sealed partial class ImportViewModel
     [RelayCommand]
     private async Task AnotherPdfAsync()
     {
-        if (IsReading || Session.IsLocked || !await ConfirmLeaveAsync() || !await EngineIdleAsync())
+        if (IsReading || Session.IsLocked || !await ConfirmReplaceAsync() || !await EngineIdleAsync())
             return;
 
         Session.Reset();
@@ -260,11 +260,18 @@ public sealed partial class ImportViewModel
         }
     }
 
-    /// <summary>Asks before leaving while a reading runs or read songs are not saved; true when it is fine to go on.</summary>
+    /// <summary>Asks before leaving while read songs are not saved; true when it is fine to go on.</summary>
     public async Task<bool> ConfirmLeaveAsync()
     {
-        var prompt = ImportMessages.LeavePrompt(IsReading, IsResult ? Session.UnsavedCount : 0);
+        var prompt = ImportMessages.LeavePrompt(IsResult ? Session.UnsavedCount : 0);
         return prompt is null || await ConfirmAsync(ImportMessages.LeaveTitle, prompt, "Esci");
+    }
+
+    /// <summary>Asks before another PDF replaces read songs that are not saved; true when it is fine to go on.</summary>
+    private async Task<bool> ConfirmReplaceAsync()
+    {
+        var prompt = ImportMessages.ReplacePrompt(IsResult ? Session.UnsavedCount : 0);
+        return prompt is null || await ConfirmAsync(ImportMessages.ReplaceTitle, prompt, "Scegli altro PDF");
     }
 
     /// <summary>Drops the session after a confirmed exit: cancels the reading and releases the screen lock.</summary>

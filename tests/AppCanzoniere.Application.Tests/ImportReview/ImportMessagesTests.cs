@@ -50,9 +50,18 @@ public sealed class ImportMessagesTests
     [Fact]
     public void Leave_prompt_counts_read_songs_and_stays_silent_when_nothing_is_lost()
     {
-        Assert.Null(ImportMessages.LeavePrompt(reading: false, unsavedRead: 0));
-        Assert.Contains("1 canto letto", ImportMessages.LeavePrompt(false, 1));
-        Assert.Contains("150 canti letti e non salvati", ImportMessages.LeavePrompt(false, 150));
-        Assert.Contains("lettura è in corso", ImportMessages.LeavePrompt(true, 0));
+        Assert.Null(ImportMessages.LeavePrompt(0));
+        Assert.Contains("1 canto letto", ImportMessages.LeavePrompt(1));
+        Assert.Contains("150 canti letti e non salvati", ImportMessages.LeavePrompt(150));
+    }
+
+    [Fact]
+    public void Replace_prompt_speaks_of_discarding_and_stays_silent_when_nothing_is_unsaved()
+    {
+        Assert.Null(ImportMessages.ReplacePrompt(0));
+        Assert.Equal("C'è 1 canto letto e non salvato: andrà perso.", ImportMessages.ReplacePrompt(1));
+        Assert.Contains("150 canti letti e non salvati: andranno persi", ImportMessages.ReplacePrompt(150));
+        Assert.DoesNotContain("uscire", ImportMessages.ReplacePrompt(2), StringComparison.OrdinalIgnoreCase);
+        Assert.NotEqual(ImportMessages.LeaveTitle, ImportMessages.ReplaceTitle);
     }
 }

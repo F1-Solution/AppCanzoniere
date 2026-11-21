@@ -10,10 +10,19 @@ TAG=AppCanzoniereSelfTest
 mkdir -p "$OUT"
 MARK="$OUT/net-markers.txt"
 : > "$MARK"
-# mark <label>: records the host time and the app's per-uid byte counters (netstats) at that moment.
+# uid_history <uid>: the netstats history lines (st=...) of one uid.
+uid_history() {
+  adb shell dumpsys netstats detail | tr -d '\r' | awk -v uid="$1" '
+    /uid=-?[0-9]+ set=/ { show = ($0 ~ ("uid=" uid " set=")) }
+    show && (/uid=-?[0-9]+ set=/ || /^[ \t]*st=/) { print }'
+}
+
+# mark <label>: records the host time, the app's byte history and the shell's (uid 2000, proves the collection works) from netstats.
 mark() {
   echo "$1 $(date +%s)" >> "$MARK"; echo "MARK $1"
-  { echo "## $1"; adb shell dumpsys netstats detail | tr -d '\r' | grep -A2 "uid=$UID_APP set=" | grep -E "uid=|st="; } >> "$OUT/net-uid-counters.txt"
+  adb shell cmd netstats poll --force > /dev/null 2>&1 || true
+  { echo "## $1"; uid_history "$UID_APP"; } >> "$OUT/net-uid-counters.txt"
+  { echo "## $1"; uid_history 2000; } >> "$OUT/net-shell-counters.txt"
 }
 
 adb wait-for-device

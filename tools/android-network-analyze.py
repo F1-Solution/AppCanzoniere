@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
 """Lists DNS names, TLS server names, HTTP hosts and peer addresses per capture window.
 
-Usage: android-network-analyze.py <pcap> <markers> <output-file> [<uid-counters>]
+Usage: android-network-analyze.py <pcap> <markers> <output-file> [<uid-counters> [<shell-counters>]]
 Reads a classic pcap (Ethernet) captured on the runner by tcpdump; needs no extra packages.
-With <uid-counters> it also fails (exit 1) when the app's own byte counters grew between ocr_start and tail_end.
+Exits 1 when a telemetry host shows up in a DNS query or TLS server name, when the control window shows no DNS,
+or (with <uid-counters>) when the app's own byte counters grew between ocr_start and tail_end.
 """
 import collections
 import socket
@@ -57,32 +58,19 @@ def sni(payload):
     return None
 
 
-def classify_v6(frame):
-    """IPv6 without extension headers: DNS, QUIC and TCP are only counted, not named."""
-    nxt = frame[20]
-    dst = socket.inet_ntop(socket.AF_INET6, frame[38:54])
-    if nxt not in (6, 17) or len(frame) < 58:
-        return "ipv6", dst
-    dport = struct.unpack(">H", frame[56:58])[0]
-    kind = {53: "dns6", 443: "quic6" if nxt == 17 else "tls6"}.get(dport, "ipv6")
-    return kind, "[%s]:%d" % (dst, dport)
-
-
-def classify(frame):
-    """Returns (kind, value) or None for one Ethernet frame."""
-    if len(frame) < 34 or frame[12:14] != b"\x08\x00":
-        return None
-    ihl = (frame[14] & 0x0F) * 4
-    proto = frame[23]
-    dst = socket.inet_ntoa(frame[30:34])
-    l4 = 14 + ihl
+def classify_l4(proto, frame, l4, dst):
+    """Names one TCP or UDP segment starting at offset l4: DNS query, TLS server name, HTTP host, QUIC or a new connection."""
     if proto == 17:
-        sport, dport = struct.unpack(">HH", frame[l4:l4 + 4])
+        if len(frame) < l4 + 8:
+            return None
+        dport = struct.unpack(">H", frame[l4 + 2:l4 + 4])[0]
         msg = frame[l4 + 8:]
         if dport == 53 and len(msg) > 12 and not msg[2] & 0x80:
             return "dns", dns_name(msg, 12)
         return ("quic" if dport == 443 else "udp"), "%s:%d" % (dst, dport)
     if proto == 6:
+        if len(frame) < l4 + 20:
+            return None
         dport = struct.unpack(">H", frame[l4 + 2:l4 + 4])[0]
         offset = (frame[l4 + 12] >> 4) * 4
         payload = frame[l4 + offset:]
@@ -98,6 +86,24 @@ def classify(frame):
     return None
 
 
+def classify(frame):
+    """Returns (kind, value) or None for one Ethernet frame; IPv6 without extension headers is handled like IPv4."""
+    if len(frame) >= 54 and frame[12:14] == b"\x86\xdd":
+        dst = "[%s]" % socket.inet_ntop(socket.AF_INET6, frame[38:54])
+        return classify_v6(frame, dst)
+    if len(frame) < 34 or frame[12:14] != b"\x08\x00":
+        return None
+    return classify_l4(frame[23], frame, 14 + (frame[14] & 0x0F) * 4, socket.inet_ntoa(frame[30:34]))
+
+
+def classify_v6(frame, dst):
+    """IPv6: the same names as IPv4, with kinds suffixed 6 so they are counted apart."""
+    found = classify_l4(frame[20], frame, 54, dst)
+    if found is None:
+        return ("ipv6", dst) if frame[20] not in (6, 17) else None
+    return found[0] + "6", found[1]
+
+
 def uid_totals(path):
     """Total received plus sent bytes of the app per marker, from the netstats lines saved at each mark."""
     totals, label = {}, None
@@ -111,9 +117,13 @@ def uid_totals(path):
     return totals
 
 
+TELEMETRY = ("firebaselogging",)
+
+
 def main():
     pcap, markers_path, out_path = sys.argv[1:4]
     counters_path = sys.argv[4] if len(sys.argv) > 4 else None
+    shell_path = sys.argv[5] if len(sys.argv) > 5 else None
     markers = {}
     for line in open(markers_path):
         parts = line.split()
@@ -123,6 +133,7 @@ def main():
     windows = [("control_start", "control_end"), ("baseline_start", "baseline_end"), ("ocr_start", "ocr_end"), ("ocr_end", "jobs_start"),
                ("jobs_start", "jobs_end"), ("jobs_end", "tail_end")]
     lines = ["pcap: %s, %d packets" % (pcap, len(packets)), "markers: %s" % markers]
+    failures = []
     for start, end in windows:
         if start not in markers or end not in markers:
             continue
@@ -131,14 +142,43 @@ def main():
         counts = collections.Counter(c for t, c in packets if c and markers[start] <= t <= markers[end])
         for (kind, value), n in sorted(counts.items()):
             lines.append("  %-5s %4d  %s" % (kind, n, value))
+        if start == "control_start" and not any(kind.startswith("dns") for kind, _ in counts):
+            failures.append("the control window shows no DNS query: the capture does not see the emulator's traffic")
     lines.append("")
     lines.append("== whole capture")
     counts = collections.Counter(c for t, c in packets if c)
     for (kind, value), n in sorted(counts.items()):
         lines.append("  %-5s %4d  %s" % (kind, n, value))
+        if kind in ("dns", "dns6", "tls", "tls6") and any(host in value.lower() for host in TELEMETRY):
+            failures.append("telemetry host in %s: %s" % (kind, value))
+    lines.append("")
+    lines.append("== app uid bytes (received + sent, from netstats)")
+    if counters_path:
+        totals = uid_totals(counters_path)
+        for label, total in totals.items():
+            lines.append("  %-15s %d%s" % (label, total, "" if total else "  (no netstats entry or no bytes)"))
+        if "ocr_start" in totals and "tail_end" in totals:
+            grown = totals["tail_end"] - totals["ocr_start"]
+            lines.append("  growth ocr_start -> tail_end: %d" % grown)
+            if grown > 0:
+                failures.append("the app's own traffic grew by %d bytes between ocr_start and tail_end" % grown)
+        else:
+            failures.append("netstats counters missing for ocr_start or tail_end")
+    else:
+        lines.append("  no counters file given")
+    if shell_path:
+        shell = uid_totals(shell_path)
+        grown = shell.get("control_end", 0) - shell.get("control_start", 0)
+        lines.append("  shell uid control (ping): %d bytes" % grown)
+        if grown <= 0:
+            failures.append("netstats showed no bytes for the shell's ping: the byte collection does not work")
+    lines.append("")
+    lines.append("RESULT: " + ("FAIL" if failures else "PASS"))
+    lines.extend("  FAIL: " + f for f in failures)
     text = "\n".join(lines)
     open(out_path, "w").write(text + "\n")
     print(text)
+    return 1 if failures else 0
 
 
-main()
+sys.exit(main())

@@ -347,6 +347,21 @@ public class ImportScreenTests
         Assert.NotNull(WaitElement(session, () => session.Window.FindFirstDescendant(c => c.ByAutomationId("AddSongButton"))));
     }
 
+    [WindowsFact]
+    public void AnotherPdf_WithReadButUnsavedSongs_AsksToReplaceNotToLeave()
+    {
+        using var session = AppSession.LaunchImport(AppSession.Fixture("mini-songbook.pdf"));
+        WaitFor(session, s => s["phase"] == "Result", "the songbook to be read");
+
+        Press(session, "AnotherPdf");
+        _ = WaitElement(session, () => session.Window.FindFirstDescendant(c => c.ByName("Scegli altro PDF")))
+            ?? throw new InvalidOperationException("No confirmation was asked." + session.Dump());
+        Assert.Null(session.Window.FindFirstDescendant(c => c.ByName("Esci")));
+
+        Press(session.Window.FindFirstDescendant(c => c.ByName("Annulla"))!);
+        Assert.Equal("Result", ReadStatus(session)["phase"]);
+    }
+
     private static void Press(AutomationElement element)
     {
         if (element.Patterns.Invoke.IsSupported)
