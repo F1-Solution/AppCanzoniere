@@ -13,7 +13,7 @@ MARK="$OUT/net-markers.txt"
 # mark <label>: records the host time and the app's per-uid byte counters (netstats) at that moment.
 mark() {
   echo "$1 $(date +%s)" >> "$MARK"; echo "MARK $1"
-  { echo "## $1"; adb shell dumpsys netstats | tr -d '\r' | grep -A2 "uid=$UID_APP set=" | grep -E "uid=|st="; } >> "$OUT/net-uid-counters.txt"
+  { echo "## $1"; adb shell dumpsys netstats detail | tr -d '\r' | grep -A2 "uid=$UID_APP set=" | grep -E "uid=|st="; } >> "$OUT/net-uid-counters.txt"
 }
 
 adb wait-for-device

@@ -122,6 +122,13 @@ jobs:
       - name: Prepare output folder
         run: mkdir -p emulator-artifacts
 
+      # The emulator's own -tcpdump file misses guest traffic, so the runner's uplink is captured too.
+      - name: Start host capture
+        run: |
+          sudo apt-get install -y tcpdump > /dev/null
+          sudo tcpdump -i eth0 -U -n -w emulator-artifacts/host.pcap > /dev/null 2>&1 &
+          sleep 2
+
       - name: Run emulator tests
         uses: reactivecircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d # v2.38.0
         with:
@@ -137,7 +144,11 @@ jobs:
 
       - name: Summarise network capture
         if: always()
-        run: python3 -I tools/android-network-analyze.py emulator-artifacts/net.pcap emulator-artifacts/net-markers.txt emulator-artifacts/net-summary.txt
+        run: |
+          sudo pkill tcpdump || true
+          sleep 2
+          python3 -I tools/android-network-analyze.py emulator-artifacts/net.pcap emulator-artifacts/net-markers.txt emulator-artifacts/net-summary.txt
+          python3 -I tools/android-network-analyze.py emulator-artifacts/host.pcap emulator-artifacts/net-markers.txt emulator-artifacts/host-summary.txt
 
       - name: Upload screenshots and logcat
         if: always()
