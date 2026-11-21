@@ -260,15 +260,27 @@ public sealed partial class ImportViewModel
         }
     }
 
-    /// <summary>Asks before leaving with edited songs that are not saved; true when it is fine to go on.</summary>
+    /// <summary>Asks before leaving while a reading runs or read songs are not saved; true when it is fine to go on.</summary>
     public async Task<bool> ConfirmLeaveAsync()
     {
-        var count = Session.ModifiedUnsavedCount;
-        if (count == 0)
-            return true;
+        var prompt = ImportMessages.LeavePrompt(IsReading, IsResult ? Session.UnsavedCount : 0);
+        return prompt is null || await ConfirmAsync(ImportMessages.LeaveTitle, prompt, "Esci");
+    }
 
-        var text = count == 1 ? "Hai 1 canto modificato non salvato. Uscire e perderlo?" : $"Hai {count} canti modificati non salvati. Uscire e perderli?";
-        return await ConfirmAsync("Modifiche non salvate", text, "Esci");
+    /// <summary>Drops the session after a confirmed exit: cancels the reading and releases the screen lock.</summary>
+    public void Abandon()
+    {
+        try
+        {
+            _importCts?.Cancel();
+            _previewCts?.Cancel();
+            Session.Reset();
+            AfterSessionEnded();
+        }
+        catch (Exception ex)
+        {
+            _log.LogError(ex, "Abandoning the import failed");
+        }
     }
 
     // A cancelled reading may still be winding down; a new one waits until it has really ended.

@@ -9,6 +9,7 @@ public partial class ImportPage : ContentPage
     private IDispatcherTimer? _tick;
     private Window? _window;
     private bool _sheetShown;
+    private bool _leaveApproved;
 
     public ImportPage(ImportViewModel viewModel)
     {
@@ -16,7 +17,8 @@ public partial class ImportPage : ContentPage
         _viewModel = viewModel;
         BindingContext = viewModel;
         SizeChanged += (_, _) => OnPageSizeChanged();
-        viewModel.PropertyChanged += OnViewModelChanged;
+        // The toolbar arrow on Android skips OnBackButtonPressed, so it goes through the same exit path.
+        Shell.SetBackButtonBehavior(this, new BackButtonBehavior { Command = new Command(() => _ = LeaveAsync()) });
 #if WINDOWS
         // Tab cycles inside the sheet and never reaches the navigation bar or the page behind.
         DeclarationSheet.HandlerChanged += (_, _) =>
@@ -34,6 +36,8 @@ public partial class ImportPage : ContentPage
         try
         {
             ImportKeys.Handler = _viewModel.HandleKey;
+            _viewModel.PropertyChanged -= OnViewModelChanged;
+            _viewModel.PropertyChanged += OnViewModelChanged;
             _viewModel.OnPageShown();
             StartTick();
             HookWindow();
@@ -56,6 +60,7 @@ public partial class ImportPage : ContentPage
             if (Equals(ImportKeys.Handler, (Func<string, bool, bool, bool>)_viewModel.HandleKey))
                 ImportKeys.Handler = null;
 
+            _viewModel.PropertyChanged -= OnViewModelChanged;
             _viewModel.OnPageHidden();
             _tick?.Stop();
             UnhookWindow();
@@ -68,11 +73,41 @@ public partial class ImportPage : ContentPage
         }
     }
 
-    protected override bool OnBackButtonPressed() => _viewModel.HandleBack() || base.OnBackButtonPressed();
+    protected override bool OnBackButtonPressed()
+    {
+        _ = LeaveAsync();
+        return true;
+    }
 
-    // Leaving for another tab with unsaved edits asks first; opening a song does not.
+    // Back is used inside the page first; otherwise it asks when something would be lost, drops the session and pops.
+    private async Task LeaveAsync()
+    {
+        try
+        {
+            if (_viewModel.HandleBack() || !await _viewModel.ConfirmLeaveAsync())
+                return;
+
+            _leaveApproved = true;
+            _viewModel.Abandon();
+            if (Shell.Current is { } shell)
+                await shell.GoToAsync("..");
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"Leaving the import failed: {ex}");
+        }
+        finally
+        {
+            _leaveApproved = false;
+        }
+    }
+
+    // Popping or returning to the root asks first and drops the session; switching tab or opening a song keeps it.
     private async void OnShellNavigating(object? sender, ShellNavigatingEventArgs e)
     {
+        if (_leaveApproved)
+            return;
+
         // Nothing leaves the page while the declaration is open or songs are being saved.
         if (_viewModel.Session.IsLocked)
         {
@@ -80,13 +115,15 @@ public partial class ImportPage : ContentPage
             return;
         }
 
-        if (_viewModel.Session.ModifiedUnsavedCount == 0 || e.Target?.Location.ToString().Contains("songdetail") == true)
+        if (e.Source is not (ShellNavigationSource.Pop or ShellNavigationSource.PopToRoot))
             return;
 
         var deferral = e.GetDeferral();
         try
         {
-            if (!await _viewModel.ConfirmLeaveAsync())
+            if (await _viewModel.ConfirmLeaveAsync())
+                _viewModel.Abandon();
+            else
                 e.Cancel();
         }
         catch (Exception ex)

@@ -58,7 +58,7 @@
 	</ItemGroup>
 
 	<PropertyGroup Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'android'">
-		<!-- The Google merger honours tools:node="remove" in AndroidManifest.xml (R9-21: no ML Kit usage metrics). -->
+		<!-- The Google merger honours tools:node="remove" in AndroidManifest.xml (R9-21: no ML Kit usage metrics); it is also the default, the line only states it. -->
 		<AndroidManifestMerger>manifestmerger.jar</AndroidManifestMerger>
 	</PropertyGroup>
 
