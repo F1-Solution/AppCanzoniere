@@ -57,6 +57,11 @@
 		<PackageReference Include="Microsoft.Extensions.Logging.Debug" />
 	</ItemGroup>
 
+	<PropertyGroup Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'android'">
+		<!-- The Google merger honours tools:node="remove" in AndroidManifest.xml (R9-21: no ML Kit usage metrics). -->
+		<AndroidManifestMerger>manifestmerger.jar</AndroidManifestMerger>
+	</PropertyGroup>
+
 	<ItemGroup Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'android'">
 		<PackageReference Include="Xamarin.Google.MLKit.TextRecognition" />
 	</ItemGroup>
