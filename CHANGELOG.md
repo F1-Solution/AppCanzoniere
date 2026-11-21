@@ -47,6 +47,8 @@
 - La scheda Importa esce dalla barra: l'import si apre da Canti → + → Da PDF.
 - La scheda dei canti si chiama "Canti" e i suoi testi sono in italiano.
 - Su Android l'app non invia più a Google le metriche d'uso di ML Kit durante il riconoscimento del testo delle scansioni.
+- Scegliendo un altro PDF, l'app avvisa che i canti letti e non salvati andranno persi.
+- Indietro durante una lettura la annulla senza chiedere conferma.
 
 ### Corretto
 - Gli accordi di un canto ChordPro vengono riscritti nella posizione in cui erano.
@@ -77,3 +79,5 @@
 - Un nuovo import attende la fine di una lettura ancora in corso.
 - Le intestazioni di sezione elencate nell'indice di un libretto non diventano più titoli né testo dei canti.
 - Un canto senza titolo sotto un'intestazione di sezione resta un canto a sé, intitolato dalla sua prima riga.
+- I titoli numerati ripetuti in cima alle pagine restano nei canti anche nei libretti corti.
+- Una riga uguale a un'intestazione dell'indice non divide né accorcia più un canto.

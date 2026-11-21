@@ -115,3 +115,19 @@ Le prove su pagine sintetiche sono state fatte con un piccolo programma esterno,
 - Nessun CRITICAL e nessun HIGH aperto. Il ramo si può unire.
 - Consigliati prima dell'unione, poco costosi: R10-13 (rischio nuovo, e sul corpus la regola non dà alcun beneficio misurabile), il resto di R10-01 e R10-14.
 - Si possono rinviare: R10-04 (test instabile, 1 su 24), R10-06 (annotato), R10-15, R10-16.
+
+## Esito finale (R10-2, seconda correzione)
+
+| ID | Esito | Nota |
+|---|---|---|
+| R10-01 | Chiuso | I titoli numerati ripetuti in cima alle pagine restano anche nei libretti corti. Test di 10 pagine. |
+| R10-13 | Chiuso | Un'intestazione dell'indice si toglie solo se apre una colonna o se subito sotto c'è un titolo. Tre test. |
+| R10-04 | Chiuso | Attesa per id SongScroll, con ripetizione sugli errori. CI 44930716170, test UI Windows 28 su 28. |
+| R10-14 | Chiuso | L'analisi fallisce se crescono i byte dell'app o compare un host di telemetria. Byte dell'app 0. Controllo con la shell: 460 byte. |
+| R10-15 | Chiuso | DNS di nuovo visibile, 49 righe dns. |
+| R10-16 | Chiuso | Domanda separata "Scegliere un altro PDF?". Indietro e secondo tocco della scheda annullano la lettura senza chiedere. |
+| R10-06 | Aperto in parte | Resta una copia per i file senza lunghezza nota. |
+| R10-07 | Chiuso | - |
+| R9-10 | Aperto fino a F7 | - |
+
+CI verde sull'esecuzione 44930716170; test del nucleo 3839.
