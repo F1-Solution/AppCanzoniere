@@ -79,7 +79,7 @@ public sealed class PdfSongSplitterSectionHeadingTests
         Assert.DoesNotContain(result.Songs, s => s.Lines.Any(l => l.Contains("KYRIE")));
     }
 
-        [Fact]
+    [Fact]
     public void A_footer_equal_to_a_heading_at_the_bottom_of_a_page_does_not_split_the_song()
     {
         var pages = new[]
