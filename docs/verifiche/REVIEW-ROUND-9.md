@@ -53,3 +53,10 @@ Corretti: R9-01, R9-02, R9-03, R9-04, R9-05, R9-06, R9-07, R9-08, R9-09, R9-11, 
 Aperti: R9-10 (pagine scansionate disegnate nel processo dell'app, rinviato a F7 con DEC 36) e R9-21 (statistiche d'uso di ML Kit, da verificare con una cattura del traffico).
 
 Effetto di R9-01 sul libretto 14: 151 canti contro 152 voci dell'indice (prima 155 contro 152). CI verde sull'esecuzione 44850916474.
+
+## Aggiornamento nel round 10 (21/11/2026)
+
+- R9-21 chiuso nel round 10: il traffico di ML Kit è eliminato e la CI lo controlla. Vedi [V-07-mlkit.md](V-07-mlkit.md).
+- R9-01 e R9-08 completati nel round 10. Per R9-08 resta solo la copia di R10-06, parziale. Per R9-01 la review del round 10 nota che la ripetizione si cerca ancora solo nella stessa colonna: da verificare.
+- R9-09 riaperto nella review del round 10 e corretto di nuovo nel round 10. La prova sul tablet con un PDF molto grande resta da fare.
+- Dettagli in [DECISIONI-ROUND-10.md](../DECISIONI-ROUND-10.md).
