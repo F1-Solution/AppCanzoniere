@@ -27,7 +27,7 @@ dotnet build src/AppCanzoniere.MAUI -f net10.0-windows10.0.19041.0 -p:MauiPlatfo
 
 `tools/AppCanzoniere.OcrBench` (Windows only, outside both solutions) runs on-device OCR on scanned corpus PDFs and writes `corpus-locale/report-ocr/index.md`: `dotnet run --project tools/AppCanzoniere.OcrBench -c Release -- corpus-locale`.
 
-`AppCanzoniere.slnx` is the main solution (core + MAUI, needs the Android and Windows workloads); `AppCanzoniere.Core.slnx` has no MAUI. Package versions are central in `Directory.Packages.props`, the SDK is pinned in `global.json`. CI is `.github/workflows/ci.yml` (jobs core, android, android-emulator, windows). Core tests: 3750 (Domain 5, Application 3131, Infrastructure 614). `tests/AppCanzoniere.Windows.UiTests` (FlaUI, outside both solutions) drives the Windows app; `tools/android-emulator-tests.sh` drives the Android app on the CI emulator; both use debug-only hooks.
+`AppCanzoniere.slnx` is the main solution (core + MAUI, needs the Android and Windows workloads); `AppCanzoniere.Core.slnx` has no MAUI. Package versions are central in `Directory.Packages.props`, the SDK is pinned in `global.json`. CI is `.github/workflows/ci.yml` (jobs core, android, android-emulator, windows). Core tests: 3805 (Domain 5, Application 3183, Infrastructure 617). `tests/AppCanzoniere.Windows.UiTests` (FlaUI, outside both solutions) drives the Windows app; `tools/android-emulator-tests.sh` drives the Android app on the CI emulator; both use debug-only hooks.
 
 **Backend:** the ASP.NET Core API is frozen and outside the main solution and CI; open it with `AppCanzoniere.Backend.slnx`. It does not work (see `docs/VALUTAZIONE.md`) and its integration tests fail.
 
