@@ -140,7 +140,7 @@ jobs:
         if: github.event_name == 'workflow_dispatch'
         run: |
           sudo apt-get install -y tcpdump > /dev/null
-          sudo tcpdump -i eth0 -U -n -s 600 -w "$RUNNER_TEMP/host.pcap"             'not host 168.63.129.16 and not host 169.254.169.254 and (port 53 or port 80 or port 443)' > /dev/null 2>&1 &
+          sudo tcpdump -i eth0 -U -n -s 600 -w "$RUNNER_TEMP/host.pcap"             'not (host 168.63.129.16 and (tcp port 80 or tcp port 32526)) and not host 169.254.169.254 and (port 53 or port 80 or port 443)' > /dev/null 2>&1 &
           sleep 2
 
       - name: Run emulator tests
