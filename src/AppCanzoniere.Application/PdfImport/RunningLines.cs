@@ -12,7 +12,7 @@ internal static partial class RunningLines
     private const int MinRepeatPages = 3;
     private const double MinRepeatShare = 0.25;
 
-    // A footer that changes per section repeats on at least this many pages in a run whose members are at most MaxRunGap pages apart.
+    // A footer that changes per section is a bottom row whose page number follows the page sequence, on at least this many pages of a run whose members are at most MaxRunGap pages apart.
     private const int MinSectionPages = 3;
     private const int MaxRunGap = 2;
 
@@ -48,14 +48,33 @@ internal static partial class RunningLines
         var bySignature = candidates.SelectMany((rows, i) => rows.Where(r => IsRepeatable(r) || HasLink(r)).Select(Signature).Where(s => s.Length > 0).Distinct().Select(s => (Signature: s, Page: i)))
             .GroupBy(x => x.Signature).ToList();
         var repeated = bySignature.Where(g => g.Count() >= MinRepeatPages && g.Count() >= MinRepeatShare * pages.Count).Select(g => g.Key).ToHashSet();
-        var sectionPages = bySignature.Where(g => !repeated.Contains(g.Key)).ToDictionary(g => g.Key, g => SectionRunPages(g.Select(x => x.Page).Order().ToList()));
+        var sectionPages = SectionFooters(pages, candidates, repeated);
         return pages.Select((page, i) => Without(page, candidates[i].SelectMany(r => Dropped(r, page, repeated, sectionPages, i)).ToList())).ToList();
     }
 
-    // The pages of the runs long enough to be one section's footer: occurrences close together, at least MinSectionPages of them.
-    private static HashSet<int> SectionRunPages(IReadOnlyList<int> pages)
+    // Per signature, the pages whose bottom row carries a page number that moves with the page; a title or refrain without such a number is never a section footer.
+    private static HashSet<(string Signature, int Page)> SectionFooters(IReadOnlyList<PdfPageWords> pages, List<IReadOnlyList<TextRow>> candidates, HashSet<string> repeated)
     {
-        var result = new HashSet<int>();
+        var result = new HashSet<(string, int)>();
+        var groups = candidates.SelectMany((rows, i) => rows.Where(r => (IsRepeatable(r) || HasLink(r)) && IsAtBottom(r, pages[i])).Select(r => (Row: r, Page: i)))
+            .Select(x => (Signature: Signature(x.Row), x.Page, Offset: PageNumberOf(x.Row) is { } n ? n - pages[x.Page].PageNumber : (int?)null))
+            .Where(x => x.Signature.Length > 0 && x.Offset is not null && !repeated.Contains(x.Signature))
+            .GroupBy(x => (x.Signature, x.Offset));
+        foreach (var group in groups)
+        {
+            foreach (var page in SectionRunPages(group.Select(x => x.Page).Distinct().Order().ToList()))
+                result.Add((group.Key.Signature, page));
+        }
+
+        return result;
+    }
+
+    private static bool IsAtBottom(TextRow row, PdfPageWords page) => row.Words.All(w => w.Box.Bottom < EdgeShare * page.Height);
+
+    // The pages of the runs long enough to be one section's footer: occurrences close together, at least MinSectionPages of them.
+    private static List<int> SectionRunPages(IReadOnlyList<int> pages)
+    {
+        var result = new List<int>();
         var run = new List<int>();
         foreach (var page in pages)
         {
@@ -69,21 +88,21 @@ internal static partial class RunningLines
         return result;
     }
 
-    private static void Flush(List<int> run, HashSet<int> result)
+    private static void Flush(List<int> run, List<int> result)
     {
         if (run.Count >= MinSectionPages)
-            result.UnionWith(run);
+            result.AddRange(run);
 
         run.Clear();
     }
 
     // A repeated row goes whole, and so does a bottom row with a link; a link at the top may belong to the song below its title, so it stays unless repeated.
-    private static IEnumerable<PositionedWord> Dropped(TextRow row, PdfPageWords page, HashSet<string> repeated, Dictionary<string, HashSet<int>> sectionPages, int pageIndex)
+    private static IEnumerable<PositionedWord> Dropped(TextRow row, PdfPageWords page, HashSet<string> repeated, HashSet<(string Signature, int Page)> sectionPages, int pageIndex)
     {
         var hasLink = HasLink(row);
-        var atBottom = row.Words.All(w => w.Box.Bottom < EdgeShare * page.Height);
+        var atBottom = IsAtBottom(row, page);
         var signature = Signature(row);
-        var running = (IsRepeatable(row) || hasLink) && (repeated.Contains(signature) || (sectionPages.TryGetValue(signature, out var run) && run.Contains(pageIndex)));
+        var running = (IsRepeatable(row) || hasLink) && (repeated.Contains(signature) || (atBottom && sectionPages.Contains((signature, pageIndex))));
         return running || (atBottom && hasLink) ? row.Words : Array.Empty<PositionedWord>();
     }
 
@@ -144,6 +163,19 @@ internal static partial class RunningLines
         text = DashedPageNumber().Replace(text, " ");
         return TrailingPageNumber().Replace(text, string.Empty).Trim().ToLowerInvariant();
     }
+
+    // The page number of a row in the same shapes Signature strips; null when the row has none.
+    private static int? PageNumberOf(TextRow row)
+    {
+        var text = string.Join(' ', row.Words.Select(w => w.Text)).Trim();
+        var match = NumberOnly().IsMatch(text) ? Digits().Match(text) : Digits().Match(LeadingPageNumber().Match(text) is { Success: true } lead ? lead.Value
+            : DashedPageNumber().Match(text) is { Success: true } dashed ? dashed.Value
+            : TrailingPageNumber().Match(text) is { Success: true } tail ? tail.Value : string.Empty);
+        return match.Success && int.TryParse(match.Value, out var number) ? number : null;
+    }
+
+    [GeneratedRegex(@"[0-9]{1,4}")]
+    private static partial Regex Digits();
 
     private static PdfPageWords Without(PdfPageWords page, IReadOnlyList<PositionedWord> rows)
     {

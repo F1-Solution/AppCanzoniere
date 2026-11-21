@@ -134,14 +134,77 @@ public class RunningLinesTests
         Assert.All(texts, t => Assert.DoesNotContain("Finali", t));
     }
 
+    // A 30-page booklet whose pages carry the given extra row, so that no signature reaches a quarter of the pages.
+    private static PdfPageWords[] Booklet(Func<int, (string Text, double Baseline)?> extra) =>
+        Enumerable.Range(1, 30).Select(n => extra(n) is { } row
+            ? Page(n, ($"Alleluia cantate al Signore {n}", 400), row)
+            : Page(n, ($"Alleluia cantate al Signore {n}", 400))).ToArray();
+
     [Fact]
-    public async Task SectionFooter_OnTwoConsecutivePagesOnly_IsKept()
+    public async Task SectionFooter_OnTwoPagesOnly_IsKept_OnBothPages()
     {
-        var pages = new[] { SectionPage(1, "Canti di ingresso"), SectionPage(2, "Canti di ingresso"), SectionPage(3, "Salmi e cantici"), SectionPage(4, "Maria") };
+        var texts = await Import(Booklet(n => n is 1 or 2 ? ($"Maria {n}", Footer) : null));
 
-        var texts = await Import(pages);
+        Assert.Contains("Maria 1", texts[0]);
+        Assert.Contains("Maria 2", texts[1]);
+    }
 
-        Assert.Contains("Canti di ingresso", texts[0]);
+    [Fact]
+    public async Task SectionFooter_OnThreePagesTwoApart_IsDropped()
+    {
+        var texts = await Import(Booklet(n => n is 1 or 3 or 5 ? ($"Maria {n}", Footer) : null));
+
+        Assert.All(new[] { 0, 2, 4 }, i => Assert.DoesNotContain("Maria", texts[i]));
+    }
+
+    [Fact]
+    public async Task SectionFooter_OnThreePagesThreeApart_IsKept()
+    {
+        var texts = await Import(Booklet(n => n is 1 or 4 or 7 ? ($"Maria {n}", Footer) : null));
+
+        Assert.All(new[] { 0, 3, 6 }, i => Assert.Contains("Maria", texts[i]));
+    }
+
+    [Fact]
+    public async Task SameTitleAtTheTopOfThreeConsecutivePages_IsKept()
+    {
+        var texts = await Import(Booklet(n => n is >= 10 and <= 12 ? ("AGNELLO DI DIO", Header) : null));
+
+        Assert.All(new[] { 9, 10, 11 }, i => Assert.StartsWith("AGNELLO DI DIO", texts[i]));
+    }
+
+    [Fact]
+    public async Task NumberedTitlesWithTheSameWord_AtTheTopOfThreeConsecutivePages_AreKept()
+    {
+        var texts = await Import(Booklet(n => n is >= 10 and <= 12 ? ($"{100 + n} SANTO", Header) : null));
+
+        Assert.All(new[] { 9, 10, 11 }, i => Assert.StartsWith($"{101 + i} SANTO", texts[i]));
+    }
+
+    [Fact]
+    public async Task RefrainAtTheBottomOfThreeConsecutivePages_IsKept()
+    {
+        var texts = await Import(Booklet(n => n is >= 10 and <= 12 ? ("Alleluia, alleluia", Footer) : null));
+
+        Assert.All(new[] { 9, 10, 11 }, i => Assert.EndsWith("Alleluia, alleluia", texts[i]));
+    }
+
+    [Theory]
+    [InlineData("1. Signore")]
+    [InlineData("1 Signore pietà")]
+    public async Task VerseLineAtTheBottomOfThreeConsecutivePages_IsKept(string verse)
+    {
+        var texts = await Import(Booklet(n => n is >= 10 and <= 12 ? (verse, Footer) : null));
+
+        Assert.All(new[] { 9, 10, 11 }, i => Assert.EndsWith(verse, texts[i]));
+    }
+
+    [Fact]
+    public async Task BottomRowWithAFixedNumber_OnThreeConsecutivePages_IsKept()
+    {
+        var texts = await Import(Booklet(n => n is >= 10 and <= 12 ? ("Maria 7", Footer) : null));
+
+        Assert.All(new[] { 9, 10, 11 }, i => Assert.Contains("Maria 7", texts[i]));
     }
 
     [Fact]
