@@ -10,7 +10,7 @@
     <!-- Tab Bar -->
     <TabBar>
         <ShellContent
-            Title="Home"
+            Title="Canti"
             Icon="home.png"
             ContentTemplate="{DataTemplate pages:HomePage}"
             Route="home" />
