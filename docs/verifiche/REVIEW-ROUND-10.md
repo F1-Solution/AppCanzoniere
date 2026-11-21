@@ -67,3 +67,51 @@ Stato: **CONFERMATO** = percorso seguito nel codice, riprodotto o visto nei log 
 
 - HIGH: R10-01, R10-02.
 - MEDIUM poco costosi: R10-03, R10-04, R10-05, R10-06, R10-07 (almeno il grep sul manifest unito).
+
+## Verifica delle correzioni (R10-2)
+
+Correzioni da ad9273e a 7914f76. b2f0215 e b3af0d9 cambiano solo documenti. Solo lettura: nessun codice cambiato.
+`dotnet test AppCanzoniere.Core.slnx`: tutto verde. Domain 5, Application 3212, Infrastructure 617 (totale 3834).
+CI manuale 44925524239 (7914f76) verde sui quattro job. Test UI di Windows 27 su 27, compresi i due nuovi su Indietro.
+MAUI 10.0.20 decompilato. Su Android la freccia ← esegue `BackButtonBehavior.Command` (ShellToolbarTracker.OnClick). Su Windows `Shell.OnBackButtonPressed` esegue prima il comando. Il tasto Indietro di Android passa da `OnBackButtonPressed` della pagina.
+Pop e PopToRoot sono sempre annullabili: `GetDeferral()` non torna mai null. Dopo il rinvio MAUI rifà la navigazione senza un secondo `Navigating`.
+Corpus: i 18 PDF con testo danno gli stessi canti, pagine e righe a f23e8be, a 4fc1b46 e alla testa. Il libretto 14 resta a 152 canti.
+Le prove su pagine sintetiche sono state fatte con un piccolo programma esterno, sulla testa e su 4fc1b46 (prima della regola delle intestazioni).
+
+### Esito per area
+
+- **Uscita dall'import:** nessun nuovo difetto. Le iscrizioni agli eventi sono in coppia: MAUI non ripete `OnAppearing` senza `OnDisappearing` (Page.SendAppearing). Ogni gesto chiama `LeaveAsync` una volta sola e la conferma non compare due volte (`_leaveApproved`). Indietro durante il salvataggio non fa nulla e il cambio di scheda è bloccato. Il cambio di scheda tiene la sessione. Aprire un canto salvato e tornare indietro la tiene.
+- **Schermo acceso:** si rilascia su ogni uscita che chiude la lettura (`CancelReading` e `Abandon` chiamano `AfterSessionEnded`). Al cambio di scheda la lettura continua e lo schermo resta acceso, come deciso.
+- **DEC 36:** di nuovo vera. `_engine` vive nel ViewModel unico, e un nuovo import attende la lettura vecchia.
+- **Hook di debug:** invariati e ancora in `#if DEBUG`.
+- **Controllo del manifest a ogni PR:** funziona. Nel log di CI legge anche il manifest unito finale (`android/AndroidManifest.xml`). Nessun rischio di falso esito trovato. Un nome di componente nuovo resta fuori dal controllo, come previsto da R10-07.
+
+### Esito dei rilievi
+
+| ID | Esito | Prova (file:riga) |
+|---|---|---|
+| R10-01 | Non chiuso (in parte) | La regola delle sezioni vale solo per le righe in basso con un numero di pagina che va di pari passo con la pagina: RunningLines.cs:56-72, 105. Test in RunningLinesTests.cs:144-208. Resta `LeadingPageNumber` nella firma della regola "ripetuta" (RunningLines.cs:50, 162). Riprodotto: in un libretto di 10 pagine, "101 SANTO", "102 SANTO" e "103 SANTO" in cima alle pagine 1-3 spariscono tutti e tre. `main` li tiene. Il test usa 30 pagine (RunningLinesTests.cs:177-183), quindi non vede il caso. |
+| R10-02 | Chiuso | MauiProgram.cs:160 (ViewModel unico); ImportViewModel.Actions.cs:17, 287-294 (guardia unica); ImportPage.xaml.cs:21 (freccia ←), 76-103 (Indietro), 118-136 (PopToRoot chiede, poi `Abandon`); ImportViewModel.Actions.cs:271-284. Test ImportScreenTests.cs:307. Riserva: il test non prova l'attesa di DEC 36, perché il ritardo di avvio si annulla subito. |
+| R10-03 | Chiuso | ImportViewModel.Actions.cs:264-268 e ImportMessages.cs:30-37 (contano tutti i canti letti e non salvati). ImportPage.xaml.cs:118 (nessuna domanda al cambio di scheda). La freccia passa prima da `HandleBack` (ImportViewModel.Actions.cs:227-228). Test ImportScreenTests.cs:332. |
+| R10-04 | Non chiuso | Corretta solo la riga 38 (TextFieldAndScreenTests.cs:38, `WaitUntil`). `WaitForScroller` e `FindScroller` sono invariati (AppSession.cs:141-157): leggono ancora tutto l'albero e non intercettano COMException. L'AutomationId `SongScroll` (SongDetailPage.xaml:61) non è usato da nessun test. Il messaggio di 8d28928 dice il contrario. `Launch()` e `Dispose` sono invariati. |
+| R10-05 | Chiuso | RunningLinesTests.cs:144-208: salti di 2 e di 3, stesso titolo in cima, titoli numerati, ritornello in fondo, strofa senza punto, numero fisso. Riserva: vedi R10-01. |
+| R10-06 | Non chiuso (in parte, annotato in DECISIONI-ROUND-10) | Il ViewModel espone il buffer (ImportViewModel.Actions.cs:349). Il servizio lo usa senza copia (SongbookImportService.cs:112-116; test SongbookImportServiceTests.cs:383). Resta la crescita più `ToArray` per i flussi senza lunghezza (BoundedReader.cs:22-33). |
+| R10-07 | Non chiuso (in parte) | Il controllo a ogni PR c'è (ci.yml:96-106). Il controllo dei byte dell'app non c'è: vedi R10-14. I pacchetti IPv6 non sono contati: `classify_v6` non è mai chiamata (android-network-analyze.py:60-68, 73-74). QUIC su IPv4 è contato (riga 84). |
+| R10-08 | Chiuso | Il pcap resta in `$RUNNER_TEMP` e non sale (ci.yml:143, 164). Filtro con `-s 600`. L'artefatto di 44925524239 pesa circa 2 MB. Il filtro però nasconde il DNS: vedi R10-15. |
+| R10-09 | Chiuso | android-network-capture.sh:2-3; android-network-analyze.py:4-5; AppCanzoniere.MAUI.csproj:61; V-07-mlkit.md:105. La nuova docstring promette però un controllo che non c'è (R10-14). |
+| R10-11 | Chiuso | HomePage.xaml:15, 23, 37, 41; AppShell.xaml:13. Le altre schede sono ancora in inglese, fuori da R10-11. |
+
+### Nuovi rilievi
+
+| ID | Gravità | Stato | File:riga | Difetto | Scenario di guasto | Correzione proposta |
+|---|---|---|---|---|---|---|
+| R10-13 | MEDIUM | CONFERMATO (pagine sintetiche; a 4fc1b46 non succede), PLAUSIBILE (frequenza: nessun effetto sui 18 PDF del corpus) | src/AppCanzoniere.Application/PdfImport/PdfSongSplitter.cs:83-89, 112-113, 132-134; src/AppCanzoniere.Application/PdfImport/IndexRegionDetector.cs:49-50, 76-81 | La regola delle intestazioni scatta per qualsiasi riga uguale a un'intestazione dell'indice, se ha righe vuote sopra e sotto, in qualsiasi punto della colonna. Chiude il canto in corso e scarta la riga. Il testo che segue diventa un canto nuovo, con il nome della sua prima riga. Le intestazioni si riconoscono solo dal rientro. | Tre casi riprodotti. (1) Piè di pagina di sezione senza numero, uguale all'intestazione ("CANTI DI INGRESSO"), in fondo a una pagina a metà canto: il canto si spezza in due. La seconda parte si chiama "E il vento canta ancora". (2) Una riga "Alleluia!" tra righe vuote dentro un canto, con "ALLELUIA" come intestazione dell'indice: il canto si spezza e la riga va persa. (3) Indice con i titoli e, rientrate sotto, le prime righe: i titoli diventano intestazioni. Tutti i titoli spariscono e ogni canto prende il nome della prima riga. A 4fc1b46 i tre casi danno i canti giusti. | Togliere la riga solo se apre una colonna o una pagina e non c'è un canto aperto, oppure se subito dopo c'è un titolo. Mai a metà canto né in fondo alla colonna. Usare le intestazioni solo se sono poche rispetto ai titoli (per esempio meno di un terzo). Aggiungere i tre casi come test. |
+| R10-14 | MEDIUM | CONFERMATO (codice e artefatto di 44925524239) | tools/android-network-analyze.py:6, 101-111, 116; tools/android-network-capture.sh:16 | La docstring dice che lo script fallisce se i byte dell'app crescono. Ma `uid_totals` non è mai chiamata, `counters_path` non è usato e lo script non esce mai con 1. In più il file dei contatori non contiene byte: `grep -A2` non arriva alle righe `st=`. Nell'artefatto ci sono solo righe "uid=NNNNN set=1", anche di altre app. | Le metriche ripartono dopo un aggiornamento di ML Kit, con un nome o un indirizzo nuovo. L'esecuzione manuale resta verde e il riepilogo non lo segnala. Chi legge la docstring crede che il controllo ci sia. | Leggere i byte da `dumpsys netstats detail` prendendo le righe `st=` del blocco dell'UID. Chiamare `uid_totals` e uscire con 1 se `rb+tb` cresce tra `ocr_start` e `tail_end`. Chiamare `classify_v6` per i frame IPv6. Provare il controllo una volta con un'app che fa una richiesta. |
+| R10-15 | LOW | CONFERMATO (filtro e artefatto), PLAUSIBILE (QUIC senza nome) | .github/workflows/ci.yml:143; tools/android-network-capture.sh:26-29 | 168.63.129.16 è anche il DNS di Azure del runner: il filtro toglie tutte le domande DNS. Nel riepilogo di 44925524239 non c'è nessuna riga `dns`. Anche il controllo iniziale (ping a example.com, cioè ICMP più la sua ricerca DNS) non si vede più. Il nome `firebaselogging` può comparire solo nello SNI di TLS. La proposta di R10-08 era sbagliata su questo punto. | Un invio su QUIC (UDP 443) non ha né DNS né SNI leggibile e compare solo come indirizzo. Il controllo non prova più che la cattura vede il traffico dell'emulatore. | Escludere 168.63.129.16 solo per il TCP (`not (host 168.63.129.16 and tcp)`), così il DNS resta. Sostituire il ping con una ricerca DNS o una richiesta HTTPS dall'emulatore. Far fallire lo step se la finestra di controllo non ha almeno una riga `dns` o `tls`. |
+| R10-16 | LOW | CONFERMATO | src/AppCanzoniere.MAUI/ViewModels/ImportViewModel.Actions.cs:35, 91, 264-268; src/AppCanzoniere.Application/ImportReview/ImportMessages.cs:30-37; src/AppCanzoniere.MAUI/Pages/ImportPage.xaml:92 | La stessa domanda serve anche per "Altro PDF", "Scegli un PDF" e Ctrl+O. Lì l'utente non esce dall'import, ma legge "Uscire dall'import?" con il pulsante "Esci". Ora conta tutti i canti letti e non salvati, quindi compare dopo ogni lettura. Invece Indietro durante la lettura la annulla senza chiedere, mentre il secondo tocco sulla scheda chiede. | Dopo una lettura l'utente tocca "Altro PDF" e vede "Uscire dall'import?". Pensa di tornare all'elenco dei canti. | Per un altro PDF usare "Scegliere un altro PDF?", "Ci sono N canti letti e non salvati: andranno persi." e il pulsante "Continua". Decidere se Indietro durante una lettura lunga debba chiedere, come il tocco sulla scheda. |
+
+### Da correggere prima dell'unione
+
+- Nessun CRITICAL e nessun HIGH aperto. Il ramo si può unire.
+- Consigliati prima dell'unione, poco costosi: R10-13 (rischio nuovo, e sul corpus la regola non dà alcun beneficio misurabile), il resto di R10-01 e R10-14.
+- Si possono rinviare: R10-04 (test instabile, 1 su 24), R10-06 (annotato), R10-15, R10-16.
