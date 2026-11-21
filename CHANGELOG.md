@@ -16,15 +16,22 @@
 - Il canto usa un carattere a spaziatura fissa incluso nell'app (JetBrains Mono, licenza OFL), così gli accordi restano sopra la sillaba giusta su Android e Windows.
 - Estrazione del testo dai PDF con il testo già selezionabile, comprese le pagine a due colonne, che vengono separate.
 - I PDF troppo grandi, danneggiati o costruiti per consumare memoria vengono rifiutati con un messaggio.
-- I libretti in PDF si dividono in canti, e ogni canto viene convertito in ChordPro con il suo titolo; l'import dai PDF non è ancora disponibile nell'app.
+- I libretti in PDF si dividono in canti, e ogni canto viene convertito in ChordPro con il suo titolo.
 - I PDF si leggono in un processo separato con limiti di tempo e memoria; un file che non si può leggere viene segnalato come illeggibile.
-- Le pagine scansionate si possono leggere con il riconoscimento del testo del dispositivo (su Windows solo nel banco di prova).
+- Le pagine scansionate si possono leggere con il riconoscimento del testo del dispositivo.
 - Su Android le pagine scansionate si leggono con il riconoscimento del testo incluso nell'app, anche senza rete.
 - Il pacchetto Windows include il lettore dei PDF, anche nella versione pubblicata.
 - Nelle versioni di prova l'elenco della Home mostra un canto lungo, il "Canto di prova".
 - Il pedale Bluetooth e la tastiera girano pagina nella schermata del canto: avanti con Pagina giù, Freccia giù, Freccia destra o Spazio, indietro con Pagina su, Freccia su o Freccia sinistra.
 - Su Android i tasti del volume girano pagina nella schermata del canto (su indietro, giù avanti); altrove regolano il volume.
 - Lo schermo resta acceso solo mentre è aperta la schermata di un canto, su Android e Windows.
+- La nuova scheda Importa, su Android e Windows, sceglie un PDF, mostra l'avanzamento della lettura e permette di annullarla.
+- Dalla scheda Importa si leggono anche i libretti interi, con il riepilogo dei canti trovati e il numero di canti previsto dall'indice.
+- Nell'elenco della scheda Importa si scelgono i canti con Tutti, Nessuno o Solo da controllare, e ogni canto si corregge nella revisione affiancata.
+- Nella revisione le righe dubbie del PDF hanno un segno "?" accanto al testo originale.
+- Prima di salvare un canto importato si spunta una dichiarazione sui diritti del canto: la casella parte sempre non spuntata, e Salva resta spento finché non è spuntata.
+- Su Windows la scheda Importa risponde a Ctrl+O per scegliere un PDF, Ctrl+S per aprire la dichiarazione, Esc per annullare o chiudere il foglio, e Alt con le frecce per cambiare canto.
+- Nella revisione di un canto importato un cronometro misura il tempo di correzione, spento per predefinito, e "Copia i tempi" copia la tabella dei tempi.
 
 ### Modificato
 - `{key}` indica la tonalità degli accordi scritti e il capotasto alza la tonalità che suona, come nello standard ChordPro.
@@ -36,6 +43,7 @@
 - Su Windows lo schermo si spegne quando l'app è ridotta a icona durante la lettura di un canto.
 - Tenendo premuto un tasto di pagina si gira una sola pagina, e i tasti di pagina non fanno nulla mentre si scrive in un campo di testo.
 - Il minimo di Android è ora la versione 6.0: i dispositivi con Android 5.x non possono più installare l'app.
+- La vecchia pagina di prova dell'OCR è sostituita dalla scheda Importa, su Android e Windows.
 
 ### Corretto
 - Gli accordi di un canto ChordPro vengono riscritti nella posizione in cui erano.
@@ -53,7 +61,10 @@
 - Una seconda versione di un canto, in altra tonalità o marcata "BIS", resta nello stesso canto.
 - I piè di pagina con link e le righe correnti ripetute su più pagine non entrano nei canti, mentre titoli, ritornelli e righe di accordi vicino al margine restano.
 - Una scansione il cui unico testo è un piè di pagina viene segnalata come senza testo.
-- Nelle schede scansionate tutte maiuscole le righe di accordi vengono riconosciute e scritte in notazione normale (Sol, Lam), mentre le righe di testo maiuscolo restano testo (solo banco di prova Windows).
+- Nelle schede scansionate tutte maiuscole le righe di accordi vengono riconosciute e scritte in notazione normale (Sol, Lam), mentre le righe di testo maiuscolo restano testo.
 - Nelle scansioni gli accordi cadono sulla sillaba giusta, anche con "SI m" staccato, e le righe con barre o "BB" in maiuscolo vengono riconosciute.
 - I libretti si dividono in canti con più precisione: intestazioni in fondo a una colonna, righe con numeri romani, titoli centrati, pagine ripetute in un'altra tonalità, e i ritornelli rientrati non iniziano più un nuovo canto.
 - Su Android il primo tasto del pedale dopo un tocco sul canto gira pagina.
+- Negli indici dei libretti le intestazioni di sezione e i piè di pagina non contano più come canti, e i titoli centrati più grandi del testo vengono riconosciuti.
+- Un ritornello rientrato a metà canto non divide più il canto, a meno che non sia scritto come un titolo e non si ripeta nella pagina.
+- Le lettere con la parte inferiore, come g, p e q, e le righe di accordi non vengono più tagliate in basso, nel canto e nell'anteprima.
