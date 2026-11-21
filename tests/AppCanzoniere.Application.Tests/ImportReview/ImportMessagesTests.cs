@@ -46,4 +46,13 @@ public sealed class ImportMessagesTests
         Assert.Equal("0:48", ImportMessages.Duration(TimeSpan.FromSeconds(48)));
         Assert.Equal("12:05", ImportMessages.Duration(TimeSpan.FromSeconds(725)));
     }
+
+    [Fact]
+    public void Leave_prompt_counts_read_songs_and_stays_silent_when_nothing_is_lost()
+    {
+        Assert.Null(ImportMessages.LeavePrompt(reading: false, unsavedRead: 0));
+        Assert.Contains("1 canto letto", ImportMessages.LeavePrompt(false, 1));
+        Assert.Contains("150 canti letti e non salvati", ImportMessages.LeavePrompt(false, 150));
+        Assert.Contains("lettura è in corso", ImportMessages.LeavePrompt(true, 0));
+    }
 }

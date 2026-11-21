@@ -156,7 +156,8 @@ public static class MauiProgram
         builder.Services.AddTransient<SongDetailViewModel>();
         builder.Services.AddTransient<SongMetadataViewModel>();
         builder.Services.AddTransient<AiChordSuggestionViewModel>();
-        builder.Services.AddTransient<ImportViewModel>();
+        // One session for the whole app: a re-entry shows it, and a new import waits for the previous reading.
+        builder.Services.AddSingleton<ImportViewModel>();
         builder.Services.AddTransient<AudioRecognitionViewModel>();
         builder.Services.AddTransient<CloudSyncViewModel>();
         builder.Services.AddTransient<LoginViewModel>();

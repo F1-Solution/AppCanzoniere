@@ -27,6 +27,15 @@ public static class ImportMessages
         _ => Unexpected
     };
 
+    public const string LeaveTitle = "Uscire dall'import?";
+
+    /// <summary>The question asked before leaving the import, or null when nothing would be lost.</summary>
+    public static string? LeavePrompt(bool reading, int unsavedRead) =>
+        reading ? "La lettura è in corso: uscire la annulla."
+        : unsavedRead == 1 ? "C'è 1 canto letto e non salvato: uscire lo perde."
+        : unsavedRead > 1 ? $"Ci sono {unsavedRead} canti letti e non salvati: uscire li perde."
+        : null;
+
     public static ImportErrorInfo NoSongs { get; } =
         new("Non ho trovato canti", "Il testo non sembra un canto con accordi.", "Scegli un altro PDF");
 
