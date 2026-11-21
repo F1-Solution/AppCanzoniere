@@ -10,7 +10,9 @@ public static class PdfSongSplitter
     {
         ArgumentNullException.ThrowIfNull(pages);
         var readings = ReadRegions(pages);
-        var builder = new SongCollector(readings.SelectMany(r => r.Index?.Titles ?? Array.Empty<string>()).ToHashSet());
+        var listedTitles = readings.SelectMany(r => r.Index?.Titles ?? Array.Empty<string>()).ToHashSet();
+        var headings = readings.SelectMany(r => r.Index?.Headings ?? Array.Empty<string>()).Where(h => !listedTitles.Contains(h)).ToHashSet();
+        var builder = new SongCollector(listedTitles, headings);
         var indexEntries = 0;
         var contentRegions = new List<Region>();
         foreach (var (region, index) in readings)
@@ -59,7 +61,7 @@ public static class PdfSongSplitter
 }
 
 /// <summary>Collects the lines of the song being read and the finished songs.</summary>
-internal sealed partial class SongCollector(IReadOnlySet<string> indexTitles)
+internal sealed partial class SongCollector(IReadOnlySet<string> indexTitles, IReadOnlySet<string> sectionHeadings)
 {
     private readonly List<SplitSong> _songs = new();
     private string? _title;
@@ -77,6 +79,13 @@ internal sealed partial class SongCollector(IReadOnlySet<string> indexTitles)
         var i = 0;
         while (i < region.Lines.Count)
         {
+            if (IsSectionHeading(region, i))
+            {
+                EndSong();
+                i++;
+                continue;
+            }
+
             var found = SongTitleDetector.Detect(region, i, new TitleContext(_lastNumber, _numberedBook, _verseNumber == 0 ? 0 : _verseNumber + 1, indexTitles));
             if (found is not null && IsSameSongAgain(found))
             {
@@ -102,6 +111,11 @@ internal sealed partial class SongCollector(IReadOnlySet<string> indexTitles)
             i++;
         }
     }
+
+    // A line that the index shows as a section heading, set off by blank lines and not listed as a song, closes the song above and is no text.
+    private bool IsSectionHeading(Region region, int i) =>
+        sectionHeadings.Count > 0 && !SongLineKinds.IsBlank(region.Lines[i]) && sectionHeadings.Contains(IndexRegionDetector.Comparable(region.Lines[i]))
+        && (i == 0 || SongLineKinds.IsBlank(region.Lines[i - 1])) && (i + 1 >= region.Lines.Count || SongLineKinds.IsBlank(region.Lines[i + 1]));
 
     // A title repeated for another key or instrument, with the same number, continues the song.
     private bool IsSameSongAgain(SongTitleDetector.Found found) =>
