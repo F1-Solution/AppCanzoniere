@@ -64,7 +64,7 @@ internal static class ImportSelfTest
             if (scenario == "cancel")
                 await RunCancelAsync(vm, path).ConfigureAwait(false);
             else
-                await vm.ImportFromPathAsync(path).ConfigureAwait(false);
+                await MainThread.InvokeOnMainThreadAsync(() => vm.ImportFromPathAsync(path));
 
             Log.Info(LogTag, "IMPORT DONE " + vm.AutomationStatus);
             if (scenario == "single")
@@ -82,7 +82,7 @@ internal static class ImportSelfTest
 
     private static async Task RunCancelAsync(ImportViewModel vm, string path)
     {
-        var import = vm.ImportFromPathAsync(path, TimeSpan.FromSeconds(6));
+        var import = MainThread.InvokeOnMainThreadAsync(() => vm.ImportFromPathAsync(path, TimeSpan.FromSeconds(6)));
         for (var i = 0; i < 50 && !vm.IsReading; i++)
             await Task.Delay(100).ConfigureAwait(false);
 

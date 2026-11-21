@@ -73,13 +73,21 @@ public static class MauiProgram
         builder.Services.AddSingleton<ISongDisplayService, SongDisplayService>();
         builder.Services.AddSingleton<SongScreenPresenter>();
         builder.Services.AddSingleton<IHardwareKeySource, HardwareKeySource>();
-        builder.Services.AddSingleton(_ => new ScreenWakeLock(on =>
+        builder.Services.AddSingleton(_ => new ScreenWakeLock(on => MainThread.BeginInvokeOnMainThread(() =>
         {
-            DeviceDisplay.Current.KeepScreenOn = on;
+            try
+            {
+                DeviceDisplay.Current.KeepScreenOn = on;
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Keep screen on failed: {ex}");
+            }
+
 #if DEBUG && ANDROID
             Android.Util.Log.Info("AppCanzoniereSelfTest", $"KEEPSCREENON {on}");
 #endif
-        }));
+        })));
         builder.Services.AddSingleton<IPreferenceStorage, PreferencesStorage>();
         builder.Services.AddSingleton<IChordDisplaySettingsStore, ChordDisplaySettingsStore>();
 

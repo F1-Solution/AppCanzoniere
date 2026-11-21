@@ -253,6 +253,13 @@ public sealed partial class ImportViewModel
 
     private async Task RunImportAsync(string name, Func<Task<string>> source, bool ownsTemp)
     {
+        // Session changes, the wake lock and the preview touch views, so the whole run stays on the main thread.
+        if (!MainThread.IsMainThread)
+        {
+            await MainThread.InvokeOnMainThreadAsync(() => RunImportAsync(name, source, ownsTemp));
+            return;
+        }
+
         _importCts?.Cancel();
         var cts = _importCts = new CancellationTokenSource();
         Session.BeginReading(name);
@@ -327,6 +334,12 @@ public sealed partial class ImportViewModel
 
     private void SchedulePreview(TimeSpan delay)
     {
+        if (!MainThread.IsMainThread)
+        {
+            MainThread.BeginInvokeOnMainThread(() => SchedulePreview(delay));
+            return;
+        }
+
         _previewCts?.Cancel();
         var cts = _previewCts = new CancellationTokenSource();
         _ = RefreshPreviewAsync(delay, cts.Token);
