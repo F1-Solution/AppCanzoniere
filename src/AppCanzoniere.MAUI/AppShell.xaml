@@ -10,7 +10,7 @@
     <!-- Tab Bar -->
     <TabBar>
         <ShellContent
-            Title="Home"
+            Title="Canti"
             Icon="home.png"
             ContentTemplate="{DataTemplate pages:HomePage}"
             Route="home" />
@@ -26,12 +26,6 @@
             Icon="album.png"
             ContentTemplate="{DataTemplate pages:AlbumListPage}"
             Route="albums" />
-
-        <ShellContent
-            Title="Importa"
-            Icon="camera.png"
-            ContentTemplate="{DataTemplate pages:ImportPage}"
-            Route="import" />
 
         <ShellContent
             Title="Audio ID"

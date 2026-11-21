@@ -164,6 +164,19 @@ public sealed class PdfSongSplitterIndexEntryTests
         Assert.Single(result.Songs);
     }
 
+    // The repeat is looked for on the whole page, so a refrain written in the other column counts.
+    [Theory]
+    [InlineData("Noi ti chiediamo", 1)]
+    [InlineData("Altro verso del canto", 2)]
+    public void A_listed_line_repeated_in_the_other_column_is_not_a_title(string otherColumn, int songs)
+    {
+        var left = $"~                 PRIMO CANTO\n\n{Chords}\n\n~                 Noi ti chiediamo\n\nsopra il mare scuro";
+
+        var result = PdfSongSplitter.Split(new[] { TwoColumns(1, left, $"{otherColumn}\nsopra il mare chiaro"), Page(2, Index("PRIMO CANTO", "Noi ti chiediamo")) });
+
+        Assert.Equal(songs, result.Songs.Count);
+    }
+
     // The usual title checks apply: a line ending in a comma is no title even when listed and set off.
     [Fact]
     public void A_listed_centred_line_ending_in_a_comma_is_not_a_title()

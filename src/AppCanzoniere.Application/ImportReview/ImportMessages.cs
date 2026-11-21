@@ -27,6 +27,21 @@ public static class ImportMessages
         _ => Unexpected
     };
 
+    public const string LeaveTitle = "Uscire dall'import?";
+    public const string ReplaceTitle = "Scegliere un altro PDF?";
+
+    /// <summary>The question asked before leaving the import, or null when nothing is lost; a running reading is cancelled without asking.</summary>
+    public static string? LeavePrompt(int unsavedRead) =>
+        unsavedRead == 1 ? "C'è 1 canto letto e non salvato: uscire lo perde."
+        : unsavedRead > 1 ? $"Ci sono {unsavedRead} canti letti e non salvati: uscire li perde."
+        : null;
+
+    /// <summary>The question asked before replacing the current reading with another PDF, or null when no read song is unsaved.</summary>
+    public static string? ReplacePrompt(int unsavedRead) =>
+        unsavedRead == 1 ? "C'è 1 canto letto e non salvato: andrà perso."
+        : unsavedRead > 1 ? $"Ci sono {unsavedRead} canti letti e non salvati: andranno persi."
+        : null;
+
     public static ImportErrorInfo NoSongs { get; } =
         new("Non ho trovato canti", "Il testo non sembra un canto con accordi.", "Scegli un altro PDF");
 

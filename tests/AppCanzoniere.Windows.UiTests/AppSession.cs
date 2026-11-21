@@ -73,6 +73,17 @@ internal sealed class AppSession : IDisposable
         return Start(info, data);
     }
 
+    /// <summary>Starts the app on its first screen (the songs list) with no debug hook and a throwaway database.</summary>
+    public static AppSession LaunchPlain()
+    {
+        var data = Path.Combine(Path.GetTempPath(), "appcanzoniere-uitest-" + Guid.NewGuid().ToString("N"));
+        var info = new ProcessStartInfo(Executable) { WorkingDirectory = AppDirectory, UseShellExecute = false };
+        info.Environment["APPCANZONIERE_UITEST_DATA"] = data;
+        info.Environment.Remove(SongVariable);
+        info.Environment.Remove("APPCANZONIERE_UITEST_IMPORT");
+        return Start(info, data);
+    }
+
     private static AppSession Start(ProcessStartInfo info, string? dataFolder = null)
     {
         var app = FlaApp.Launch(info);
@@ -141,9 +152,22 @@ internal sealed class AppSession : IDisposable
         throw new TimeoutException("The song screen never showed a vertical scroller.\n" + Dump());
     }
 
-    public AutomationElement? FindScroller() =>
-        Window.FindAllDescendants()
-            .FirstOrDefault(e => e.Patterns.Scroll.IsSupported && e.Patterns.Scroll.PatternOrDefault is { VerticallyScrollable.ValueOrDefault: true });
+    /// <summary>Looks the scroller up by its automation id; a UI Automation hiccup counts as not found yet.</summary>
+    public AutomationElement? FindScroller()
+    {
+        try
+        {
+            var element = Window.FindFirstDescendant(c => c.ByAutomationId("SongScroll"));
+            return element is not null && element.Patterns.Scroll.IsSupported
+                && element.Patterns.Scroll.PatternOrDefault is { VerticallyScrollable.ValueOrDefault: true }
+                ? element
+                : null;
+        }
+        catch (Exception ex) when (ex is System.Runtime.InteropServices.COMException or FlaUI.Core.Exceptions.ElementNotAvailableException or TimeoutException)
+        {
+            return null;
+        }
+    }
 
     /// <summary>Current scroll offset in pixels, from the percentages the scroller reports.</summary>
     public static double Offset(AutomationElement scroller)

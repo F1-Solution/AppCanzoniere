@@ -280,4 +280,93 @@ public class ImportScreenTests
         using var process = System.Diagnostics.Process.GetProcessById(session.ProcessId);
         Assert.False(process.HasExited);
     }
+
+    private static void Back(AppSession session) => Press(session, "NavigationViewBackButton");
+
+    private static AutomationElement? WaitElement(AppSession session, Func<AutomationElement?> find, TimeSpan? timeout = null)
+    {
+        var until = DateTime.UtcNow + (timeout ?? TimeSpan.FromSeconds(30));
+        while (DateTime.UtcNow < until)
+        {
+            try
+            {
+                if (find() is { } found)
+                    return found;
+            }
+            catch (Exception ex) when (ex is System.Runtime.InteropServices.COMException or TimeoutException or InvalidOperationException)
+            {
+            }
+
+            Thread.Sleep(300);
+        }
+
+        return null;
+    }
+
+    [WindowsFact]
+    public void Back_DuringReading_CancelsLeavesAndReEntryStartsClean()
+    {
+        using var session = AppSession.LaunchImport(AppSession.Fixture("mini-songbook.pdf"), readDelayMs: 20000);
+        WaitFor(session, s => s["phase"] == "Reading", "the reading state", TimeSpan.FromSeconds(60));
+
+        // The first Back cancels the reading in the page, the second leaves it.
+        Back(session);
+        WaitFor(session, s => s["phase"] == "Cancelled", "Back to cancel the reading", TimeSpan.FromSeconds(15));
+        Back(session);
+        Assert.NotNull(WaitElement(session, () => session.Window.FindFirstDescendant(c => c.ByAutomationId("AddSongButton"))));
+        if (PowerRequests.CanRead)
+            Assert.True(PowerRequests.WaitUntil(session.ProcessId, held: false), "the screen stays on after leaving the import");
+
+        Press(session, "AddSongButton");
+        Press(WaitElement(session, () => session.Window.FindFirstDescendant(c => c.ByName("Da PDF")))!);
+        Assert.NotNull(WaitElement(session, () => Find(session, "ChoosePdf")));
+
+        // Re-entry shows a clean start state: no reading runs behind the page.
+        var status = WaitFor(session, s => s["phase"] == "Start", "the start state after re-entry", TimeSpan.FromSeconds(15));
+        Thread.Sleep(2000);
+        Assert.Equal("Start", ReadStatus(session)["phase"]);
+        Assert.Equal(0, status.Number("songs"));
+    }
+
+    [WindowsFact]
+    public void Back_WithReadButUnsavedSongs_AsksBeforeLeaving()
+    {
+        using var session = AppSession.LaunchImport(AppSession.Fixture("mini-songbook.pdf"));
+        WaitFor(session, s => s["phase"] == "Result", "the songbook to be read");
+
+        Back(session);
+        _ = WaitElement(session, () => session.Window.FindFirstDescendant(c => c.ByName("Esci")))
+            ?? throw new InvalidOperationException("No confirmation was asked." + session.Dump());
+        Assert.NotNull(session.Window.FindFirstDescendant(c => c.ByName("Annulla")));
+
+        Press(session.Window.FindFirstDescendant(c => c.ByName("Annulla"))!);
+        Assert.Equal("Result", ReadStatus(session)["phase"]);
+
+        Back(session);
+        Press(WaitElement(session, () => session.Window.FindFirstDescendant(c => c.ByName("Esci")))!);
+        Assert.NotNull(WaitElement(session, () => session.Window.FindFirstDescendant(c => c.ByAutomationId("AddSongButton"))));
+    }
+
+    [WindowsFact]
+    public void AnotherPdf_WithReadButUnsavedSongs_AsksToReplaceNotToLeave()
+    {
+        using var session = AppSession.LaunchImport(AppSession.Fixture("mini-songbook.pdf"));
+        WaitFor(session, s => s["phase"] == "Result", "the songbook to be read");
+
+        Press(session, "AnotherPdf");
+        _ = WaitElement(session, () => session.Window.FindFirstDescendant(c => c.ByName("Scegli altro PDF")))
+            ?? throw new InvalidOperationException("No confirmation was asked." + session.Dump());
+        Assert.Null(session.Window.FindFirstDescendant(c => c.ByName("Esci")));
+
+        Press(session.Window.FindFirstDescendant(c => c.ByName("Annulla"))!);
+        Assert.Equal("Result", ReadStatus(session)["phase"]);
+    }
+
+    private static void Press(AutomationElement element)
+    {
+        if (element.Patterns.Invoke.IsSupported)
+            element.Patterns.Invoke.Pattern.Invoke();
+        else
+            element.Click();
+    }
 }

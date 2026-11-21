@@ -4,7 +4,7 @@ using AppCanzoniere.Application.Import;
 namespace AppCanzoniere.Application.PdfImport;
 
 /// <summary>One column of one page with the converter's verdict on which lines carry chords.</summary>
-internal sealed record Region(int Page, IReadOnlyList<string> Lines, IReadOnlyList<bool> IsChord, IReadOnlyList<double>? Heights = null)
+internal sealed record Region(int Page, IReadOnlyList<string> Lines, IReadOnlyList<bool> IsChord, IReadOnlyList<double>? Heights = null, IReadOnlyDictionary<string, int>? PageLineCounts = null)
 {
     // A heading must be at least this much taller than the median row to count as set in a larger font.
     private const double TallerFactor = 1.15;

@@ -10,7 +10,12 @@ public static class PdfSongSplitter
     {
         ArgumentNullException.ThrowIfNull(pages);
         var readings = ReadRegions(pages);
-        var builder = new SongCollector(readings.SelectMany(r => r.Index?.Titles ?? Array.Empty<string>()).ToHashSet());
+        var listedTitles = readings.SelectMany(r => r.Index?.Titles ?? Array.Empty<string>()).ToHashSet();
+        var headings = readings.SelectMany(r => r.Index?.Headings ?? Array.Empty<string>()).Where(h => !listedTitles.Contains(h)).ToHashSet();
+        if (headings.Count * 2 > listedTitles.Count)
+            headings.Clear();
+
+        var builder = new SongCollector(listedTitles, headings);
         var indexEntries = 0;
         var contentRegions = new List<Region>();
         foreach (var (region, index) in readings)
@@ -40,9 +45,11 @@ public static class PdfSongSplitter
         var followsIndex = false;
         foreach (var page in pages.Where(p => !p.IsScanned))
         {
+            var pageLines = page.Blocks.SelectMany(b => b.Lines).Select(l => l.Text.Trim()).Where(t => t.Length > 0)
+                .GroupBy(t => t, StringComparer.OrdinalIgnoreCase).ToDictionary(g => g.Key, g => g.Count(), StringComparer.OrdinalIgnoreCase);
             foreach (var block in page.Blocks)
             {
-                var region = Region.Of(page.PageNumber, block.Lines.Select(l => l.Text).ToList(), block.Lines.Select(l => l.Row?.Height ?? 0).ToList());
+                var region = Region.Of(page.PageNumber, block.Lines.Select(l => l.Text).ToList(), block.Lines.Select(l => l.Row?.Height ?? 0).ToList()) with { PageLineCounts = pageLines };
                 var index = IndexRegionDetector.Read(region, followsIndex);
                 followsIndex = index is not null;
                 result.Add((region, index));
@@ -57,7 +64,7 @@ public static class PdfSongSplitter
 }
 
 /// <summary>Collects the lines of the song being read and the finished songs.</summary>
-internal sealed partial class SongCollector(IReadOnlySet<string> indexTitles)
+internal sealed partial class SongCollector(IReadOnlySet<string> indexTitles, IReadOnlySet<string> sectionHeadings)
 {
     private readonly List<SplitSong> _songs = new();
     private string? _title;
@@ -68,6 +75,7 @@ internal sealed partial class SongCollector(IReadOnlySet<string> indexTitles)
     private int _lastNumber;
     private bool _numberedBook;
     private int _verseNumber;
+    private bool _afterHeading;
 
     public void AddRegion(Region region)
     {
@@ -75,6 +83,14 @@ internal sealed partial class SongCollector(IReadOnlySet<string> indexTitles)
         var i = 0;
         while (i < region.Lines.Count)
         {
+            if (IsSectionHeading(region, i))
+            {
+                EndSong();
+                _afterHeading = true;
+                i++;
+                continue;
+            }
+
             var found = SongTitleDetector.Detect(region, i, new TitleContext(_lastNumber, _numberedBook, _verseNumber == 0 ? 0 : _verseNumber + 1, indexTitles));
             if (found is not null && IsSameSongAgain(found))
             {
@@ -86,6 +102,7 @@ internal sealed partial class SongCollector(IReadOnlySet<string> indexTitles)
 
             if (found is not null)
             {
+                _afterHeading = false;
                 EndSong();
                 _title = found.Title;
                 _subtitles = found.Subtitles;
@@ -95,10 +112,41 @@ internal sealed partial class SongCollector(IReadOnlySet<string> indexTitles)
                 continue;
             }
 
+            if (_afterHeading && _title is null && IsContent(region.Lines[i]))
+                StartUntitled(region, i);
             if (!PerformanceHints.IsHint(region.Lines[i]) && !PerformanceHints.IsBisOfLast(region.Lines[i], _lastNumber))
                 AddLine(region.Lines[i], region.Page, region.HasChordAbove(i));
             i++;
         }
+    }
+
+    private static bool IsContent(string line) =>
+        !SongLineKinds.IsBlank(line) && !SongLineKinds.IsNoise(line) && !PerformanceHints.IsHint(line);
+
+    // Text under a dropped heading with no title of its own is a song of its own, named by its first lyric line.
+    private void StartUntitled(Region region, int i)
+    {
+        _afterHeading = false;
+        _title = UntitledSheet.TitleFrom(region, i);
+        _firstPage = _lastPage = region.Page;
+    }
+
+    // An index heading is dropped only when it opens a column or is directly followed by a title; elsewhere it is text of the song.
+    private bool IsSectionHeading(Region region, int i)
+    {
+        if (sectionHeadings.Count == 0 || SongLineKinds.IsBlank(region.Lines[i]) || !sectionHeadings.Contains(IndexRegionDetector.Comparable(region.Lines[i])))
+            return false;
+        if (!(i == 0 || SongLineKinds.IsBlank(region.Lines[i - 1])) || !(i + 1 >= region.Lines.Count || SongLineKinds.IsBlank(region.Lines[i + 1])))
+            return false;
+
+        var opensColumn = Enumerable.Range(0, i).All(j => SongLineKinds.IsBlank(region.Lines[j]));
+        return opensColumn || FollowedByTitle(region, i + 1);
+    }
+
+    private bool FollowedByTitle(Region region, int from)
+    {
+        var next = Enumerable.Range(from, Math.Max(0, region.Lines.Count - from)).FirstOrDefault(j => !SongLineKinds.IsBlank(region.Lines[j]), -1);
+        return next >= 0 && SongTitleDetector.Detect(region, next, new TitleContext(_lastNumber, _numberedBook, _verseNumber == 0 ? 0 : _verseNumber + 1, indexTitles)) is not null;
     }
 
     // A title repeated for another key or instrument, with the same number, continues the song.

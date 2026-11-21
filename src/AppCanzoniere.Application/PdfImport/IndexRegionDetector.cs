@@ -2,8 +2,8 @@ using System.Text.RegularExpressions;
 
 namespace AppCanzoniere.Application.PdfImport;
 
-/// <summary>The song entries of an index column: how many, and their titles in comparison form.</summary>
-internal sealed record IndexReading(int EntryCount, IReadOnlyList<string> Titles);
+/// <summary>The song entries of an index column: how many, their titles and the section headings over them, in comparison form.</summary>
+internal sealed record IndexReading(int EntryCount, IReadOnlyList<string> Titles, IReadOnlyList<string> Headings);
 
 /// <summary>Recognises columns that list song titles (a table of contents) instead of holding songs.</summary>
 internal static partial class IndexRegionDetector
@@ -45,9 +45,11 @@ internal static partial class IndexRegionDetector
             return null;
 
         var entries = content.Where(i => SongLineKinds.IsNumbered(region.Lines[i]) || SongLineKinds.EndsWithNumber(region.Lines[i])).ToList();
-        var songs = WithoutHeadings(region, WithoutFooter(region, entries, content));
+        var listed = WithoutFooter(region, entries, content);
+        var songs = WithoutHeadings(region, listed);
+        var headings = listed.Except(songs).Select(i => Comparable(EntryTitle(region.Lines[i]))).Where(t => t.Length >= MinTitleLetters).Distinct().ToList();
         var titles = songs.Select(i => Comparable(EntryTitle(region.Lines[i]))).Where(t => t.Length >= MinTitleLetters).Distinct().ToList();
-        return new IndexReading(songs.Count, titles);
+        return new IndexReading(songs.Count, titles, headings);
     }
 
     /// <summary>The title of an index line without its number or dot leader and page number.</summary>

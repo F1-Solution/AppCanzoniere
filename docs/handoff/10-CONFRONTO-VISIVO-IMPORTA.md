@@ -16,8 +16,8 @@ ATTENZIONE: fino alla fase F4 la schermata Importa usa i colori di Leggio (beige
 
 ## Cosa serve
 
-- Il tablet Android con l'app del round 9.
-- Il PC Windows con l'app del round 9, a scala 100 %.
+- Il tablet Android con l'app del round 10.
+- Il PC Windows con l'app del round 10, a scala 100 %.
 - Il PDF con il canto singolo, il PDF del libretto, la scansione e il file `danneggiato.pdf` (vedi [PROVE-SU-DISPOSITIVO.md](../verifiche/PROVE-SU-DISPOSITIVO.md), passi 25 a 28).
 - Uno strumento per fare immagini: su Android il pulsante screenshot del tablet, su Windows Win+Shift+S.
 
@@ -25,10 +25,10 @@ ATTENZIONE: fino alla fase F4 la schermata Importa usa i colori di Leggio (beige
 
 ## Passi
 
-1. Apri la schermata Importa sul tablet, in verticale.
+1. Apri la schermata Importa sul tablet, in verticale: tocca Canti → + → Da PDF.
 2. Porta ogni stato della tabella qui sotto. Confronta con la colonna "Cosa guardare".
 3. Ripeti i passi 1 e 2 sul tablet in orizzontale.
-4. Apri la schermata Importa sul PC, a finestra intera.
+4. Apri la schermata Importa sul PC, a finestra intera: clicca Canti → + → Da PDF.
 5. Porta ogni stato della tabella qui sotto.
 6. Apri un canto in revisione (S3). Trascina il bordo della finestra fino a circa 1300 px. Controlla la classe larga della sezione "Classi di larghezza".
 7. Trascina il bordo fino a circa 900 px. Controlla la classe media.
@@ -43,7 +43,7 @@ ATTENZIONE: fino alla fase F4 la schermata Importa usa i colori di Leggio (beige
 
 | Stato | Come arrivarci | Cosa guardare |
 |---|---|---|
-| S0 Avvio | Apri la scheda Importa senza file letti. | Titolo, testo di spiegazione, pulsante "Scegli un PDF" pieno e largo. Sul PC, una seconda riga "Ctrl+O". Nota sulle scansioni. Interruttore "Misura i tempi di correzione" spento. |
+| S0 Avvio | Apri Canti → + → Da PDF senza file letti. | Titolo, testo di spiegazione, pulsante "Scegli un PDF" pieno e largo. Sul PC, una seconda riga "Ctrl+O". Nota sulle scansioni. Interruttore "Misura i tempi di correzione" spento. |
 | S1 Lettura | Scegli la scansione. | Nome del file. "Pagina n di m". Barra di avanzamento sottile. Percentuale a destra. Pulsante "Annulla" alto e largo. Nessun altro pulsante attivo. |
 | S2 Elenco | Scegli un libretto e aspetta la fine. | Riepilogo in un riquadro. Tre pulsanti Tutti, Nessuno, "Solo da controllare". Contatore "N selezionati". Righe con casella. Badge "! n righe da controllare". Etichetta "Scansione" sulle righe scansionate. Barra in basso con "Salva n canti selezionati". |
 | S2 con zero canti | Tocca "Nessuno". | Pulsante "Salva" spento. Riga con "Seleziona almeno un canto". |
@@ -54,6 +54,18 @@ ATTENZIONE: fino alla fase F4 la schermata Importa usa i colori di Leggio (beige
 | S7 Annullato | Scegli la scansione e tocca "Annulla" a metà lettura. | Riga "Lettura annullata. Nessun canto importato." e "Scegli un PDF". |
 
 ---
+
+## Schermate del nuovo ingresso
+
+L'import si apre da Canti → + → Da PDF. La scheda "Importa" non c'è più. Confronta anche queste schermate, su tablet e su PC.
+
+| Schermata | Come arrivarci | Cosa guardare |
+|---|---|---|
+| C1 Elenco Canti | Apri la scheda Canti dalla barra in basso. | Titolo "Canti". Pulsante "+" in alto. Campo di ricerca e testi in italiano, nessun testo in inglese. Segnala ogni testo in inglese. |
+| C2 Menu "Aggiungi canto" | Tocca "+" in Canti. | Menu "Aggiungi canto" con la voce "Da PDF". Tutte le voci in italiano. Due tocchi rapidi aprono il menu una sola volta. |
+| C3 Import con freccia Indietro | Tocca "+", poi "Da PDF". | Freccia Indietro in alto a sinistra. Titolo della schermata. ATTENZIONE: Indietro durante una lettura la annulla. Tocca Indietro solo quando vuoi uscire. Dopo Indietro torni all'elenco Canti. |
+| C4 Barra in basso senza Importa | Guarda la barra quando sei in Canti. | Nessuna scheda "Importa". La scheda dei canti si chiama "Canti". Se la scheda dice ancora "Home", segnalalo. |
+| C5 Elenco dopo il salvataggio | Scegli un libretto, salva alcuni canti, poi torna a Canti con Indietro. | I canti salvati compaiono in Canti. L'elenco si aggiorna senza riavvio. Nessun canto compare due volte. |
 
 ## Classi di larghezza (S3)
 

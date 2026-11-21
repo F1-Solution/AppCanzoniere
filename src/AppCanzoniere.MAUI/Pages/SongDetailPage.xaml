@@ -58,6 +58,7 @@
 
         <!-- Song Content -->
         <ScrollView x:Name="SongScroll"
+                    AutomationId="SongScroll"
                     Grid.Row="1"
                     Padding="15">
             <StackLayout Spacing="10">

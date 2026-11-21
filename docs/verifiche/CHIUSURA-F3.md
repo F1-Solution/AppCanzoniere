@@ -1,6 +1,6 @@
 # Chiusura della fase F3 — scheda
 
-Questa scheda dice cosa serve per chiudere la fase F3 del piano. Stato di F3 al 21/11/2026: **in corso**. F3 si chiude solo quando il proprietario riporta gli esiti delle prove su dispositivo. Il codice del round 9 non chiude F3 da solo.
+Questa scheda dice cosa serve per chiudere la fase F3 del piano. Stato di F3 al 21/11/2026 (round 10): **in corso**. F3 si chiude solo quando il proprietario riporta gli esiti delle prove su dispositivo. Il codice dei round 9 e 10 non chiude F3 da solo.
 
 Fonti: [docs/FASI.md](../FASI.md), fase F3 (criteri di accettazione). Prove: [PROVE-SU-DISPOSITIVO.md](PROVE-SU-DISPOSITIVO.md). Istruzioni passo passo: [docs/handoff/09-PROVE-IMPORT-E-CHIUSURA-F3.md](../handoff/09-PROVE-IMPORT-E-CHIUSURA-F3.md).
 
@@ -104,11 +104,11 @@ Ogni punto ha una riga. Scrivi "confermato" oppure "cambiato, [la tua scelta]".
 
 | Punto | Decisione | Dove è spiegato |
 |---|---|---|
-| 1. Tema del criterio A: chiudere F3 con la palette provvisoria di Leggio, oppure aspettare F4 (tema Palco scuro) | | [DECISIONI-ROUND-9.md](../DECISIONI-ROUND-9.md), riga "Tema" |
-| 2. DEC 36: lettura dei PDF nel processo dell'app | | [DECISIONI-ROUND-9.md](../DECISIONI-ROUND-9.md) |
-| 3. DEC 37: canti importati salvati nella libreria attuale | | [DECISIONI-ROUND-9.md](../DECISIONI-ROUND-9.md) |
-| 4. DEC 38: dichiarazione da spuntare prima di ogni salvataggio | | [DECISIONI-ROUND-9.md](../DECISIONI-ROUND-9.md) |
-| 5. U-1 a U-8 (decisioni di interfaccia) | | [DECISIONI-ROUND-9.md](../DECISIONI-ROUND-9.md) |
+| 1. Tema del criterio A: chiudere F3 con la palette provvisoria di Leggio, oppure aspettare F4 (tema Palco scuro) | Palette Leggio accettata fino a F4 (21/11/2026). Il criterio A resta da verificare con il tema scelto. | [DECISIONI-ROUND-10.md](../DECISIONI-ROUND-10.md), riga "Tema" |
+| 2. DEC 36: lettura dei PDF nel processo dell'app | Confermata (21/11/2026) | [DECISIONI-ROUND-10.md](../DECISIONI-ROUND-10.md) |
+| 3. DEC 37: canti importati salvati nella libreria attuale | Confermata (21/11/2026) | [DECISIONI-ROUND-10.md](../DECISIONI-ROUND-10.md) |
+| 4. DEC 38: dichiarazione da spuntare prima di ogni salvataggio | Confermata (21/11/2026) | [DECISIONI-ROUND-10.md](../DECISIONI-ROUND-10.md) |
+| 5. U-1 a U-8 (decisioni di interfaccia) | U-1 definitiva; U-2 a U-6 e U-8 confermate; U-7 non confermata: l'ingresso è in Canti → + → Da PDF (21/11/2026) | [DECISIONI-ROUND-10.md](../DECISIONI-ROUND-10.md) |
 | 6. Esito della misura B: OCR in v1, solo PDF con testo e "incolla", oppure import fuori dalla v1 | | Sezione 3.3 di questa scheda |
 
 ## 5. Riga da incollare per chiudere F3

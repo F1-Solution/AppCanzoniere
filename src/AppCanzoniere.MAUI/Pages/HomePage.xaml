@@ -5,13 +5,14 @@
              xmlns:entities="clr-namespace:AppCanzoniere.Domain.Entities;assembly=AppCanzoniere.Domain"
              x:Class="AppCanzoniere.MAUI.Pages.HomePage"
              x:DataType="vm:HomeViewModel"
-             Title="Songs">
+             Title="Canti">
 
     <ContentPage.ToolbarItems>
-        <ToolbarItem Text="Add"
+        <ToolbarItem Text="Aggiungi canto"
+                     AutomationId="AddSongButton"
                      IconImageSource="add.png"
-                     Command="{Binding NavigateToCreateSongCommand}" />
-        <ToolbarItem Text="Search"
+                     Command="{Binding ShowAddMenuCommand}" />
+        <ToolbarItem Text="Cerca"
                      IconImageSource="search.png"
                      Command="{Binding Source={RelativeSource AncestorType={x:Type ContentPage}}, Path=BindingContext.NavigateToSearchCommand}" />
     </ContentPage.ToolbarItems>
@@ -19,7 +20,7 @@
     <Grid RowDefinitions="Auto,*">
         <!-- Search Bar -->
         <SearchBar Grid.Row="0"
-                   Placeholder="Search songs..."
+                   Placeholder="Cerca canti..."
                    Text="{Binding SearchText}"
                    SearchCommand="{Binding SearchCommand}"
                    Margin="10" />
@@ -33,11 +34,11 @@
                 <CollectionView.EmptyView>
                     <StackLayout Padding="20"
                                  VerticalOptions="Center">
-                        <Label Text="No songs found"
+                        <Label Text="Nessun canto trovato"
                                FontSize="18"
                                HorizontalOptions="Center"
                                TextColor="{StaticResource Gray500}" />
-                        <Label Text="Tap + to add a new song"
+                        <Label Text="Tocca + per aggiungere un canto o importare un PDF"
                                FontSize="14"
                                HorizontalOptions="Center"
                                TextColor="{StaticResource Gray400}" />

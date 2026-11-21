@@ -35,7 +35,7 @@ public class TextFieldAndScreenTests
         session.WaitForScroller();
         session.EnsureForeground();
 
-        Assert.True(PowerRequests.DisplayHeldBy(session.ProcessId), "the display is not requested on the song screen");
+        Assert.True(PowerRequests.WaitUntil(session.ProcessId, held: true), "the display is not requested on the song screen");
 
         session.Window.Patterns.Window.Pattern.SetWindowVisualState(WindowVisualState.Minimized);
         Assert.True(PowerRequests.WaitUntil(session.ProcessId, held: false), "the display request stays while the window is minimized: " + PowerRequests.Read());

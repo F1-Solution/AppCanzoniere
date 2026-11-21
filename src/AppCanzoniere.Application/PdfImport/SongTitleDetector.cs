@@ -59,12 +59,17 @@ internal static class SongTitleDetector
         return !RepeatedOnPage(region, i);
     }
 
-    // A repeat at any indent marks a refrain; the title echoed as the first lyric line right under it does not count.
+    // A repeat at any indent, in any column of the page, marks a refrain; the title echoed as the first lyric line right under it does not count.
     private static bool RepeatedOnPage(Region region, int i)
     {
+        var text = region.Lines[i].Trim();
         var echo = NextLyric(region, i);
-        return Enumerable.Range(0, region.Lines.Count).Any(j => j != i && j != echo
-            && string.Equals(region.Lines[j].Trim(), region.Lines[i].Trim(), StringComparison.OrdinalIgnoreCase));
+        var inRegion = Enumerable.Range(0, region.Lines.Count).Any(j => j != i && j != echo && string.Equals(region.Lines[j].Trim(), text, StringComparison.OrdinalIgnoreCase));
+        if (inRegion || region.PageLineCounts is null || !region.PageLineCounts.TryGetValue(text, out var onPage))
+            return inRegion;
+
+        var inThisRegion = Enumerable.Range(0, region.Lines.Count).Count(j => string.Equals(region.Lines[j].Trim(), text, StringComparison.OrdinalIgnoreCase));
+        return onPage > inThisRegion;
     }
 
     private static int NextLyric(Region region, int i)

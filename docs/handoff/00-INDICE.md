@@ -2,7 +2,7 @@
 
 Scopo: trovare il file giusto e sapere cosa fare adesso.
 
-Data di aggiornamento: 21/11/2026 (round 9). Stato verificato con GitHub al 20/11/2026:
+Data di aggiornamento: 21/11/2026 (round 10). Stato verificato con GitHub al 20/11/2026:
 - La pull request #8 risulta già unita (stato "MERGED").
 - Il repository `F1-Solution/AppCanzoniere` è **pubblico**. Lo hai confermato il 20/11/2026. Resta da decidere la sede delle release Windows (vedi `01`).
 - Il branch `main` **non ha protezione**. GitHub permette quindi di unire anche con controlli rossi.
@@ -12,7 +12,7 @@ Data di aggiornamento: 21/11/2026 (round 9). Stato verificato con GitHub al 20/1
 
 | N. | File | Cosa fai | Quando | Cosa blocca | Stato |
 |---|---|---|---|---|---|
-| 01 | [01-DECISIONI-DA-CONFERMARE.md](01-DECISIONI-DA-CONFERMARE.md) | Confermi o cambi DEC 36-38 e U-1..U-8. Il tema provvisorio. Prendi D10-D13 più avanti. DEC 32-35 sono già confermate. | Adesso (round 9). D10 entro il 28/02/2027. | Lavoro dei round 9 e seguenti. D10-D13 bloccano F11-F15. | da fare (round 9) |
+| 01 | [01-DECISIONI-DA-CONFERMARE.md](01-DECISIONI-DA-CONFERMARE.md) | Nulla da fare per DEC 36-38 e U-1..U-8: confermate il 21/11/2026 (U-7 no, ingresso già spostato). Restano D10-D13. | D10 entro il 28/02/2027. | D10-D13 bloccano F11-F15. | fatto (round 10) |
 | 02 | [PROVE-SU-DISPOSITIVO.md](../verifiche/PROVE-SU-DISPOSITIVO.md) | Esegui le prove su tablet (T1-T7, I-T1..I-T10), PC (W1-W7, I-W1..I-W6) e la misura B1. | Adesso. Passi nel file `09`. | Chiusura della fase F3 (traccia B entro il 17/01/2027, traccia A entro il 24/01/2027). | da fare |
 | 03 | [03-REVISIONE-E-UNIONE-PR.md](03-REVISIONE-E-UNIONE-PR.md) | Rivedi e unisci una pull request su GitHub. | Ogni volta che una PR di round è pronta. | Unione di ogni PR. Regola: solo con CI verde. | fatto per la PR #8; ripeti per le PR future |
 | 04 | [04-GATE-0.md](04-GATE-0.md) | Fai le interviste e la validazione commerciale. | Adesso. Il Gate 0 scade il 31/01/2027. | Decisione "procedo" o "mi fermo" (Gate 0). | da fare |
@@ -20,7 +20,7 @@ Data di aggiornamento: 21/11/2026 (round 9). Stato verificato con GitHub al 20/1
 | 06 | [06-ACQUISTI-E-MATERIALI.md](06-ACQUISTI-E-MATERIALI.md) | Compra tablet e pedale. Procura libretti, canti e calendari. | Tablet e pedale adesso. Il resto secondo la fase. | Prove di F3, F6, F8, F9. | da fare |
 | 07 | [07-VERIFICHE-ESTERNE-E-PROFESSIONISTI.md](07-VERIFICHE-ESTERNE-E-PROFESSIONISTI.md) | Verifiche V-01 a V-11, commercialista, legale, account degli store. | Prima delle fasi future (F11-F15). | F11, F12, F13, F14, F15. | da fare |
 | 08 | [08-COMPITI-DELLE-FASI-FUTURE.md](08-COMPITI-DELLE-FASI-FUTURE.md) | Compiti tuoi per ogni fase da F4 a F15. | Prima di ogni fase. | La fase indicata nel file. | da fare |
-| 09 | [09-PROVE-IMPORT-E-CHIUSURA-F3.md](09-PROVE-IMPORT-E-CHIUSURA-F3.md) | Esegui le prove della schermata Importa e la misura dei 10 libretti. Compila la scheda di chiusura. | Adesso, dopo `11`. | Chiusura di F3. Senza i tuoi esiti F3 resta "in corso". | da fare |
+| 09 | [09-PROVE-IMPORT-E-CHIUSURA-F3.md](09-PROVE-IMPORT-E-CHIUSURA-F3.md) | Esegui le prove della schermata Importa (si apre da Canti → + → Da PDF) e la misura dei 10 libretti. Compila la scheda di chiusura. | Adesso, dopo `11`. | Chiusura di F3. Senza i tuoi esiti F3 resta "in corso". | da fare |
 | 10 | [10-CONFRONTO-VISIVO-IMPORTA.md](10-CONFRONTO-VISIVO-IMPORTA.md) | Confronti la schermata Importa reale con la proposta visiva, su PC e tablet. | Mentre fai le prove del `09`. | Il lavoro visivo successivo (regola del progetto: serve la tua conferma). | da fare |
 | 11 | [11-PULIZIA-PC-DI-SVILUPPO.md](11-PULIZIA-PC-DI-SVILUPPO.md) | Svuoti la libreria di prova sul PC di sviluppo (circa 150 canti di sviluppo). | Prima del `09`. | Nulla. Serve solo a partire da una libreria pulita. | da fare |
 
@@ -30,7 +30,7 @@ Nota sul file 12. Non è stato creato. Il controllo della rete di ML Kit (R9-21)
 
 ## Ordine consigliato
 
-1. **Adesso, in quest'ordine:** `01`, `11`, `09` (con `10` in parallelo), `03` (se la PR del round 9 è pronta), `05`.
+1. **Adesso, in quest'ordine:** `11`, `09` (con `10` in parallelo), `03` (se la PR del round 10 è pronta), `05`.
 2. **Adesso, in parallelo:** `04` e `06`.
 3. **Prima delle fasi future:** `07` e `08`.
 

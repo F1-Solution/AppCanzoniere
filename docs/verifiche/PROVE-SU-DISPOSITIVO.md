@@ -234,14 +234,14 @@ ATTENZIONE: ripristina il valore annotato al passo 1, anche se la prova non ries
 **Preparazione:** App aperta. I quattro file sono nella cartella "Download" del tablet (passo 28).
 
 **Passi:**
-1. Apri la scheda "Importa" nella barra.
+1. Apri Canti, tocca + e poi Da PDF.
 2. Tocca "Scegli un PDF".
 3. Nel selettore di Android, apri la cartella "Download".
 4. Tocca il PDF con il canto singolo.
 5. Controlla che compaia il nome del file.
 6. Controlla che la lettura mostri "Pagina" con un numero di pagina e un totale.
 7. Attendi la fine della lettura.
-8. Torna alla scheda "Importa", tocca "Scegli un PDF" e scegli `danneggiato.pdf`.
+8. Apri di nuovo l'import con Canti → + → Da PDF, tocca "Scegli un PDF" e scegli `danneggiato.pdf`.
 9. Controlla che compaia un messaggio con un'azione. L'app non deve chiudersi.
 
 **Risultato atteso:** Il PDF valido si legge fino alla fine. Il file non valido dà un messaggio e nessun canto.
@@ -339,9 +339,9 @@ ATTENZIONE: la prima lettura di una scansione può richiedere diversi minuti. No
 1. Tocca "Apri" nel banner.
 2. Controlla che il canto si apra con il testo corretto.
 3. Torna indietro con il gesto Indietro di Android.
-4. Controlla che la scheda "Importa" torni nello stesso stato, con la riga del canto salvata.
+4. Controlla che la schermata di import torni nello stesso stato, con la riga del canto salvata.
 
-**Risultato atteso:** Il canto salvato si apre. Il ritorno lascia la scheda nello stato di prima.
+**Risultato atteso:** Il canto salvato si apre. Il ritorno lascia la schermata di import nello stato di prima.
 
 **Cosa annotare:** OK o KO. Scrivi il titolo del canto salvato.
 
@@ -395,7 +395,7 @@ ATTENZIONE: questa prova vale con il tablet in verticale, con una o due colonne.
 **Preparazione:** Righello in millimetri. 56 dp equivalgono a circa 8,9 mm. Per la misura usa una riga di un canto in revisione.
 
 **Passi:**
-1. Apri la scheda "Importa" senza file letti.
+1. Apri Canti → + → Da PDF senza file letti.
 2. Misura in mm l'altezza del pulsante "Scegli un PDF".
 3. Apri il libretto (I-T3).
 4. Misura in mm l'altezza del pulsante "Salva n canti selezionati" in fondo all'elenco. Se è spento, misura lo stesso.
@@ -564,9 +564,9 @@ ATTENZIONE: ripristina il valore annotato al passo 1, anche se la prova non ries
 2. Controlla che esista la sottocartella `PdfWorker`.
 3. Avvia `AppCanzoniere.MAUI.exe` dalla cartella estratta.
 4. Controlla che l'app si apra.
-5. Apri la scheda "Importa". Controlla che compaia il pulsante "Scegli un PDF".
+5. Apri Canti → + → Da PDF. Controlla che compaia il pulsante "Scegli un PDF".
 
-**Risultato atteso:** La sottocartella `PdfWorker` esiste. L'app si apre. La scheda Importa mostra il pulsante.
+**Risultato atteso:** La sottocartella `PdfWorker` esiste. L'app si apre. La schermata di import mostra il pulsante.
 
 **Cosa annotare:** OK o KO. Se la sottocartella ha un nome diverso, scrivi il nome.
 
@@ -577,7 +577,7 @@ ATTENZIONE: ripristina il valore annotato al passo 1, anche se la prova non ries
 **Preparazione:** I quattro file sono nella cartella "Documenti" del PC (passo 27). L'app è aperta.
 
 **Passi:**
-1. Apri la scheda "Importa" con un clic.
+1. Apri Canti con un clic, tocca + e poi Da PDF.
 2. Premi Ctrl+O.
 3. Controlla che si apra il selettore di file di Windows.
 4. Scegli il PDF con il canto singolo.

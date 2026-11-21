@@ -65,7 +65,7 @@ Stati: **completata** · **in corso** · **da iniziare** · **condizionata** (si
 | G0 | Validazione commerciale e d'uso (Gate 0, lavoro del proprietario, in parallelo) | da iniziare | F0 | Avvio entro il 16/11/2026; copione delle interviste aggiornato a tre modalità, pubblicità e Pro | — (≈ 80 h del proprietario) |
 | F1 | Risanamento del repository e CI verde (build Android e Windows) | **in corso** (ramo `f1/risanamento-ci`, PR) | F0 | Protezione del branch e minuti Actions sul piano GitHub (V-09); workload della macchina locale (proprietario) | 4 |
 | F2 | Nucleo musicale: ChordPro, trasposizione, notazione legata alla lingua, "incolla" | da iniziare | F1 (job core) | Nulla | 3 |
-| F3 | Prove tecniche del Gate 0: leggio su tablet Android e su Windows, import da PDF | da iniziare | F1 (job Android e Windows), F2 | Tablet economico, pedale Bluetooth, PC Windows di prova; 10 libretti PDF reali | 4 |
+| F3 | Prove tecniche del Gate 0: leggio su tablet Android e su Windows, import da PDF | in corso (mancano gli esiti delle prove su dispositivo) | F1 (job Android e Windows), F2 | Tablet economico, pedale Bluetooth, PC Windows di prova; 10 libretti PDF reali | 4 |
 | F4 | Sistema di token, cinque temi e componenti | da iniziare | F1 | Installazione della taste-skill (proprietario) | 5 |
 | F5 | Prove visive automatiche (confronto di schermate) in CI | da iniziare | F1, F4 | Cattura su emulatore Android e su Windows nei runner (V-09) | 3 |
 | F6 | Fondamenta: persistenza, impostazioni sul dispositivo, navigazione a tre modalità, libreria | da iniziare | F1, F2; F4 per la UI | Persistenza: nulla. UI: i due temi predefiniti di F4 | 6 |
@@ -344,6 +344,8 @@ Se il Gate 0 dice **fermarsi**: si chiude dopo i round in corso (≈ 16). Resta 
 8. Infrastruttura: tutte le stringhe in resx, interfaccia italiana, nomi dei momenti localizzabili [PC R-15]; feature flag con AI, OCR in cloud e audio spenti, e flag per pubblicità, acquisti e collegamento esterno alle donazioni (spento) [PC R-05].
 9. Eliminazione dei warning MVVMTK0045 e CS0618 [VAL §2.3].
 
+**Nota (round 10, 21/11/2026).** L'ingresso dell'import è già in Canti → + → Da PDF e la scheda "Importa" non c'è più: F6 non deve spostarlo. Vedi [DECISIONI-ROUND-10.md](DECISIONI-ROUND-10.md).
+
 **Riuso / rifare / eliminare.** Tiene Domain, `SongRepository`/`AlbumRepository`, `SongMetadataViewModel`, `DatabaseSeeder`, struttura MVVM/DI [VAL §6]. Rifà persistenza, migrazioni, navigazione, salvataggio, impostazioni. Cancella pagine e codice di AI, OCR mock, audio, cloud sync, canzoni pubbliche e login (DEC 3).
 
 **Richieste del prompt coperte.** P07, P08, P12, P13, P16 (metadati), P17, P18, P24 (raccolte), P26, P27 (stato legale), P29 (infrastruttura), P30, P31, P37 (meccanismo).
@@ -377,6 +379,8 @@ Se il Gate 0 dice **fermarsi**: si chiude dopo i round in corso (≈ 16). Resta 
 3. **Import** da PDF testuale e, se il Gate 0 lo consente, OCR sul dispositivo; revisione affiancata; **dichiarazione non preselezionata** a ogni import [PC §3.2 righe 18, 23]. Selettore di file nativo su entrambe le piattaforme.
 4. **Incolla** con la conversione di F2; blocchi tab in monospazio.
 5. Layout desktop della canzone su Windows (finestra ridimensionabile, scorciatoie: `Ctrl+F`, `+`/`-`, `F11`) [UX-A §2].
+
+**Nota (round 10, 21/11/2026).** U-1 è definitiva: l'import del libretto intero resta in v1 per tutti. Non si decide più in F7. Vedi [DECISIONI-ROUND-10.md](DECISIONI-ROUND-10.md).
 
 **Riuso / rifare / eliminare.** Riusa controllo e tasti di F3, nucleo F2, `IOcrService` come contratto. Rifà la pagina canzone [VAL §3.1 1a, 1c].
 
