@@ -51,6 +51,9 @@ public sealed partial class ImportSession
     /// <summary>Starts a new reading, dropping whatever was there.</summary>
     public void BeginReading(string fileName)
     {
+        if (IsLocked)
+            return;
+
         ClearSession();
         FileName = fileName;
         Phase = ImportPhase.Reading;
@@ -97,6 +100,9 @@ public sealed partial class ImportSession
     /// <summary>Cancels the reading and discards everything.</summary>
     public void Cancel()
     {
+        if (IsLocked)
+            return;
+
         ClearSession();
         Phase = ImportPhase.Cancelled;
         Raise();
@@ -105,6 +111,9 @@ public sealed partial class ImportSession
     /// <summary>Back to the start state with nothing kept.</summary>
     public void Reset()
     {
+        if (IsLocked)
+            return;
+
         ClearSession();
         Phase = ImportPhase.Start;
         Raise();
@@ -116,7 +125,7 @@ public sealed partial class ImportSession
 
     public void SetSelected(int index, bool selected)
     {
-        if (index < 0 || index >= _entries.Count || _entries[index].IsSaved)
+        if (IsLocked || index < 0 || index >= _entries.Count || _entries[index].IsSaved)
             return;
 
         _entries[index].IsSelected = selected;
@@ -126,7 +135,7 @@ public sealed partial class ImportSession
     /// <summary>Replaces the ChordPro of the open song; a saved song is read-only.</summary>
     public void Edit(string chordPro)
     {
-        if (Current is not { IsSaved: false } entry)
+        if (IsLocked || Current is not { IsSaved: false } entry)
             return;
 
         entry.ChordPro = chordPro ?? string.Empty;
@@ -136,7 +145,7 @@ public sealed partial class ImportSession
     /// <summary>Puts the open song back to the engine's proposal.</summary>
     public void Restore()
     {
-        if (Current is not { IsSaved: false } entry)
+        if (IsLocked || Current is not { IsSaved: false } entry)
             return;
 
         entry.ChordPro = entry.Song.ChordPro;
@@ -145,6 +154,9 @@ public sealed partial class ImportSession
 
     private void SetAll(bool selected)
     {
+        if (IsLocked)
+            return;
+
         foreach (var entry in _entries.Where(e => !e.IsSaved))
             entry.IsSelected = selected;
 

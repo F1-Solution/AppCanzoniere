@@ -40,7 +40,7 @@ public sealed partial class ImportSession
 
     public void Open(int index)
     {
-        if (Phase != ImportPhase.Result || index < 0 || index >= _entries.Count)
+        if (Phase != ImportPhase.Result || IsLocked || index < 0 || index >= _entries.Count)
             return;
 
         OpenCore(index);
@@ -63,6 +63,9 @@ public sealed partial class ImportSession
     /// <summary>Leaves the review and shows the list again.</summary>
     public void CloseReview()
     {
+        if (IsLocked)
+            return;
+
         _clock.Stop(Current);
         CurrentIndex = null;
         Raise();

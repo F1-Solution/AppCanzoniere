@@ -63,6 +63,8 @@ internal static class ImportSelfTest
             Log.Info(LogTag, $"IMPORT START {file} scenario={scenario} exists={File.Exists(path)}");
             if (scenario == "cancel")
                 await RunCancelAsync(vm, path).ConfigureAwait(false);
+            else if (scenario == "cancelreal")
+                await RunCancelDuringRecognitionAsync(vm, path).ConfigureAwait(false);
             else
                 await MainThread.InvokeOnMainThreadAsync(() => vm.ImportFromPathAsync(path));
 
@@ -92,6 +94,20 @@ internal static class ImportSelfTest
         // The delayed read ends after the cancel; the screen must stay on the cancelled state.
         await Task.WhenAny(import, Task.Delay(TimeSpan.FromSeconds(10))).ConfigureAwait(false);
         await Task.Delay(500).ConfigureAwait(false);
+    }
+
+    // Cancels while the page recognition is really running (no artificial delay), then checks the screen stays cancelled.
+    private static async Task RunCancelDuringRecognitionAsync(ImportViewModel vm, string path)
+    {
+        var import = MainThread.InvokeOnMainThreadAsync(() => vm.ImportFromPathAsync(path));
+        for (var i = 0; i < 600 && vm.Session.ProgressStage != AppCanzoniere.Application.PdfImport.SongbookImportStage.Recognizing && !import.IsCompleted; i++)
+            await Task.Delay(50).ConfigureAwait(false);
+
+        Log.Info(LogTag, $"IMPORT CANCELLING stage={vm.Session.ProgressStage} {vm.AutomationStatus}");
+        await MainThread.InvokeOnMainThreadAsync(() => vm.CancelReadingCommand.Execute(null));
+        Log.Info(LogTag, "IMPORT CANCELLED " + vm.AutomationStatus);
+        await Task.WhenAny(import, Task.Delay(TimeSpan.FromSeconds(60))).ConfigureAwait(false);
+        await Task.Delay(1000).ConfigureAwait(false);
     }
 
     private static async Task SaveSingleAsync(ImportViewModel vm)
