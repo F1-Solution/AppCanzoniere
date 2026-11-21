@@ -161,7 +161,7 @@ jobs:
         run: |
           sudo pkill tcpdump || true
           sleep 2
-          python3 -I tools/android-network-analyze.py "$RUNNER_TEMP/host.pcap" emulator-artifacts/net-markers.txt emulator-artifacts/host-summary.txt emulator-artifacts/net-uid-counters.txt
+          python3 -I tools/android-network-analyze.py "$RUNNER_TEMP/host.pcap" emulator-artifacts/net-markers.txt emulator-artifacts/host-summary.txt emulator-artifacts/net-uid-counters.txt emulator-artifacts/net-shell-counters.txt
           ! grep -q firebaselogging emulator-artifacts/host-summary.txt
 
       - name: Upload screenshots and logcat

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Lists DNS names, TLS server names, HTTP hosts and peer addresses per capture window.
 
-Usage: android-network-analyze.py <pcap> <markers> <output-file> [<uid-counters>]
+Usage: android-network-analyze.py <pcap> <markers> <output-file> [<uid-counters> [<shell-counters>]]
 Reads a classic pcap (Ethernet) captured on the runner by tcpdump; needs no extra packages.
 Exits 1 when a telemetry host shows up in a DNS query or TLS server name, when the control window shows no DNS,
 or (with <uid-counters>) when the app's own byte counters grew between ocr_start and tail_end.
@@ -123,6 +123,7 @@ TELEMETRY = ("firebaselogging",)
 def main():
     pcap, markers_path, out_path = sys.argv[1:4]
     counters_path = sys.argv[4] if len(sys.argv) > 4 else None
+    shell_path = sys.argv[5] if len(sys.argv) > 5 else None
     markers = {}
     for line in open(markers_path):
         parts = line.split()
@@ -155,7 +156,7 @@ def main():
     if counters_path:
         totals = uid_totals(counters_path)
         for label, total in totals.items():
-            lines.append("  %-15s %d" % (label, total))
+            lines.append("  %-15s %d%s" % (label, total, "" if total else "  (no netstats entry or no bytes)"))
         if "ocr_start" in totals and "tail_end" in totals:
             grown = totals["tail_end"] - totals["ocr_start"]
             lines.append("  growth ocr_start -> tail_end: %d" % grown)
@@ -165,6 +166,12 @@ def main():
             failures.append("netstats counters missing for ocr_start or tail_end")
     else:
         lines.append("  no counters file given")
+    if shell_path:
+        shell = uid_totals(shell_path)
+        grown = shell.get("control_end", 0) - shell.get("control_start", 0)
+        lines.append("  shell uid control (ping): %d bytes" % grown)
+        if grown <= 0:
+            failures.append("netstats showed no bytes for the shell's ping: the byte collection does not work")
     lines.append("")
     lines.append("RESULT: " + ("FAIL" if failures else "PASS"))
     lines.extend("  FAIL: " + f for f in failures)
