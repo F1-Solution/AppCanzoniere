@@ -41,14 +41,15 @@ internal sealed class SongDrawable : IDrawable
         {
             var metrics = Measurer.Measure(run.Text, run.Role);
             var top = run.BaselineY - metrics.Ascent;
-            if (top > dirtyRect.Bottom || top + metrics.LineHeight < dirtyRect.Top)
+            if (top > dirtyRect.Bottom || top + metrics.LineHeight * 1.5 < dirtyRect.Top)
                 continue;
 
             var role = _style.For(run.Role);
             canvas.Font = new Microsoft.Maui.Graphics.Font(role.Font);
             canvas.FontSize = role.Size;
             canvas.FontColor = role.Color;
-            canvas.DrawString(run.Text, (float)run.X, (float)top, (float)Math.Ceiling(run.Width) + 2, (float)metrics.LineHeight, HorizontalAlignment.Left, VerticalAlignment.Top);
+            // Drawn at the baseline with no box, so descenders and tall glyphs are never clipped by an estimated line height.
+            canvas.DrawString(run.Text, (float)run.X, (float)run.BaselineY, HorizontalAlignment.Left);
         }
     }
 }

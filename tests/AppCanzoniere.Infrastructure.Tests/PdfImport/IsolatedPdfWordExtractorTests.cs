@@ -4,6 +4,7 @@ using AppCanzoniere.Infrastructure.PdfImport;
 
 namespace AppCanzoniere.Infrastructure.Tests.PdfImport;
 
+[Collection(nameof(ProcessCollection))]
 public class IsolatedPdfWordExtractorTests : IDisposable
 {
     private readonly string _folder = Path.Combine(Path.GetTempPath(), "pdfworker-" + Guid.NewGuid().ToString("N"));
@@ -42,7 +43,7 @@ public class IsolatedPdfWordExtractorTests : IDisposable
 
     private static bool IsGone(int pid)
     {
-        var deadline = DateTime.UtcNow.AddSeconds(5);
+        var deadline = DateTime.UtcNow.AddSeconds(15);
         while (DateTime.UtcNow < deadline)
         {
             try

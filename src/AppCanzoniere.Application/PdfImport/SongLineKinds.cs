@@ -13,7 +13,7 @@ internal sealed record Region(int Page, IReadOnlyList<string> Lines, IReadOnlyLi
         new(page, lines, ChordFlags(lines), heights is not null && heights.Count == lines.Count ? heights : null);
 
     /// <summary>True when the row at index i is set in a larger font than the median of the region's text rows.</summary>
-    public bool IsTallerThanBody(int i)
+    public bool IsTallerThanBody(int i, double factor = TallerFactor)
     {
         if (Heights is null || Heights[i] <= 0)
             return false;
@@ -24,7 +24,7 @@ internal sealed record Region(int Page, IReadOnlyList<string> Lines, IReadOnlyLi
             _medianKnown = true;
         }
 
-        return _median is { } median && Heights[i] > median * TallerFactor;
+        return _median is { } median && Heights[i] > median * factor;
     }
 
     // Cache of the median row height, so a long region is not sorted for every line.

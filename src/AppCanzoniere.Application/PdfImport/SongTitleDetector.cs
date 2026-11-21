@@ -1,7 +1,7 @@
 namespace AppCanzoniere.Application.PdfImport;
 
-/// <summary>What the detector needs to know of the songs already read: the last title number, whether titles are numbered and the next verse number of the current song (0 when its verses are not numbered).</summary>
-internal readonly record struct TitleContext(int LastNumber, bool NumberedBook, int NextVerse = 0);
+/// <summary>What the detector needs to know of the songs already read: the last title number, whether titles are numbered and the next verse number of the current song (0 when its verses are not numbered) and the titles the songbook's index lists.</summary>
+internal readonly record struct TitleContext(int LastNumber, bool NumberedBook, int NextVerse = 0, IReadOnlySet<string>? IndexTitles = null);
 
 /// <summary>Decides which lines of a column are song titles and which adjacent lines are their subtitles.</summary>
 internal static class SongTitleDetector
@@ -17,6 +17,8 @@ internal static class SongTitleDetector
     private const int MaxSubtitles = 2;
     private const int CenteredIndent = 4;
     private const int CenteredHeadingIndent = 8;
+    private const double ListedHeadingFactor = 1.03;
+    private const double LargeHeadingFactor = 1.15;
 
     /// <summary>A title found at a line: its text, its number if any, and the line after its last subtitle.</summary>
     public sealed record Found(string Title, int? Number, IReadOnlyList<string> Subtitles, int NextLine, bool HadNote = false);
@@ -25,7 +27,7 @@ internal static class SongTitleDetector
     {
         var (number, full) = SongLineKinds.StripNumber(region.Lines[index]);
         var (title, note) = PerformanceHints.SplitNote(full);
-        if (PerformanceHints.IsHint(region.Lines[index]) || PerformanceHints.IsBisOfLast(region.Lines[index], context.LastNumber) || !IsTitle(region, index, number, title, context))
+        if (PerformanceHints.IsHint(region.Lines[index]) || PerformanceHints.IsBisOfLast(region.Lines[index], context.LastNumber) || !(IsTitle(region, index, number, title, context) || IsListedHeading(region, index, number, full, title, context)))
             return null;
 
         var subtitles = new List<string>();
@@ -39,6 +41,41 @@ internal static class SongTitleDetector
         }
 
         return new Found(title, number, subtitles, next, note is not null);
+    }
+
+    // A centred line slightly larger than the body, set off by a blank line, passing the title checks, not repeated anywhere on the page and listed in the songbook's index is a title (DEC 35).
+    private static bool IsListedHeading(Region region, int i, int? number, string full, string title, TitleContext context)
+    {
+        var line = region.Lines[i];
+        if (number is not null || context.IndexTitles is not { Count: > 0 } listed || SongLineKinds.IsBlank(line) || region.IsChord[i] || SongLineKinds.IsNoise(line))
+            return false;
+        if (SongLineKinds.Indent(line) < CenteredIndent || !region.IsTallerThanBody(i, ListedHeadingFactor) || region.IsTallerThanBody(i, LargeHeadingFactor))
+            return false;
+        if ((i > 0 && !SongLineKinds.IsBlank(region.Lines[i - 1])) || !LooksLikeTitleText(title) || SongLineKinds.IsRomanNumerals(title))
+            return false;
+        if (!listed.Contains(IndexRegionDetector.Comparable(full)) && !listed.Contains(IndexRegionDetector.Comparable(title)))
+            return false;
+
+        return !RepeatedOnPage(region, i);
+    }
+
+    // A repeat at any indent marks a refrain; the title echoed as the first lyric line right under it does not count.
+    private static bool RepeatedOnPage(Region region, int i)
+    {
+        var echo = NextLyric(region, i);
+        return Enumerable.Range(0, region.Lines.Count).Any(j => j != i && j != echo
+            && string.Equals(region.Lines[j].Trim(), region.Lines[i].Trim(), StringComparison.OrdinalIgnoreCase));
+    }
+
+    private static int NextLyric(Region region, int i)
+    {
+        for (var j = i + 1; j < region.Lines.Count; j++)
+        {
+            if (!SongLineKinds.IsBlank(region.Lines[j]) && !region.IsChord[j])
+                return j;
+        }
+
+        return -1;
     }
 
     private static bool IsTitle(Region region, int i, int? number, string text, TitleContext context)

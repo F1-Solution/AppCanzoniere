@@ -10,7 +10,11 @@ public sealed record ConvertedSong(
     string ChordPro,
     int ChordLineCount,
     IReadOnlyList<SheetWarning> Warnings,
-    int DoubtfulLineCount);
+    int DoubtfulLineCount)
+{
+    /// <summary>1-based numbers of the song's source lines the review should mark as doubtful.</summary>
+    public IReadOnlyList<int> DoubtfulLineNumbers { get; init; } = Array.Empty<int>();
+}
 
 /// <summary>Runs the chords-above-lyrics converter on one split song and sets its title.</summary>
 public static class PdfSongConverter
@@ -22,7 +26,10 @@ public static class PdfSongConverter
         var result = ChordSheetConverter.Convert(text);
         var doubtful = result.DoubtfulLines.ToList();
         var warnings = doubtful.SelectMany(l => l.Warnings).Where(w => w != SheetWarning.ChordInsideWord).Distinct().ToList();
-        return new ConvertedSong(song.Title, song.FirstPage, song.LastPage, WithSubtitles(result.ChordPro, song.Subtitles), result.ChordLineCount, warnings, doubtful.Count);
+        return new ConvertedSong(song.Title, song.FirstPage, song.LastPage, WithSubtitles(result.ChordPro, song.Subtitles), result.ChordLineCount, warnings, doubtful.Count)
+        {
+            DoubtfulLineNumbers = doubtful.Select(l => l.LineNumber - 1).Where(n => n >= 1 && n <= song.Lines.Count).Distinct().Order().ToList()
+        };
     }
 
     // The title directive is the first header line; subtitles follow it.

@@ -74,6 +74,12 @@ public sealed class PdfPigWordExtractor : IPdfWordExtractor
     // Reads at most MaxBytes into a single buffer; null means the input is larger than that.
     private async Task<ReadOnlyMemory<byte>?> ReadBoundedAsync(Stream pdf, CancellationToken cancellationToken)
     {
+        if (pdf is MemoryStream shared && shared.TryGetBuffer(out var view))
+        {
+            var rest = view.AsMemory((int)shared.Position, (int)(shared.Length - shared.Position));
+            return rest.Length > _limits.MaxBytes ? null : rest;
+        }
+
         if (pdf.CanSeek)
         {
             var remaining = pdf.Length - pdf.Position;

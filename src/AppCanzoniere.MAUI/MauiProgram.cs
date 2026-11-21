@@ -37,10 +37,11 @@ public static class MauiProgram
 
 #if WINDOWS
         // The reader is started on demand from the PdfWorker folder next to the app.
+        // A package without the reader still opens the import page; every read then fails with a reason.
         builder.Services.AddSingleton<AppCanzoniere.Application.PdfImport.IPdfWordExtractor>(_ =>
-            new AppCanzoniere.Infrastructure.PdfImport.IsolatedPdfWordExtractor(
-                AppCanzoniere.Infrastructure.PdfImport.PdfWorkerLaunch.LocateForApp(AppContext.BaseDirectory)
-                ?? throw new FileNotFoundException("The PDF reader is missing from the app folder.")));
+            AppCanzoniere.Infrastructure.PdfImport.PdfWorkerLaunch.LocateForApp(AppContext.BaseDirectory) is { } worker
+                ? new AppCanzoniere.Infrastructure.PdfImport.IsolatedPdfWordExtractor(worker)
+                : new AppCanzoniere.Application.PdfImport.UnavailablePdfWordExtractor("The PDF reader is missing from the app folder."));
 #endif
 
 #if DEBUG
@@ -49,6 +50,14 @@ public static class MauiProgram
 
         // Database
         var dbPath = Path.Combine(FileSystem.AppDataDirectory, "appcanzoniere.db");
+#if DEBUG
+        // UI tests point the database at a throwaway folder so they leave the library alone.
+        if (Environment.GetEnvironmentVariable("APPCANZONIERE_UITEST_DATA") is { Length: > 0 } testData)
+        {
+            Directory.CreateDirectory(testData);
+            dbPath = Path.Combine(testData, "appcanzoniere.db");
+        }
+#endif
         builder.Services.AddDbContext<AppDbContext>(options =>
             options.UseSqlite($"Data Source={dbPath}"));
 
@@ -65,13 +74,21 @@ public static class MauiProgram
         builder.Services.AddSingleton<ISongDisplayService, SongDisplayService>();
         builder.Services.AddSingleton<SongScreenPresenter>();
         builder.Services.AddSingleton<IHardwareKeySource, HardwareKeySource>();
-        builder.Services.AddSingleton(_ => new ScreenWakeLock(on =>
+        builder.Services.AddSingleton(_ => new ScreenWakeLock(on => MainThread.BeginInvokeOnMainThread(() =>
         {
-            DeviceDisplay.Current.KeepScreenOn = on;
+            try
+            {
+                DeviceDisplay.Current.KeepScreenOn = on;
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Keep screen on failed: {ex}");
+            }
+
 #if DEBUG && ANDROID
             Android.Util.Log.Info("AppCanzoniereSelfTest", $"KEEPSCREENON {on}");
 #endif
-        }));
+        })));
         builder.Services.AddSingleton<IPreferenceStorage, PreferencesStorage>();
         builder.Services.AddSingleton<IChordDisplaySettingsStore, ChordDisplaySettingsStore>();
 
@@ -90,16 +107,28 @@ public static class MauiProgram
         // Uncomment to use real Perplexity service (requires API key):
         // builder.Services.AddSingleton<IChordSuggestionService, PerplexityChordSuggestionService>();
 
-        // OCR Services - Use Mock by default
-        builder.Services.AddSingleton<IOcrService, MockOcrService>();
-        // Uncomment to use Azure Computer Vision (requires API key):
-        // builder.Services.AddHttpClient<IOcrService, AzureComputerVisionService>();
-
 #if ANDROID
         // On-device page OCR with the bundled ML Kit model.
         builder.Services.AddSingleton<AppCanzoniere.Application.PdfImport.IOcrEngine, Ocr.AndroidMlKitOcrEngine>();
-        builder.Services.AddSingleton<Ocr.AndroidPdfPageRenderer>();
+        builder.Services.AddSingleton<AppCanzoniere.Application.PdfImport.IPageImageRenderer, Ocr.AndroidPdfPageRenderer>();
+
+        // DEC 36: Android reads the PDF text in the app process, within the reader limits; Windows keeps the isolated worker.
+        builder.Services.AddSingleton<AppCanzoniere.Application.PdfImport.IPdfWordExtractor>(_ =>
+            new AppCanzoniere.Infrastructure.PdfImport.PdfPigWordExtractor(new AppCanzoniere.Infrastructure.PdfImport.PdfExtractionLimits()));
 #endif
+
+#if WINDOWS
+        // On-device OCR of Windows and the Windows PDF renderer; without an OCR language every scanned page fails with that reason.
+        builder.Services.AddSingleton<AppCanzoniere.Application.PdfImport.IOcrEngine>(_ =>
+            (AppCanzoniere.Application.PdfImport.IOcrEngine?)AppCanzoniere.WindowsOcr.WindowsOcrEngine.Create()
+            ?? new AppCanzoniere.Application.PdfImport.UnavailableOcrEngine(
+                "No Windows OCR language is installed. Installed: " + AppCanzoniere.WindowsOcr.WindowsOcrEngine.InstalledLanguages()));
+        builder.Services.AddSingleton<AppCanzoniere.Application.PdfImport.IPageImageRenderer, AppCanzoniere.WindowsOcr.WindowsPdfPageRenderer>();
+#endif
+
+        builder.Services.AddSingleton<AppCanzoniere.Application.PdfImport.ISongbookImportService, AppCanzoniere.Application.PdfImport.SongbookImportService>();
+        builder.Services.AddSingleton<AppCanzoniere.Application.Display.ISongPreviewService, AppCanzoniere.Application.Display.SongPreviewService>();
+        builder.Services.AddTransient<AppCanzoniere.Application.ImportReview.ImportSaver>();
 
         // Audio Recognition Services - Use Mock by default
         builder.Services.AddSingleton<IAudioRecognitionService, MockAudioRecognitionService>();
@@ -127,7 +156,7 @@ public static class MauiProgram
         builder.Services.AddTransient<SongDetailViewModel>();
         builder.Services.AddTransient<SongMetadataViewModel>();
         builder.Services.AddTransient<AiChordSuggestionViewModel>();
-        builder.Services.AddTransient<OcrImportViewModel>();
+        builder.Services.AddTransient<ImportViewModel>();
         builder.Services.AddTransient<AudioRecognitionViewModel>();
         builder.Services.AddTransient<CloudSyncViewModel>();
         builder.Services.AddTransient<LoginViewModel>();
@@ -142,7 +171,7 @@ public static class MauiProgram
         builder.Services.AddTransient<SongDetailPage>();
         builder.Services.AddTransient<SongMetadataPage>();
         builder.Services.AddTransient<AiChordSuggestionPage>();
-        builder.Services.AddTransient<OcrImportPage>();
+        builder.Services.AddTransient<ImportPage>();
         builder.Services.AddTransient<AudioRecognitionPage>();
         builder.Services.AddTransient<CloudSyncPage>();
         builder.Services.AddTransient<LoginPage>();
@@ -160,6 +189,8 @@ public static class MauiProgram
             var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
             db.Database.EnsureCreated();
         }
+
+        ViewModels.ImportViewModel.CleanStaleCopies();
 
         return app;
     }

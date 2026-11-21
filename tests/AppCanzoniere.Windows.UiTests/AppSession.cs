@@ -53,12 +53,34 @@ internal sealed class AppSession : IDisposable
         if (songMode is not null)
             info.Environment[SongVariable] = songMode;
 
+        return Start(info);
+    }
+
+    /// <summary>
+    /// Starts the app on the import screen with a PDF read straight away (no file picker); the database lives in a throwaway
+    /// folder so the tests leave the library alone, and a delay keeps the reading state on screen long enough to cancel it.
+    /// </summary>
+    public static AppSession LaunchImport(string pdfPath, int? readDelayMs = null)
+    {
+        var data = Path.Combine(Path.GetTempPath(), "appcanzoniere-uitest-" + Guid.NewGuid().ToString("N"));
+        var info = new ProcessStartInfo(Executable) { WorkingDirectory = AppDirectory, UseShellExecute = false };
+        info.Environment["APPCANZONIERE_UITEST_IMPORT"] = pdfPath;
+        info.Environment["APPCANZONIERE_UITEST_DATA"] = data;
+        info.Environment.Remove(SongVariable);
+        if (readDelayMs is { } delay)
+            info.Environment["APPCANZONIERE_UITEST_IMPORT_DELAY_MS"] = delay.ToString();
+
+        return Start(info, data);
+    }
+
+    private static AppSession Start(ProcessStartInfo info, string? dataFolder = null)
+    {
         var app = FlaApp.Launch(info);
         var automation = new UIA3Automation();
         try
         {
             var window = WaitForWindow(app, automation);
-            return new AppSession(app, automation, window);
+            return new AppSession(app, automation, window) { _dataFolder = dataFolder };
         }
         catch
         {
@@ -66,6 +88,19 @@ internal sealed class AppSession : IDisposable
             automation.Dispose();
             throw;
         }
+    }
+
+    private string? _dataFolder;
+
+    /// <summary>The committed import PDFs under tests/fixtures/import.</summary>
+    public static string Fixture(string name)
+    {
+        var directory = new DirectoryInfo(AppContext.BaseDirectory);
+        while (directory is not null && !File.Exists(Path.Combine(directory.FullName, "AppCanzoniere.Core.slnx")))
+            directory = directory.Parent;
+
+        var path = Path.Combine(directory?.FullName ?? throw new DirectoryNotFoundException("Repository root not found."), "tests", "fixtures", "import", name);
+        return File.Exists(path) ? path : throw new FileNotFoundException("Import fixture missing.", path);
     }
 
     // The window exists before the app answers UI Automation calls, so a timed-out call is retried.
@@ -203,6 +238,17 @@ internal sealed class AppSession : IDisposable
         Kill(_app);
         _app.Dispose();
         _automation.Dispose();
+        try
+        {
+            if (_dataFolder is not null && Directory.Exists(_dataFolder))
+                Directory.Delete(_dataFolder, recursive: true);
+        }
+        catch (IOException)
+        {
+        }
+        catch (UnauthorizedAccessException)
+        {
+        }
     }
 
     private static void Kill(FlaApp app)
