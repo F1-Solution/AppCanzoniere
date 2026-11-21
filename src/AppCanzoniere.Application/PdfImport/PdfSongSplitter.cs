@@ -12,6 +12,9 @@ public static class PdfSongSplitter
         var readings = ReadRegions(pages);
         var listedTitles = readings.SelectMany(r => r.Index?.Titles ?? Array.Empty<string>()).ToHashSet();
         var headings = readings.SelectMany(r => r.Index?.Headings ?? Array.Empty<string>()).Where(h => !listedTitles.Contains(h)).ToHashSet();
+        if (headings.Count * 2 > listedTitles.Count)
+            headings.Clear();
+
         var builder = new SongCollector(listedTitles, headings);
         var indexEntries = 0;
         var contentRegions = new List<Region>();
@@ -128,10 +131,23 @@ internal sealed partial class SongCollector(IReadOnlySet<string> indexTitles, IR
         _firstPage = _lastPage = region.Page;
     }
 
-    // A line that the index shows as a section heading, set off by blank lines and not listed as a song, closes the song above and is no text.
-    private bool IsSectionHeading(Region region, int i) =>
-        sectionHeadings.Count > 0 && !SongLineKinds.IsBlank(region.Lines[i]) && sectionHeadings.Contains(IndexRegionDetector.Comparable(region.Lines[i]))
-        && (i == 0 || SongLineKinds.IsBlank(region.Lines[i - 1])) && (i + 1 >= region.Lines.Count || SongLineKinds.IsBlank(region.Lines[i + 1]));
+    // An index heading is dropped only when it opens a column or is directly followed by a title; elsewhere it is text of the song.
+    private bool IsSectionHeading(Region region, int i)
+    {
+        if (sectionHeadings.Count == 0 || SongLineKinds.IsBlank(region.Lines[i]) || !sectionHeadings.Contains(IndexRegionDetector.Comparable(region.Lines[i])))
+            return false;
+        if (!(i == 0 || SongLineKinds.IsBlank(region.Lines[i - 1])) || !(i + 1 >= region.Lines.Count || SongLineKinds.IsBlank(region.Lines[i + 1])))
+            return false;
+
+        var opensColumn = Enumerable.Range(0, i).All(j => SongLineKinds.IsBlank(region.Lines[j]));
+        return opensColumn || FollowedByTitle(region, i + 1);
+    }
+
+    private bool FollowedByTitle(Region region, int from)
+    {
+        var next = Enumerable.Range(from, Math.Max(0, region.Lines.Count - from)).FirstOrDefault(j => !SongLineKinds.IsBlank(region.Lines[j]), -1);
+        return next >= 0 && SongTitleDetector.Detect(region, next, new TitleContext(_lastNumber, _numberedBook, _verseNumber == 0 ? 0 : _verseNumber + 1, indexTitles)) is not null;
+    }
 
     // A title repeated for another key or instrument, with the same number, continues the song.
     private bool IsSameSongAgain(SongTitleDetector.Found found) =>

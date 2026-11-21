@@ -45,7 +45,7 @@ internal static partial class RunningLines
     public static IReadOnlyList<PdfPageWords> Strip(IReadOnlyList<PdfPageWords> pages)
     {
         var candidates = pages.Select(Candidates).ToList();
-        var bySignature = candidates.SelectMany((rows, i) => rows.Where(r => IsRepeatable(r) || HasLink(r)).Select(Signature).Where(s => s.Length > 0).Distinct().Select(s => (Signature: s, Page: i)))
+        var bySignature = candidates.SelectMany((rows, i) => rows.Where(r => IsRepeatable(r) || HasLink(r)).Select(r => Signature(r, false)).Where(s => s.Length > 0).Distinct().Select(s => (Signature: s, Page: i)))
             .GroupBy(x => x.Signature).ToList();
         var repeated = bySignature.Where(g => g.Count() >= MinRepeatPages && g.Count() >= MinRepeatShare * pages.Count).Select(g => g.Key).ToHashSet();
         var sectionPages = SectionFooters(pages, candidates, repeated);
@@ -57,7 +57,7 @@ internal static partial class RunningLines
     {
         var result = new HashSet<(string, int)>();
         var groups = candidates.SelectMany((rows, i) => rows.Where(r => (IsRepeatable(r) || HasLink(r)) && IsAtBottom(r, pages[i])).Select(r => (Row: r, Page: i)))
-            .Select(x => (Signature: Signature(x.Row), x.Page, Offset: PageNumberOf(x.Row) is { } n ? n - pages[x.Page].PageNumber : (int?)null))
+            .Select(x => (Signature: Signature(x.Row, true), x.Page, Offset: PageNumberOf(x.Row) is { } n ? n - pages[x.Page].PageNumber : (int?)null))
             .Where(x => x.Signature.Length > 0 && x.Offset is not null && !repeated.Contains(x.Signature))
             .GroupBy(x => (x.Signature, x.Offset));
         foreach (var group in groups)
@@ -101,8 +101,9 @@ internal static partial class RunningLines
     {
         var hasLink = HasLink(row);
         var atBottom = IsAtBottom(row, page);
-        var signature = Signature(row);
-        var running = (IsRepeatable(row) || hasLink) && (repeated.Contains(signature) || (atBottom && sectionPages.Contains((signature, pageIndex))));
+        var signature = Signature(row, false);
+        var sectionSignature = Signature(row, true);
+        var running = (IsRepeatable(row) || hasLink) && (repeated.Contains(signature) || (atBottom && sectionPages.Contains((sectionSignature, pageIndex))));
         return running || (atBottom && hasLink) ? row.Words : Array.Empty<PositionedWord>();
     }
 
@@ -152,14 +153,16 @@ internal static partial class RunningLines
     // A single plain word such as "Amen" could be lyrics; two words or a page number mark a footer.
     private static bool IsRepeatable(TextRow row) => row.Words.Count >= 2 || row.Words.Any(w => Digit().IsMatch(w.Text));
 
-    // The row text without its page number; digits elsewhere (a song number, the 7 of a chord) stay.
-    private static string Signature(TextRow row)
+    // The row text without its page number; a leading number counts only for the section rule, where it must follow the page sequence.
+    private static string Signature(TextRow row, bool leadingNumber)
     {
         var text = string.Join(' ', row.Words.Select(w => w.Text)).Trim();
         if (NumberOnly().IsMatch(text))
             return "#";
 
-        text = LeadingPageNumber().Replace(text, string.Empty);
+        if (leadingNumber)
+            text = LeadingPageNumber().Replace(text, string.Empty);
+
         text = DashedPageNumber().Replace(text, " ");
         return TrailingPageNumber().Replace(text, string.Empty).Trim().ToLowerInvariant();
     }

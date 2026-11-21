@@ -78,4 +78,53 @@ public sealed class PdfSongSplitterSectionHeadingTests
         Assert.Equal(2, result.Songs[1].FirstPage);
         Assert.DoesNotContain(result.Songs, s => s.Lines.Any(l => l.Contains("KYRIE")));
     }
+
+        [Fact]
+    public void A_footer_equal_to_a_heading_at_the_bottom_of_a_page_does_not_split_the_song()
+    {
+        var pages = new[]
+        {
+            Page(1, $"PRIMO CANTO\n\n{Chords}\n\nKYRIE - GLORIA"),
+            Page(2, "sopra il mare chiaro\ne il vento canta ancora"),
+            Page(3, IndexWithHeading("KYRIE - GLORIA", "PRIMO CANTO")),
+        };
+
+        var result = PdfSongSplitter.Split(pages);
+
+        Assert.Single(result.Songs);
+        Assert.Equal("PRIMO CANTO", result.Songs[0].Title);
+        Assert.Contains(result.Songs[0].Lines, l => l.Contains("e il vento canta ancora"));
+    }
+
+    [Fact]
+    public void A_line_equal_to_a_heading_between_blank_lines_inside_a_song_is_kept()
+    {
+        var pages = new[]
+        {
+            Page(1, $"PRIMO CANTO\n\n{Chords}\n\nAlleluia!\n\nsopra il mare chiaro"),
+            Page(2, IndexWithHeading("ALLELUIA", "PRIMO CANTO")),
+        };
+
+        var result = PdfSongSplitter.Split(pages);
+
+        Assert.Single(result.Songs);
+        Assert.Contains(result.Songs[0].Lines, l => l.Contains("Alleluia!"));
+    }
+
+    [Fact]
+    public void An_index_whose_titles_are_all_headings_does_not_drop_any_title()
+    {
+        var index = "   INDICE\n" + string.Join("\n", new[] { "PRIMO CANTO", "SECONDO CANTO", "TERZO CANTO" }.SelectMany((t, n) => new[] { Leader("", t, n + 1), Leader("   ", "la luna sale piano", n + 1) }));
+        var pages = new[]
+        {
+            Page(1, $"PRIMO CANTO\n\n{Chords}"),
+            Page(2, $"SECONDO CANTO\n\n{Chords}"),
+            Page(3, $"TERZO CANTO\n\n{Chords}"),
+            Page(4, index),
+        };
+
+        var result = PdfSongSplitter.Split(pages);
+
+        Assert.Equal(new[] { "PRIMO CANTO", "SECONDO CANTO", "TERZO CANTO" }, result.Songs.Select(s => s.Title));
+    }
 }

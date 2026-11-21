@@ -182,6 +182,17 @@ public class RunningLinesTests
     }
 
     [Fact]
+    public async Task NumberedTitlesWithTheSameWord_InATenPageBooklet_AreKept()
+    {
+        var pages = Enumerable.Range(1, 10)
+            .Select(n => n <= 3 ? Page(n, ($"Alleluia cantate al Signore {n}", 400), ($"{100 + n} SANTO", Header)) : Page(n, ($"Alleluia cantate al Signore {n}", 400))).ToArray();
+
+        var texts = await Import(pages);
+
+        Assert.All(new[] { 0, 1, 2 }, i => Assert.StartsWith($"{101 + i} SANTO", texts[i]));
+    }
+
+    [Fact]
     public async Task RefrainAtTheBottomOfThreeConsecutivePages_IsKept()
     {
         var texts = await Import(Booklet(n => n is >= 10 and <= 12 ? ("Alleluia, alleluia", Footer) : null));
