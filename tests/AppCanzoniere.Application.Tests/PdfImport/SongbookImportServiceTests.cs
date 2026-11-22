@@ -378,6 +378,20 @@ public sealed class SongbookImportServiceTests
     }
 
     // The PDF is held once: the extractor gets a view over an exact-size buffer, not a second copy.
+    // A caller that already holds the bytes in a stream exposing its buffer gets no second copy.
+    [Fact]
+    public async Task A_memory_stream_with_a_visible_buffer_is_read_without_copying()
+    {
+        var data = Enumerable.Range(0, 1000).Select(i => (byte)i).ToArray();
+        var extractor = new CapturingExtractor();
+        var service = new SongbookImportService(extractor, new FakeRenderer(), new FakeOcr(_ => ScannedSong()));
+
+        await service.ImportAsync(new MemoryStream(data, 0, data.Length, writable: false, publiclyVisible: true), "book.pdf");
+
+        Assert.Same(data, extractor.Seen.Array);
+        Assert.Equal(data.Length, extractor.Seen.Count);
+    }
+
     [Theory]
     [InlineData(false)]
     [InlineData(true)]

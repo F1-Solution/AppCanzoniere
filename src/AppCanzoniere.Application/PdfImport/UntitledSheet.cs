@@ -47,11 +47,14 @@ internal static partial class UntitledSheet
         return start < 0 ? new List<string>() : lines.GetRange(start, end - start + 1);
     }
 
-    private static string? FirstLyricLine(IReadOnlyList<Region> regions)
+    /// <summary>The first lyric line of the region from line <paramref name="start"/>, else a placeholder.</summary>
+    public static string TitleFrom(Region region, int start) => FirstLyricLine(new[] { region }, start) ?? FallbackTitle;
+
+    private static string? FirstLyricLine(IReadOnlyList<Region> regions, int start = 0)
     {
         foreach (var region in regions)
         {
-            for (var i = 0; i < region.Lines.Count; i++)
+            for (var i = start; i < region.Lines.Count; i++)
             {
                 var line = region.Lines[i];
                 if (SongLineKinds.IsBlank(line) || SongLineKinds.IsNoise(line) || region.IsChord[i] || PerformanceHints.IsHint(line))

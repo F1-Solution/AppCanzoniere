@@ -109,6 +109,12 @@ public sealed class SongbookImportService : ISongbookImportService
     // Reads at most MaxBytes into one buffer that the readers share without copying it; null means the input is larger than that.
     private async Task<MemoryStream?> ReadBoundedAsync(Stream pdf, CancellationToken cancellationToken)
     {
+        if (pdf is MemoryStream held && held.CanSeek && held.TryGetBuffer(out var segment))
+        {
+            var left = held.Length - held.Position;
+            return left > _options.MaxBytes ? null : new MemoryStream(segment.Array!, segment.Offset + (int)held.Position, (int)left, writable: false, publiclyVisible: true);
+        }
+
         if (pdf.CanSeek)
         {
             var remaining = pdf.Length - pdf.Position;

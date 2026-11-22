@@ -76,3 +76,45 @@ Righe attese nel log con tag `AppCanzoniereSelfTest`:
 3. Collegare motore e rendering a una schermata di importazione.
 4. Qualità su scansioni reali di spartiti: da provare con il banco di prova (non incluso in questo round).
 5. Il resto di V-07: Google Mobile Ads, UMP, Play Billing.
+
+## Traffico di rete (R9-21)
+
+Data: **21/11/2026**. Esecuzioni CI di misura: 44912944426 (prima della correzione) e 44914831304 (dopo la correzione). Emulatore API 34, immagine `google_apis`.
+
+### Metodo
+
+- L'opzione `-tcpdump` dell'emulatore non vede il traffico della macchina virtuale: una prova di controllo (`ping example.com` dalla shell) non compare nel file. Il metodo è quindi la cattura `tcpdump` sul computer che ospita l'emulatore, letta con `tools/android-network-analyze.py` (nomi DNS e nomi TLS).
+- `tools/android-network-capture.sh` divide la prova in finestre con orari: controllo, 60 s senza app, test OCR, 60 s di attesa, lavori forzati (`cmd jobscheduler run -f`) per 90 s, 60 s finali.
+- L'app ha un solo lavoro di Google programmato (servizio di trasporto dati, ripetizione ogni 24 ore). Il lavoro è stato forzato e si è concluso.
+- Per separare l'app dal sistema: nella finestra senza app non compare nessun nome `firebaselogging`, e `dumpsys netstats` conta i byte per UID dell'app.
+
+### Risultato prima della correzione (esecuzione 44912944426)
+
+| Voce | Esito |
+|---|---|
+| Finestra senza app | Nessun traffico verso `firebaselogging.googleapis.com` |
+| Dopo il test OCR (circa 22 s dopo la fine) | Richieste DNS e TLS verso `firebaselogging.googleapis.com` |
+| Byte dell'app (UID 10192) | Da zero a 5.239 byte ricevuti e 2.230 inviati, solo in quel periodo |
+| Lavoro forzato | Nessun traffico in più |
+| Altri nomi nella cattura | Servizi di sistema Google dell'immagine (`android.googleapis.com`, `www.gstatic.com`, `mtalk.google.com` e simili) e GitHub: non attribuiti all'app |
+
+Conclusione: ML Kit invia le metriche d'uso a Google anche con il modello incluso. Il contenuto non è stato letto (è cifrato). Il rilievo R9-21 era fondato.
+
+### Correzione
+
+Il manifest dell'app toglie la registrazione del servizio di invio della libreria di trasporto di Google (`tools:node="remove"`), e il progetto indica l'unificatore di manifest di Google (è già il predefinito: la riga lo rende esplicito). Senza servizio di invio gli eventi vengono scartati.
+
+### Risultato dopo la correzione (esecuzione 44914831304)
+
+| Voce | Esito |
+|---|---|
+| `firebaselogging.googleapis.com` | Assente in tutte le finestre |
+| Byte dell'app (UID 10192) | Nessuna riga nelle statistiche: zero byte |
+| Test OCR | `OCR INFO bundled=True` e `OCR OK Do Re Mi \| Alleluia canto nuovo` |
+| `play.googleapis.com` | Resta (solo DNS), ma l'app ha zero byte: viene dal sistema dell'immagine |
+
+Conclusione: dopo la correzione l'app non genera traffico di rete durante l'OCR. La dichiarazione "nessuna rete durante l'import" è vera per ML Kit.
+
+### Controllo nel tempo
+
+La cattura gira solo nelle esecuzioni manuali di CI (`workflow_dispatch`) e fallisce se compare `firebaselogging`. Limite: l'invio ritardato di 24 ore è provato solo con il lavoro forzato, non con un'attesa reale.

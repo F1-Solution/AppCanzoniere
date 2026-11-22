@@ -31,7 +31,7 @@ internal static class ImportTestHook
         {
             var path = Environment.GetEnvironmentVariable(Variable)!;
             Log("navigating");
-            await shell.GoToAsync("//import");
+            await shell.GoToAsync("import");
             Log("navigated");
             for (var i = 0; i < 50 && shell.CurrentPage?.BindingContext is not ViewModels.ImportViewModel; i++)
                 await Task.Delay(100);
